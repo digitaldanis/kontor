@@ -124,7 +124,7 @@ export function buildCii(doc: InvoiceDocument, sellerInput: Company, profile: EI
 <ram:SpecifiedTradeProduct><ram:Name>${esc(item.title || 'Leistung')}</ram:Name>${tag('ram:Description', esc(item.description))}</ram:SpecifiedTradeProduct>
 <ram:SpecifiedLineTradeAgreement><ram:NetPriceProductTradePrice><ram:ChargeAmount>${amount(item.unitPriceCents)}</ram:ChargeAmount></ram:NetPriceProductTradePrice></ram:SpecifiedLineTradeAgreement>
 <ram:SpecifiedLineTradeDelivery><ram:BilledQuantity unitCode="${UNIT_CODES[item.unit] ?? 'C62'}">${qty(item.quantity)}</ram:BilledQuantity></ram:SpecifiedLineTradeDelivery>
-<ram:SpecifiedLineTradeSettlement><ram:ApplicableTradeTax><ram:TypeCode>VAT</ram:TypeCode><ram:CategoryCode>${cat.code}</ram:CategoryCode><ram:RateApplicablePercent>${rateStr(rate)}</ram:RateApplicablePercent></ram:ApplicableTradeTax>${allowance}<ram:SpecifiedTradeSettlementLineMonetarySummation><ram:LineTotalAmount>${amount(lt.netCents)}</ram:LineTotalAmount></ram:SpecifiedTradeSettlementLineMonetarySummation></ram:SpecifiedLineTradeSettlement>
+<ram:SpecifiedLineTradeSettlement><ram:ApplicableTradeTax><ram:TypeCode>VAT</ram:TypeCode><ram:CategoryCode>${cat.code}</ram:CategoryCode>${cat.code === 'O' ? '' : `<ram:RateApplicablePercent>${rateStr(rate)}</ram:RateApplicablePercent>`}</ram:ApplicableTradeTax>${allowance}<ram:SpecifiedTradeSettlementLineMonetarySummation><ram:LineTotalAmount>${amount(lt.netCents)}</ram:LineTotalAmount></ram:SpecifiedTradeSettlementLineMonetarySummation></ram:SpecifiedLineTradeSettlement>
 </ram:IncludedSupplyChainTradeLineItem>`
     })
     .join('\n')
@@ -136,8 +136,11 @@ export function buildCii(doc: InvoiceDocument, sellerInput: Company, profile: EI
     })
     .join('')
 
+  // BR-CO-26 needs some seller identifier; fall back to the tax number when no VAT ID is sent
+  const sendsVatId = !!seller.vatId && doc.taxMode !== 'thirdCountry'
+  const sellerId = sendsVatId ? '' : seller.taxNumber || seller.vatId
   const sellerTax = [
-    seller.vatId && doc.taxMode !== 'thirdCountry' ? `<ram:SpecifiedTaxRegistration><ram:ID schemeID="VA">${esc(seller.vatId.replace(/\s/g, ''))}</ram:ID></ram:SpecifiedTaxRegistration>` : '',
+    sendsVatId ? `<ram:SpecifiedTaxRegistration><ram:ID schemeID="VA">${esc(seller.vatId.replace(/\s/g, ''))}</ram:ID></ram:SpecifiedTaxRegistration>` : '',
     seller.taxNumber ? `<ram:SpecifiedTaxRegistration><ram:ID schemeID="FC">${esc(seller.taxNumber)}</ram:ID></ram:SpecifiedTaxRegistration>` : '',
   ].join('')
 
@@ -189,7 +192,7 @@ ${notes}
 ${lines}
 <ram:ApplicableHeaderTradeAgreement>
 ${tag('ram:BuyerReference', esc(buyerReference))}
-<ram:SellerTradeParty><ram:Name>${esc(seller.name)}</ram:Name>${sellerContact}${address(seller)}${seller.email ? `<ram:URIUniversalCommunication><ram:URIID schemeID="EM">${esc(seller.email)}</ram:URIID></ram:URIUniversalCommunication>` : ''}${sellerTax}</ram:SellerTradeParty>
+<ram:SellerTradeParty>${sellerId ? `<ram:ID>${esc(sellerId)}</ram:ID>` : ''}<ram:Name>${esc(seller.name)}</ram:Name>${sellerContact}${address(seller)}${seller.email ? `<ram:URIUniversalCommunication><ram:URIID schemeID="EM">${esc(seller.email)}</ram:URIID></ram:URIUniversalCommunication>` : ''}${sellerTax}</ram:SellerTradeParty>
 <ram:BuyerTradeParty><ram:Name>${esc(buyerName)}</ram:Name>${buyerContact}${address(r)}${r.email ? `<ram:URIUniversalCommunication><ram:URIID schemeID="EM">${esc(r.email)}</ram:URIID></ram:URIUniversalCommunication>` : ''}${r.vatId ? `<ram:SpecifiedTaxRegistration><ram:ID schemeID="VA">${esc(r.vatId.replace(/\s/g, ''))}</ram:ID></ram:SpecifiedTaxRegistration>` : ''}</ram:BuyerTradeParty>
 </ram:ApplicableHeaderTradeAgreement>
 <ram:ApplicableHeaderTradeDelivery>${delivery}</ram:ApplicableHeaderTradeDelivery>
