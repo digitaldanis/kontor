@@ -5,6 +5,9 @@ import { defineConfig } from 'vite'
 export default defineConfig({
   base: './',
   plugins: [react()],
+  build: {
+    chunkSizeWarningLimit: 700,
+  },
   test: {
     environment: 'node',
   },
