@@ -97,7 +97,7 @@ export function Dashboard() {
           </h1>
         </div>
         <div className="actions">
-          <Button icon={UserPlus} onClick={() => navigate('/kunden')}>
+          <Button icon={UserPlus} onClick={() => navigate('/kunden?neu=1')}>
             {t('Kunde')}
           </Button>
           <Button variant="primary" icon={FilePlus} onClick={() => setCreating(true)}>

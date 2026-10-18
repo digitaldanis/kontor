@@ -1,3 +1,4 @@
+import { useSearchParams } from 'react-router-dom'
 import { useLiveQuery } from './live'
 import { useEffect, useState } from 'react'
 import { db } from './db'
@@ -50,4 +51,19 @@ export function useMediaQuery(query: string): boolean {
     return () => m.removeEventListener('change', on)
   }, [query])
   return match
+}
+
+/** Runs `open` once when the URL carries ?neu=…, e.g. from the quick search, then drops the parameter. */
+export function useNewParam(open: (value: string) => void, ready = true) {
+  const [params, setParams] = useSearchParams()
+  const value = params.get('neu')
+  useEffect(() => {
+    if (!value || !ready) return
+    open(value)
+    const next = new URLSearchParams(params)
+    next.delete('neu')
+    setParams(next, { replace: true })
+    // only react to the parameter itself
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value, ready])
 }

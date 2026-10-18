@@ -82,7 +82,7 @@ export function ReminderDialog({ invoice, onClose, onSaved }: { invoice: Invoice
       const r = await saveReminder({ ...rest, title: reminderTitle(level, lang, settings.dunning) })
       if (withPdf) await downloadReminderPdf(r, invoice, settings)
       return r
-    }, t('{p0} gespeichert', { p0: LEVEL_LABELS[level] }))
+    }, t('{p0} gespeichert', { p0: t(LEVEL_LABELS[level]) }))
     if (saved) {
       onSaved?.(saved)
       onClose()
@@ -94,7 +94,7 @@ export function ReminderDialog({ invoice, onClose, onSaved }: { invoice: Invoice
       open={!!invoice}
       onClose={onClose}
       wide
-      title={t('{p0} zu {p1}', { p0: LEVEL_LABELS[level], p1: invoice.number })}
+      title={t('{p0} zu {p1}', { p0: t(LEVEL_LABELS[level]), p1: invoice.number })}
       description={t('{p0} · fällig seit {p1}', { p0: invoice.recipient.company || invoice.recipient.contactPerson, p1: formatDate(invoice.dueDate) })}
       footer={
         <>

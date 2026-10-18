@@ -359,7 +359,8 @@ export async function createCreditNote(invoiceId: string, scope: 'full' | 'parti
     issueDate,
     dueDate: issueDate,
     items,
-    discount: scope === 'full' && items.length === original.items.length ? original.discount : null,
+    // a percentage discount applies to credited items too, a fixed one only to a full credit
+    discount: scope === 'full' && items.length === original.items.length ? original.discount : original.discount?.type === 'percent' ? original.discount : null,
     billingType: 'regular',
     deductions: [],
     introText: GENERATED[original.language].creditIntro(original.number ?? '', formatDocDate(original.issueDate, original.language)),

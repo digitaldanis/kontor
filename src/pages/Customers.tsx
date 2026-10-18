@@ -9,7 +9,7 @@ import { countryName } from '../lib/countries'
 import { durationMinutes, formatDuration } from '../lib/dates'
 import { db } from '../lib/db'
 import { customerName } from '../lib/defaults'
-import { useCustomers, useDocumentTitle } from '../lib/hooks'
+import { useCustomers, useDocumentTitle, useNewParam } from '../lib/hooks'
 import { formatMoney } from '../lib/money'
 import { emptyCustomer } from '../lib/repo'
 import { amountDue, isOutstanding } from '../lib/status'
@@ -21,6 +21,7 @@ export function Customers() {
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<'active' | 'archived'>('active')
   const [editing, setEditing] = useState<Customer | null>(null)
+  useNewParam(() => setEditing(emptyCustomer()))
   const customers = useCustomers(true)
   const stats = useLiveQuery(async () => {
     const [docs, entries] = await Promise.all([db.documents.toArray(), db.timeEntries.toArray()])

@@ -10,7 +10,7 @@ import { useFeedback } from '../components/feedback'
 import { Avatar, Button, Dialog, EmptyState, PageHeader, Segmented } from '../components/ui'
 import { db } from '../lib/db'
 import { customerName, recipientName } from '../lib/defaults'
-import { useCustomers, useDocumentTitle } from '../lib/hooks'
+import { useCustomers, useDocumentTitle, useNewParam } from '../lib/hooks'
 import { formatMoney } from '../lib/money'
 import { amountDue, displayStatus, isOutstanding, type DisplayStatus } from '../lib/status'
 import type { DocumentKind } from '../lib/types'
@@ -44,6 +44,7 @@ export function Documents() {
   const [filter, setFilter] = useState<Filter>((params.get('status') as Filter) || 'all')
   const [query, setQuery] = useState('')
   const [creating, setCreating] = useState<DocumentKind | null>(null)
+  useNewParam((v) => setCreating(v === 'angebot' ? 'quote' : 'invoice'))
 
   const docs = useLiveQuery(async () => {
     const all = await db.documents.toArray()

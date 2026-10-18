@@ -1,0 +1,158 @@
+import { expect, test, type Page } from '@playwright/test'
+
+const shots = process.env.E2E_SHOTS
+async function shot(page: Page, name: string) {
+  if (shots) await page.screenshot({ path: `${shots}/${name}.png`, fullPage: true })
+}
+
+test.describe.configure({ mode: 'serial' })
+
+let page: Page
+
+test.beforeAll(async ({ browser }) => {
+  page = await browser.newPage()
+})
+
+test('a new owner registers and sets up the company', async () => {
+  await page.goto('/')
+  await expect(page.getByRole('heading', { name: 'Welcome to Kontor' })).toBeVisible()
+  await shot(page, '01-register')
+  await page.getByLabel('Your name').fill('Lena Berger')
+  await page.getByLabel('E-mail').fill('lena@example.com')
+  await page.getByLabel('Password').fill('correct horse battery')
+  await page.getByRole('button', { name: 'Create account' }).click()
+
+  await expect(page.getByRole('button', { name: 'Get started' })).toBeVisible()
+  await shot(page, '02-onboarding')
+  await page.getByRole('button', { name: 'Get started' }).click()
+  await page.getByLabel('Company name *').fill('Northlight Studio')
+  await page.getByLabel('Owner').fill('Lena Berger')
+  await page.getByLabel('Street and number *').fill('Kastanienallee 21')
+  await page.getByLabel('Postcode *').fill('10435')
+  await page.getByLabel('City *').fill('Berlin')
+  await shot(page, '03-company')
+  await page.getByRole('button', { name: 'Next' }).click()
+  await page.getByLabel('Tax number').fill('30/245/67890')
+  await page.getByLabel('VAT ID').fill('DE298765432')
+  await page.getByRole('button', { name: 'Next' }).click()
+  await page.getByLabel('IBAN').fill('DE89 3704 0044 0532 0130 00')
+  await page.getByRole('button', { name: 'Next' }).click()
+  await shot(page, '04-look')
+  await page.getByRole('button', { name: 'Done' }).click()
+  await expect(page.getByRole('heading', { name: /Lena/ })).toBeVisible()
+  await shot(page, '05-dashboard')
+})
+
+test('adds a client and tracks time', async () => {
+  await page.getByRole('link', { name: 'Clients' }).first().click()
+  await page.getByRole('button', { name: 'New client' }).first().click()
+  const dialog = page.getByRole('dialog')
+  await dialog.getByLabel('Company').fill('Harbour Digital GmbH')
+  await dialog.getByLabel('Contact person').fill('Amelia Clarke')
+  await dialog.getByLabel('Street and number').fill('Hafenstraße 7')
+  await dialog.getByLabel('Postcode').fill('20457')
+  await dialog.getByLabel('City').fill('Hamburg')
+  await dialog.getByLabel('E-mail').fill('amelia@harbour.example')
+  await shot(page, '06-client')
+  await dialog.getByRole('button', { name: 'Save' }).click()
+  await expect(page.getByRole('heading', { name: /Harbour Digital GmbH/ })).toBeVisible()
+
+  await page.getByRole('link', { name: 'Time tracking' }).first().click()
+  await page.getByRole('button', { name: 'Add time' }).click()
+  const entry = page.getByRole('dialog')
+  await entry.getByLabel('Activity *').fill('Concept workshop')
+  await entry.getByLabel('From').fill('09:00')
+  await entry.getByLabel('To').fill('11:30')
+  await entry.getByRole('button', { name: 'Save' }).click()
+  await expect(page.getByText('Concept workshop').first()).toBeVisible()
+
+  await page.getByRole('button', { name: 'Start timer' }).click()
+  await expect(page.getByRole('timer')).toBeVisible()
+  await shot(page, '07-timer')
+  await page.getByRole('button', { name: 'Discard' }).click()
+  await expect(page.getByRole('button', { name: 'Start timer' })).toBeVisible()
+})
+
+test('bills the time, finalises the invoice and records a partial payment', async () => {
+  await page.getByRole('button', { name: 'Bill' }).first().click()
+  await page.getByRole('dialog').getByRole('button', { name: 'Add to invoice' }).click()
+  await expect(page.getByText('Concept workshop').first()).toBeVisible()
+  const issue = new Date(Date.now() - 40 * 86_400_000).toISOString().slice(0, 10)
+  await page.getByLabel('Invoice date').fill(issue)
+  await page.getByRole('button', { name: 'Discount on the whole invoice' }).click()
+  await page.getByLabel('Invoice discount in percent').fill('10')
+  await page.getByLabel('Invoice discount in percent').blur()
+  await expect(page.getByText('All mandatory details present')).toBeVisible()
+  await shot(page, '08-editor')
+  await page.getByRole('button', { name: 'Finalise' }).first().click()
+  const year = issue.slice(0, 4)
+  await page.getByRole('button', { name: `Finalise as RE-${year}-0001` }).click()
+  await expect(page.locator('.editor-header h1')).toContainText(`Invoice RE-${year}-0001`)
+  await expect(page.getByText('Overdue').first()).toBeVisible()
+  await shot(page, '09-invoice')
+
+  await page.getByRole('button', { name: 'Send' }).click()
+  const mail = page.getByRole('dialog')
+  await expect(mail.getByLabel('To')).toHaveValue('amelia@harbour.example')
+  await expect(mail.getByLabel('Subject')).toHaveValue(`Invoice RE-${year}-0001 from Northlight Studio`)
+  await shot(page, '10-mail')
+  await mail.getByRole('button', { name: 'Close' }).click()
+
+  await page.getByRole('button', { name: 'Record payment' }).click()
+  const pay = page.getByRole('dialog')
+  await pay.getByLabel('Payment amount').fill('100')
+  await pay.getByRole('button', { name: 'Book partial payment' }).click()
+  await expect(page.getByText(/open from|of .* open/).first()).toBeVisible()
+})
+
+test('sends a reminder and issues a credit note', async () => {
+  await page.getByRole('link', { name: 'Remind', exact: true }).click()
+  const dlg = page.getByRole('dialog')
+  await expect(dlg.getByRole('heading', { name: /Payment reminder for RE-/ })).toBeVisible()
+  await shot(page, '11-reminder')
+  const download = page.waitForEvent('download')
+  await dlg.getByRole('button', { name: 'Save and PDF' }).click()
+  expect((await download).suggestedFilename()).toMatch(/\.pdf$/)
+  await expect(page.getByText('Payment reminder', { exact: false }).first()).toBeVisible()
+
+  await page.getByRole('link', { name: /RE-/ }).first().click()
+  await page.getByRole('button', { name: 'Credit note' }).click()
+  await page.getByRole('dialog').getByRole('button', { name: 'Partial credit' }).click()
+  await expect(page.getByText(/Credit note for/).first()).toBeVisible()
+  await page.getByLabel('Quantity').first().fill('0,5')
+  await page.getByLabel('Quantity').first().blur()
+  await page.getByRole('button', { name: 'Finalise' }).first().click()
+  const year = new Date(Date.now() - 40 * 86_400_000).getFullYear()
+  await page.getByRole('button', { name: new RegExp(`Finalise as GS-\\d{4}-0001`) }).click()
+  await expect(page.locator('.editor-header h1')).toContainText('Credit note GS-')
+  await shot(page, '12-credit')
+  void year
+})
+
+test('records an expense and shows the reports', async () => {
+  await page.getByRole('link', { name: 'Expenses' }).first().click()
+  await page.getByRole('button', { name: 'New expense' }).click()
+  const dlg = page.getByRole('dialog')
+  await dlg.getByLabel('Supplier').fill('North Hosting GmbH')
+  await dlg.getByLabel('Description').fill('Web hosting')
+  await dlg.getByLabel('Gross amount').fill('23,80')
+  await dlg.getByLabel('Gross amount').blur()
+  await expect(dlg.getByLabel('Input VAT')).toHaveValue('3.80')
+  await dlg.locator('input[type=file]').setInputFiles({ name: 'receipt.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4 receipt') })
+  await expect(dlg.getByText('receipt.pdf')).toBeVisible()
+  await dlg.getByRole('button', { name: 'Save' }).click()
+  await expect(page.getByText('North Hosting GmbH')).toBeVisible()
+  await shot(page, '13-expenses')
+
+  await page.getByRole('link', { name: 'Reports' }).first().click()
+  await expect(page.getByRole('heading', { name: 'VAT return' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Profit statement/ })).toBeVisible()
+  await shot(page, '14-reports')
+})
+
+test('quick search finds the client', async () => {
+  await page.keyboard.press('Control+k')
+  await page.getByPlaceholder('Search clients, invoices or actions …').fill('harbour')
+  await page.keyboard.press('Enter')
+  await expect(page.getByRole('heading', { name: /Harbour Digital GmbH/ })).toBeVisible()
+})

@@ -11,7 +11,7 @@ import { db } from '../lib/db'
 import { CURRENCIES, TAX_RATES } from '../lib/defaults'
 import { extractXmlFromPdf, importedToExpense, parseEInvoice } from '../lib/einvoiceImport'
 import { emptyExpense, EXPENSE_CATEGORIES, expenseNet, expensesToCsv, vatFromGross } from '../lib/expenses'
-import { useDocumentTitle, useSettings } from '../lib/hooks'
+import { useDocumentTitle, useNewParam, useSettings } from '../lib/hooks'
 import { formatMoney, formatNumber } from '../lib/money'
 import type { Attachment, Expense } from '../lib/types'
 
@@ -39,6 +39,7 @@ export function Expenses() {
   const vat = list.reduce((s, e) => s + e.vatCents, 0)
   const withoutReceipt = list.filter((e) => !e.attachmentId).length
   const fresh = () => emptyExpense({ taxRate: settings?.smallBusiness ? 0 : 19, currency: settings?.defaults.currency ?? 'EUR' })
+  useNewParam(() => setEditing(fresh()), !!settings)
 
   const remove = async (e: Expense) => {
     const removed = await run(() => deleteExpense(e.id))
@@ -287,7 +288,7 @@ function ExpenseDialog({ expense, onClose, smallBusiness }: { expense: Expense |
           <div className="stack-sm" style={{ gap: 8 }}>
             <div>
               <strong>{attachment ? attachment.name : t('Beleg anhängen')}</strong>
-              <p className="muted small">{attachment ? t('{p0} KB · bleibt auf diesem Gerät', { p0: Math.round(attachment.size / 1024) }) : t('Foto oder PDF bis 10 MB, hierher ziehen oder auswählen.')}</p>
+              <p className="muted small">{attachment ? t('{p0} KB · auf dem Server gespeichert', { p0: Math.round(attachment.size / 1024) }) : t('Foto oder PDF bis 10 MB, hierher ziehen oder auswählen.')}</p>
             </div>
             <div className="row wrap">
               <Button size="sm" icon={Upload} onClick={() => input.current?.click()}>

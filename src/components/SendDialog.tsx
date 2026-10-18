@@ -1,6 +1,6 @@
 import { markSent } from '../lib/actions'
 import { t } from '../lib/i18n'
-import { Mail, Paperclip, Send } from 'lucide-react'
+import { Eye, Mail, Paperclip, Send } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { db, now } from '../lib/db'
@@ -56,6 +56,17 @@ export function SendDialog({ doc, reminder, settings, open, onClose }: { doc: In
     }
   }
 
+  const preview = async () => {
+    setBusy(true)
+    await run(async () => {
+      const [first] = await buildAttachments(doc, settings, choice, reminder)
+      const url = URL.createObjectURL(new Blob([first.bytes as BlobPart], { type: first.contentType }))
+      window.open(url, '_blank', 'noopener')
+      setTimeout(() => URL.revokeObjectURL(url), 60_000)
+    })
+    setBusy(false)
+  }
+
   const withEInvoice = !reminder && doc.kind !== 'quote'
 
   return (
@@ -71,6 +82,9 @@ export function SendDialog({ doc, reminder, settings, open, onClose }: { doc: In
       footer={
         <>
           <Button onClick={onClose}>{t('Abbrechen')}</Button>
+          <Button icon={Eye} onClick={preview} disabled={busy}>
+            {t('Anhang ansehen')}
+          </Button>
           <Button variant="primary" icon={server ? Send : Mail} onClick={send} disabled={busy || server === null}>
             {server ? t('Senden') : t('Im Mailprogramm öffnen')}
           </Button>
@@ -82,8 +96,8 @@ export function SendDialog({ doc, reminder, settings, open, onClose }: { doc: In
           <div className="callout info small">
             <Paperclip size={16} aria-hidden />
             <span>
-              {t('Ohne Server kann der Browser keine E-Mails verschicken. Kontor lädt die Datei herunter und öffnet dein Mailprogramm mit Betreff und Text –')} <strong>{t('hänge die heruntergeladene Datei dort bitte an.')}</strong>{' '}
-              <Link to="/einstellungen#server">{t('Server verbinden')}</Link>
+              {t('Es ist noch kein SMTP-Versand eingerichtet. Kontor lädt die Datei herunter und öffnet dein Mailprogramm mit Betreff und Text –')} <strong>{t('hänge die heruntergeladene Datei dort bitte an.')}</strong>{' '}
+              <Link to="/einstellungen#konto">{t('SMTP einrichten')}</Link>
             </span>
           </div>
         )}

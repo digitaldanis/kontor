@@ -1,3 +1,5 @@
+import { uiLanguage } from './i18n'
+
 export interface Country {
   code: string
   name: string
@@ -56,15 +58,16 @@ const NAMES: Record<string, string> = {
   ZA: 'Südafrika',
 }
 
-export const COUNTRIES: Country[] = Object.entries(NAMES)
-  .map(([code, name]) => ({ code, name, eu: EU.includes(code) }))
+const englishNames = typeof Intl.DisplayNames === 'function' ? new Intl.DisplayNames(['en'], { type: 'region' }) : null
+
+/** Countries for pickers, named in the interface language, Germany first. */
+export const COUNTRIES: Country[] = Object.keys(NAMES)
+  .map((code) => ({ code, name: countryName(code, uiLanguage()), eu: EU.includes(code) }))
   .sort((a, b) => {
     if (a.code === 'DE') return -1
     if (b.code === 'DE') return 1
-    return a.name.localeCompare(b.name, 'de')
+    return a.name.localeCompare(b.name, uiLanguage())
   })
-
-const englishNames = typeof Intl.DisplayNames === 'function' ? new Intl.DisplayNames(['en'], { type: 'region' }) : null
 
 export function countryName(code: string, lang: 'de' | 'en' = 'de'): string {
   if (lang === 'en') return englishNames?.of(code) ?? NAMES[code] ?? code

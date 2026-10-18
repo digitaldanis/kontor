@@ -97,7 +97,7 @@ export function Onboarding() {
                 <ShieldCheck size={20} aria-hidden />
                 <span>
                   <strong>{t('Deine Daten bleiben bei dir')}</strong>
-                  {t('Alles wird lokal in diesem Browser gespeichert.')}
+                  {t('Alles liegt auf deinem eigenen Kontor-Server, mit automatischen Sicherungen.')}
                 </span>
               </li>
             </ul>

@@ -199,7 +199,7 @@ function DraftEditor({ initial, settings }: { initial: InvoiceDocument; settings
 
   const finalize = async () => {
     await flush()
-    const result = await run(() => finalizeDocument(doc.id), isQuote ? t('Angebot abgeschlossen') : t('Rechnung abgeschlossen'))
+    const result = await run(() => finalizeDocument(doc.id), t('{p0} abgeschlossen', { p0: documentLabel(doc) }))
     setFinalizing(false)
     if (result) window.scrollTo({ top: 0 })
   }
@@ -348,7 +348,7 @@ function DraftEditor({ initial, settings }: { initial: InvoiceDocument; settings
                 <TextField className="span-2" label={t('Gültig bis')} type="date" value={doc.validUntil} onChange={(validUntil) => update({ validUntil })} />
               ) : (
                 <Field className="span-2" label={t('Zahlungsziel')} hint={doc.dueDate ? t('fällig am {p0}', { p0: formatDate(doc.dueDate) }) : undefined}>
-                  <NumberInput value={term} onChange={(n) => update({ dueDate: addDays(doc.issueDate, Math.max(0, Math.round(n))) })} suffix="Tage" maxFraction={0} aria-label={t('Zahlungsziel in Tagen')} />
+                  <NumberInput value={term} onChange={(n) => update({ dueDate: addDays(doc.issueDate, Math.max(0, Math.round(n))) })} suffix={t('Tage')} maxFraction={0} aria-label={t('Zahlungsziel in Tagen')} />
                 </Field>
               )}
               <TextField className="span-2" label={period ? t('Leistung von') : t('Leistungsdatum')} type="date" value={doc.serviceFrom} onChange={(serviceFrom) => update({ serviceFrom })} />
@@ -930,7 +930,7 @@ function DocumentViewer({ doc, settings }: { doc: InvoiceDocument; settings: Set
               {!!related?.timeCount && (
                 <>
                   <dt>{t('Zeiten')}</dt>
-                  <dd>{related.timeCount} {t('Einträge abgerechnet')}</dd>
+                  <dd>{related.timeCount === 1 ? t('1 Eintrag abgerechnet') : t('{n} Einträge abgerechnet', { n: related.timeCount })}</dd>
                 </>
               )}
             </dl>
@@ -1189,7 +1189,7 @@ function PaymentsCard({ doc }: { doc: InvoiceDocument }) {
                 ? t('Durch Gutschrift ausgeglichen')
                 : t('Bezahlt am {p0}', { p0: formatDate(doc.paidAt) })
               : status === 'overdue'
-                ? t('Seit {p0} {p1} überfällig', { p0: overdueDays, p1: overdueDays === 1 ? 'Tag' : 'Tagen' })
+                ? overdueDays === 1 ? t('Seit einem Tag überfällig') : t('Seit {n} Tagen überfällig', { n: overdueDays })
                 : t('Fällig am {p0}', { p0: formatDate(doc.dueDate) })}
           </strong>
           {due > 0 && (

@@ -105,7 +105,7 @@ export function LogoField({ logo, onChange }: { logo: Logo | null; onChange: (l:
       <div className="stack-sm" style={{ gap: 8 }}>
         <div>
           <strong>{logo ? t('Dein Logo') : t('Logo hinzufügen')}</strong>
-          <p className="muted small">{t('PNG, JPG oder SVG bis 2 MB. Ziehe die Datei hierher oder wähle sie aus. Das Logo bleibt auf diesem Gerät.')}</p>
+          <p className="muted small">{t('PNG, JPG oder SVG bis 2 MB. Ziehe die Datei hierher oder wähle sie aus.')}</p>
         </div>
         <div className="row wrap">
           <Button size="sm" icon={Upload} onClick={() => input.current?.click()}>

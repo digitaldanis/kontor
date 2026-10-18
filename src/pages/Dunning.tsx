@@ -57,7 +57,7 @@ export function Dunning() {
 
   const remove = async (r: Reminder) => {
     await run(() => deleteReminder(r.id))
-    undoable(t('{p0} gelöscht', { p0: LEVEL_LABELS[r.level] }), () => db.reminders.put(r))
+    undoable(t('{p0} gelöscht', { p0: t(LEVEL_LABELS[r.level]) }), () => db.reminders.put(r))
   }
 
   return (
@@ -104,7 +104,7 @@ export function Dunning() {
                       <small className="faint" style={{ display: 'block' }}>{t('seit')} {formatDate(r.doc.dueDate)}</small>
                     </td>
                     <td className="hide-sm muted">
-                      {r.last ? t('{p0} vom {p1}', { p0: LEVEL_LABELS[r.last.level], p1: formatDate(r.last.issueDate) }) : '–'}
+                      {r.last ? t('{p0} vom {p1}', { p0: t(LEVEL_LABELS[r.last.level]), p1: formatDate(r.last.issueDate) }) : '–'}
                       {r.level !== null && r.next && !r.ready && <small style={{ display: 'block' }}>{t('nächster Schritt ab')} {formatDate(r.next)}</small>}
                     </td>
                     <td className="num">
@@ -141,7 +141,7 @@ export function Dunning() {
                 <li key={r.id} className="list-item">
                   <div className="grow">
                     <div className="title">
-                      {LEVEL_LABELS[r.level]} · {inv ? <Link to={`/rechnungen/${inv.id}`}>{inv.number}</Link> : t('Rechnung gelöscht')}
+                      {t(LEVEL_LABELS[r.level])} · {inv ? <Link to={`/rechnungen/${inv.id}`}>{inv.number}</Link> : t('Rechnung gelöscht')}
                     </div>
                     <div className="sub">
                       {formatDate(r.issueDate)} {t('· Frist')} {formatDate(r.deadline)}

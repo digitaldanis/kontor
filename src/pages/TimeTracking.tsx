@@ -9,7 +9,7 @@ import { minutesToHours } from '../lib/calc'
 import { durationMinutes, formatDuration, formatMonth, isoWeek, startOfMonth, startOfWeek, toISODate } from '../lib/dates'
 import { db } from '../lib/db'
 import { customerName } from '../lib/defaults'
-import { useCustomers, useDocumentTitle, useSettings } from '../lib/hooks'
+import { useCustomers, useDocumentTitle, useNewParam, useSettings } from '../lib/hooks'
 import { formatMoney } from '../lib/money'
 import { billableMinutes } from '../lib/projects'
 import { entryRate } from '../lib/repo'
@@ -90,6 +90,7 @@ export function TimeTracking() {
     .sort((a, b) => b.amount - a.amount)
 
   const activeCustomers = (customers ?? []).filter((c) => !c.archived)
+  useNewParam(() => activeCustomers[0] && setEditing(emptyEntry(activeCustomers[0].id)), !!customers)
   const warnings = useBudgetWarnings()
 
   return (

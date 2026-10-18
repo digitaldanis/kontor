@@ -96,7 +96,7 @@ export function CustomerDialog({
             <MoneyInput value={c.hourlyRateCents} onChange={set('hourlyRateCents')} allowEmpty placeholder={t('Standard')} aria-label={t('Stundensatz')} />
           </Field>
           <Field className="span-3" label={t('Zahlungsziel')} hint={t('Leer = Standard')}>
-            <NumberInput value={c.paymentTermDays ?? 0} onChange={(n) => set('paymentTermDays')(n > 0 ? Math.round(n) : null)} suffix="Tage" maxFraction={0} aria-label={t('Zahlungsziel')} />
+            <NumberInput value={c.paymentTermDays ?? 0} onChange={(n) => set('paymentTermDays')(n > 0 ? Math.round(n) : null)} suffix={t('Tage')} maxFraction={0} aria-label={t('Zahlungsziel')} />
           </Field>
           <TextField className="span-3" label={t('Leitweg-ID')} value={c.leitwegId} onChange={set('leitwegId')} hint={t('Nur für öffentliche Auftraggeber (XRechnung)')} />
           <SelectField

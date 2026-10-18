@@ -230,7 +230,7 @@ export function SettingsPage() {
               <p className="muted">{t('Diese Werte stehen automatisch in jeder neuen Rechnung und lassen sich dort anpassen.')}</p>
               <div className="form-grid">
                 <Field className="span-2" label={t('Zahlungsziel')}>
-                  <NumberInput value={d.paymentTermDays} onChange={(n) => setDefaults({ paymentTermDays: Math.max(0, Math.round(n)) })} suffix="Tage" maxFraction={0} aria-label={t('Zahlungsziel in Tagen')} />
+                  <NumberInput value={d.paymentTermDays} onChange={(n) => setDefaults({ paymentTermDays: Math.max(0, Math.round(n)) })} suffix={t('Tage')} maxFraction={0} aria-label={t('Zahlungsziel in Tagen')} />
                 </Field>
                 <SelectField className="span-2" label={t('Standard-Steuersatz')} value={String(d.taxRate)} onChange={(v) => setDefaults({ taxRate: Number(v) })} disabled={draft.smallBusiness}>
                   {TAX_RATES.map((r) => (
@@ -337,7 +337,7 @@ export function SettingsPage() {
                     <div key={i} className="form-grid dunning-step">
                       <TextField className="span-2" label={t('Stufe {p0}', { p0: i + 1 })} value={step.title[textLang]} onChange={(title) => setStep({ title: { ...step.title, [textLang]: title } })} />
                       <Field className="span-2" label={i === 0 ? t('Tage nach Fälligkeit') : t('Tage nach letzter Frist')}>
-                        <NumberInput value={step.afterDays} onChange={(n) => setStep({ afterDays: Math.max(0, Math.round(n)) })} suffix="Tage" maxFraction={0} aria-label={t('Abstand Stufe {p0}', { p0: i + 1 })} />
+                        <NumberInput value={step.afterDays} onChange={(n) => setStep({ afterDays: Math.max(0, Math.round(n)) })} suffix={t('Tage')} maxFraction={0} aria-label={t('Abstand Stufe {p0}', { p0: i + 1 })} />
                       </Field>
                       <Field className="span-2" label={t('Gebühr')}>
                         <MoneyInput value={step.feeCents} onChange={(v) => setStep({ feeCents: v ?? 0 })} aria-label={t('Gebühr Stufe {p0}', { p0: i + 1 })} />
@@ -359,7 +359,7 @@ export function SettingsPage() {
                 </Field>
                 <TextField className="span-2" label={t('Gültig seit')} type="date" value={draft.dunning.baseRateSince} onChange={(baseRateSince) => update({ dunning: { ...draft.dunning, baseRateSince } })} />
                 <Field className="span-2" label={t('Neue Zahlungsfrist')}>
-                  <NumberInput value={draft.dunning.deadlineDays} onChange={(n) => update({ dunning: { ...draft.dunning, deadlineDays: Math.max(1, Math.round(n)) } })} suffix="Tage" maxFraction={0} aria-label={t('Neue Zahlungsfrist')} />
+                  <NumberInput value={draft.dunning.deadlineDays} onChange={(n) => update({ dunning: { ...draft.dunning, deadlineDays: Math.max(1, Math.round(n)) } })} suffix={t('Tage')} maxFraction={0} aria-label={t('Neue Zahlungsfrist')} />
                 </Field>
               </div>
               <div className="stack-sm" style={{ marginTop: 14 }}>
@@ -392,7 +392,7 @@ export function SettingsPage() {
               <div className="stack" style={{ marginTop: 14 }}>
                 {(Object.keys(MAIL_TEMPLATE_LABELS) as MailTemplateKey[]).map((key) => (
                   <div key={key} className="form-grid dunning-step">
-                    <TextField className="span-6" label={t('{p0}: Betreff', { p0: MAIL_TEMPLATE_LABELS[key] })} value={draft.mailTemplates[textLang][key].subject} onChange={(subject) => setMail(key, { subject })} />
+                    <TextField className="span-6" label={t('{p0}: Betreff', { p0: t(MAIL_TEMPLATE_LABELS[key]) })} value={draft.mailTemplates[textLang][key].subject} onChange={(subject) => setMail(key, { subject })} />
                     <TextAreaField className="span-6" label={t('Text')} value={draft.mailTemplates[textLang][key].body} onChange={(body) => setMail(key, { body })} rows={5} />
                   </div>
                 ))}

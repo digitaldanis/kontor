@@ -233,6 +233,20 @@ describe('credit notes', () => {
     expect(amountDue((await db.documents.get(inv.id))!)).toBe(0)
   })
 
+  it('applies a percentage invoice discount to a partial credit', async () => {
+    const c = await customer()
+    const draft = await readyDraft(c.id)
+    await saveDocument({ ...draft, discount: { type: 'percent', value: 10 } })
+    const inv = await finalizeDocument(draft.id)
+    const partial = await createCreditNote(inv.id, 'partial')
+    partial.items = [{ ...partial.items[0], quantity: 1 }]
+    await saveDocument(partial)
+    const credit = await finalizeDocument(partial.id)
+    // 100 € − 10 % + 19 % = 107,10 €
+    expect(documentTotals(credit).grossCents).toBe(10710)
+    expect(amountDue((await db.documents.get(inv.id))!)).toBe(21420 - 10710)
+  })
+
   it('cannot credit more than the invoice', async () => {
     const c = await customer()
     const inv = await finalizeDocument((await readyDraft(c.id)).id)
