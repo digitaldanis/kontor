@@ -113,6 +113,8 @@ export interface Settings {
   creditNoteNumbers: NumberSequence
   smallBusiness: boolean
   smallBusinessNote: string
+  /** Soll- (accrual, by invoice date) or Ist-Versteuerung (cash, by payment date). */
+  taxation: 'accrual' | 'cash'
   onboarded: boolean
   updatedAt: string
 }

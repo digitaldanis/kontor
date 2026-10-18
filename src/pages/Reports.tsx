@@ -5,14 +5,13 @@ import { BarChart } from '../components/BarChart'
 import { useFeedback } from '../components/feedback'
 import { Button, EmptyState, IconButton, PageHeader, Segmented, Stat } from '../components/ui'
 import { downloadFile, invoicesToCsv } from '../lib/backup'
-import { calculateTotals } from '../lib/calc'
 import { durationMinutes, formatDuration, toISODate } from '../lib/dates'
 import { db } from '../lib/db'
-import { customerName, recipientName, TAX_MODE_LABELS } from '../lib/defaults'
-import { useDocumentTitle } from '../lib/hooks'
-import { formatMoney, formatNumber } from '../lib/money'
-import { countsAsRevenue } from '../lib/status'
-import type { TaxMode } from '../lib/types'
+import { customerName, recipientName } from '../lib/defaults'
+import { useDocumentTitle, useSettings } from '../lib/hooks'
+import { formatMoney } from '../lib/money'
+import { countsAsRevenue, netOf } from '../lib/status'
+import { sumBuckets, vatEntries, type Taxation } from '../lib/tax'
 
 const MONTHS = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez']
 
@@ -21,6 +20,9 @@ export function Reports() {
   const { run } = useFeedback()
   const [year, setYear] = useState(new Date().getFullYear())
   const [taxPeriod, setTaxPeriod] = useState<'month' | 'quarter'>('quarter')
+  const settings = useSettings()
+  const [taxationChoice, setTaxation] = useState<Taxation | null>(null)
+  const taxation = taxationChoice ?? settings?.taxation ?? 'accrual'
   const data = useLiveQuery(async () => {
     const [docs, entries, customers] = await Promise.all([db.documents.toArray(), db.timeEntries.toArray(), db.customers.toArray()])
     return { docs, entries, customers }
@@ -31,18 +33,17 @@ export function Reports() {
   const docs = data.docs.filter((d) => countsAsRevenue(d) && d.issueDate.startsWith(y))
   const entries = data.entries.filter((e) => toISODate(new Date(e.start)).startsWith(y))
   const customerById = new Map(data.customers.map((c) => [c.id, c]))
+  const accrual = vatEntries(data.docs, 'accrual')
+  const taxEntries = taxation === 'accrual' ? accrual : vatEntries(data.docs, 'cash')
 
   const monthly = MONTHS.map((label, i) => {
     const key = `${y}-${String(i + 1).padStart(2, '0')}`
     const list = docs.filter((d) => d.issueDate.startsWith(key))
-    const t = list.reduce(
-      (s, d) => {
-        const x = calculateTotals(d.items, d.taxMode)
-        return { net: s.net + x.netCents, tax: s.tax + x.taxCents, gross: s.gross + x.grossCents }
-      },
+    const t = sumBuckets(accrual.filter((e) => e.date.startsWith(key))).reduce(
+      (s, b) => ({ net: s.net + b.netCents, tax: s.tax + b.taxCents, gross: s.gross + b.netCents + b.taxCents }),
       { net: 0, tax: 0, gross: 0 },
     )
-    const paid = data.docs.filter((d) => d.paidAt?.startsWith(key)).reduce((s, d) => s + calculateTotals(d.items, d.taxMode).grossCents, 0)
+    const paid = data.docs.flatMap((d) => (d.kind === 'invoice' ? d.payments : [])).filter((p) => p.date.startsWith(key)).reduce((s, p) => s + p.amountCents, 0)
     const minutes = entries.filter((e) => toISODate(new Date(e.start)).startsWith(key)).reduce((s, e) => s + durationMinutes(e.start, e.end), 0)
     return { key, label, ...t, paid, minutes, count: list.filter((d) => d.kind === 'invoice').length }
   })
@@ -51,23 +52,13 @@ export function Reports() {
   // VAT overview by period, rate and tax mode
   const periods = taxPeriod === 'quarter' ? ['Q1', 'Q2', 'Q3', 'Q4'] : MONTHS
   const taxRows = periods.map((label, i) => {
-    const inPeriod = docs.filter((d) => {
-      const m = Number(d.issueDate.slice(5, 7)) - 1
+    const inPeriod = taxEntries.filter((e) => {
+      if (!e.date.startsWith(y)) return false
+      const m = Number(e.date.slice(5, 7)) - 1
       return taxPeriod === 'quarter' ? Math.floor(m / 3) === i : m === i
     })
-    const buckets = new Map<string, { label: string; net: number; tax: number }>()
-    for (const d of inPeriod) {
-      const t = calculateTotals(d.items, d.taxMode)
-      for (const g of t.groups) {
-        const key = d.taxMode === 'standard' ? `s${g.rate}` : d.taxMode
-        const name = d.taxMode === 'standard' ? `${formatNumber(g.rate)} % USt` : TAX_MODE_LABELS[d.taxMode as TaxMode]
-        const b = buckets.get(key) ?? { label: name, net: 0, tax: 0 }
-        b.net += g.netCents
-        b.tax += g.taxCents
-        buckets.set(key, b)
-      }
-    }
-    return { label, buckets: [...buckets.values()].sort((a, b) => b.tax - a.tax), tax: [...buckets.values()].reduce((s, b) => s + b.tax, 0) }
+    const buckets = sumBuckets(inPeriod).map((b) => ({ label: b.label, net: b.netCents, tax: b.taxCents }))
+    return { label, buckets, tax: buckets.reduce((s, b) => s + b.tax, 0) }
   })
 
   const byCustomer = new Map<string, { name: string; net: number; minutes: number }>()
@@ -75,7 +66,7 @@ export function Reports() {
     const key = d.customerId ?? `free:${recipientName(d.recipient)}`
     const c = d.customerId ? customerById.get(d.customerId) : undefined
     const row = byCustomer.get(key) ?? { name: c ? customerName(c) : recipientName(d.recipient), net: 0, minutes: 0 }
-    row.net += calculateTotals(d.items, d.taxMode).netCents
+    row.net += netOf(d)
     byCustomer.set(key, row)
   }
   for (const e of entries) {
@@ -193,6 +184,16 @@ export function Reports() {
           <section className="card">
             <div className="card-header">
               <h2>Umsatzsteuer-Übersicht</h2>
+              <div className="row wrap">
+              <Segmented
+                label="Versteuerung"
+                value={taxation}
+                onChange={setTaxation}
+                options={[
+                  { value: 'accrual', label: 'Soll' },
+                  { value: 'cash', label: 'Ist' },
+                ]}
+              />
               <Segmented
                 label="Zeitraum"
                 value={taxPeriod}
@@ -202,11 +203,17 @@ export function Reports() {
                   { value: 'month', label: 'Monat' },
                 ]}
               />
+              </div>
             </div>
             <div className="card-body stack-sm">
               <div className="callout small">
                 <Info size={16} aria-hidden />
-                <span>Nach Rechnungsdatum (Soll-Versteuerung). Als Orientierung für die Voranmeldung gedacht – keine Steuerberatung. Bei Ist-Versteuerung zählen die Zahlungseingänge.</span>
+                <span>
+                  {taxation === 'accrual'
+                    ? 'Soll-Versteuerung: Umsätze zählen nach Rechnungsdatum.'
+                    : 'Ist-Versteuerung: Umsätze zählen, wenn das Geld eingeht – Teilzahlungen anteilig nach Netto und Steuer.'}{' '}
+                  Als Orientierung für die Voranmeldung gedacht – keine Steuerberatung.
+                </span>
               </div>
               <div className="table-wrap">
                 <table className="table">

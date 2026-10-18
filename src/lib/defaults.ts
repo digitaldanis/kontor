@@ -69,6 +69,7 @@ export function defaultSettings(): Settings {
     quoteNumbers: { pattern: 'AN-{YYYY}-{0001}', counters: {} },
     creditNoteNumbers: { pattern: 'GS-{YYYY}-{0001}', counters: {} },
     smallBusiness: false,
+    taxation: 'accrual',
     smallBusinessNote: TAX_NOTES.smallBusiness,
     onboarded: false,
     updatedAt: new Date().toISOString(),

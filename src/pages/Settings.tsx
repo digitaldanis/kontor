@@ -25,7 +25,7 @@ import {
   LogoField,
   TaxFields,
 } from '../components/SettingsFields'
-import { Field, MoneyInput, NumberInput, PageHeader, SelectField, TextAreaField, TextField, Toggle } from '../components/ui'
+import { Field, MoneyInput, NumberInput, PageHeader, Segmented, SelectField, TextAreaField, TextField, Toggle } from '../components/ui'
 import { createBackup, downloadFile, invoicesToCsv, parseBackup, restoreBackup, wipeAll } from '../lib/backup'
 import { today } from '../lib/dates'
 import { db } from '../lib/db'
@@ -177,6 +177,19 @@ export function SettingsPage() {
                   hint={`Standard: „${TAX_NOTES.smallBusiness}“`}
                 />
               )}
+            </div>
+            <div className="form-section stack-sm">
+              <h3>Versteuerung</h3>
+              <p className="muted">Bestimmt, wann Umsätze in der USt-Übersicht zählen. Die Ist-Versteuerung muss beim Finanzamt beantragt sein (§ 20 UStG).</p>
+              <Segmented
+                label="Versteuerung"
+                value={draft.taxation}
+                onChange={(taxation) => update({ taxation })}
+                options={[
+                  { value: 'accrual', label: 'Soll – nach Rechnungsdatum' },
+                  { value: 'cash', label: 'Ist – nach Zahlungseingang' },
+                ]}
+              />
             </div>
           </section>
 
