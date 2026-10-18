@@ -19,6 +19,7 @@
   --on-accent: #fff;
   --green: #1d7d3a;
   --green-soft: rgba(36, 138, 61, 0.12);
+  --on-green: #fff;
   --orange: #b14f00;
   --orange-soft: rgba(201, 100, 0, 0.12);
   --red: #c4001a;
@@ -72,6 +73,7 @@
     --on-accent: #fff;
     --green: #40c463;
     --green-soft: rgba(48, 209, 88, 0.16);
+    --on-green: #06260f;
     --orange: #ffa340;
     --orange-soft: rgba(255, 159, 10, 0.16);
     --red: #ff6961;
@@ -548,7 +550,7 @@ textarea {
 }
 .btn.success {
   background: var(--green);
-  color: #fff;
+  color: var(--on-green);
 }
 .btn.ghost {
   background: transparent;
