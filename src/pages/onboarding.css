@@ -1,4 +1,5 @@
 .onboarding {
+  position: relative;
   min-height: 100vh;
   min-height: 100dvh;
   display: flex;
@@ -110,4 +111,9 @@
   .onboarding-actions .btn {
     flex: 1;
   }
+}
+.onboarding-language {
+  position: absolute;
+  top: 16px;
+  right: 16px;
 }
