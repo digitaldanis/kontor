@@ -50,7 +50,7 @@ class Client {
     const headers: Record<string, string> = { ...init.headers, Cookie: [...this.jar].map(([k, v]) => `${k}=${v}`).join('; ') }
     if (init.body !== undefined) headers['Content-Type'] = 'application/json'
     if (method !== 'GET' && init.csrf !== false) headers['X-CSRF-Token'] = this.jar.get('kontor_csrf') ?? ''
-    const res = await fetch(base + path, { method, headers, body: init.raw ?? (init.body !== undefined ? JSON.stringify(init.body) : undefined) })
+    const res = await fetch(base + path, { method, headers, body: init.raw ? new Uint8Array(init.raw) : init.body !== undefined ? JSON.stringify(init.body) : undefined })
     for (const c of res.headers.getSetCookie()) {
       const [pair] = c.split(';')
       const [k, ...v] = pair.split('=')
