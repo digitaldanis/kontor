@@ -1,0 +1,14 @@
+services:
+  kontor:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8787:8787"
+    env_file: .env
+    volumes:
+      - kontor-data:/data
+
+volumes:
+  kontor-data:

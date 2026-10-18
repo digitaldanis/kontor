@@ -22,3 +22,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Server data and local configuration
+.env
+server/data
+server/node_modules
+test-results
+playwright-report
