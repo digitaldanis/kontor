@@ -15,7 +15,7 @@ import { customerName } from '../lib/defaults'
 import { useDocumentTitle, useSettings, useTimer } from '../lib/hooks'
 import { formatMoney } from '../lib/money'
 import { createDraft, deleteCustomer, entryRate, startTimer } from '../lib/repo'
-import { countsAsRevenue, displayStatus, grossOf, isOutstanding, netOf } from '../lib/status'
+import { amountDue, countsAsRevenue, displayStatus, isOutstanding, netOf } from '../lib/status'
 import type { TimeEntry } from '../lib/types'
 import { NotFound } from './NotFound'
 
@@ -44,7 +44,7 @@ export function CustomerDetail() {
   if (!customer) return <NotFound />
 
   const name = customerName(customer)
-  const open = docs.filter(isOutstanding).reduce((s, d) => s + grossOf(d), 0)
+  const open = docs.filter(isOutstanding).reduce((s, d) => s + amountDue(d), 0)
   const overdue = docs.filter((d) => displayStatus(d) === 'overdue')
   const revenue = docs.filter(countsAsRevenue).reduce((s, d) => s + netOf(d), 0)
   const unbilled = entries.filter((e) => !e.invoiceId && e.billable)

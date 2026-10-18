@@ -10,7 +10,7 @@ import { customerName, recipientName } from '../lib/defaults'
 import { useCustomers, useDocumentTitle } from '../lib/hooks'
 import { formatMoney } from '../lib/money'
 import { createDraft } from '../lib/repo'
-import { displayStatus, grossOf, type DisplayStatus } from '../lib/status'
+import { amountDue, displayStatus, isOutstanding, type DisplayStatus } from '../lib/status'
 import type { DocumentKind } from '../lib/types'
 
 type Filter = 'all' | DisplayStatus
@@ -21,6 +21,7 @@ const INVOICE_FILTERS: { value: Filter; label: string }[] = [
   { value: 'open', label: 'Offen' },
   { value: 'overdue', label: 'Überfällig' },
   { value: 'paid', label: 'Bezahlt' },
+  { value: 'creditNote', label: 'Gutschriften' },
   { value: 'cancelled', label: 'Storniert' },
 ]
 
@@ -55,15 +56,20 @@ export function Documents() {
     return (docs ?? []).filter((d) => {
       const status = displayStatus(d)
       if (filter !== 'all') {
-        if (filter === 'open' ? status !== 'open' && status !== 'overdue' : filter === 'cancelled' ? status !== 'cancelled' && status !== 'cancellation' : status !== filter) return false
+        const match: Partial<Record<Filter, DisplayStatus[]>> = {
+          open: ['open', 'overdue', 'partial'],
+          paid: ['paid', 'settled'],
+          cancelled: ['cancelled', 'cancellation'],
+        }
+        if (!(match[filter] ?? [filter]).includes(status)) return false
       }
       if (!q) return true
       return [d.number ?? '', recipientName(d.recipient), d.title, ...d.items.map((i) => i.title)].some((v) => v.toLowerCase().includes(q))
     })
   }, [docs, filter, query])
 
-  const openSum = (docs ?? []).filter((d) => d.kind === 'invoice' && d.status === 'open').reduce((s, d) => s + grossOf(d), 0)
-  const overdueSum = (docs ?? []).filter((d) => displayStatus(d) === 'overdue').reduce((s, d) => s + grossOf(d), 0)
+  const openSum = (docs ?? []).filter(isOutstanding).reduce((s, d) => s + amountDue(d), 0)
+  const overdueSum = (docs ?? []).filter((d) => displayStatus(d) === 'overdue').reduce((s, d) => s + amountDue(d), 0)
 
   const switchKind = (k: 'invoice' | 'quote') => {
     setFilter('all')

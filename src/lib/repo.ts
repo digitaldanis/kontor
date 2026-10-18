@@ -10,7 +10,7 @@ import {
   TAX_NOTES,
 } from './defaults'
 import { normalizeSettings } from './migrate'
-import { formatMoney } from './money'
+import { formatDocDate, formatDocMoney } from './docText'
 import { takeNextNumber } from './numbering'
 import { amountDue, creditedOf } from './status'
 import type {
@@ -689,19 +689,24 @@ export async function releaseTimeEntries(ids: string[]): Promise<void> {
 
 // Text placeholders
 
-export function resolvePlaceholders(text: string, doc: InvoiceDocument): string {
+export function resolvePlaceholders(text: string, doc: InvoiceDocument, extra: Record<string, string> = {}): string {
   const totals = documentTotals(doc)
+  const lang = doc.language ?? 'de'
   const term = doc.dueDate && doc.issueDate ? Math.round((parseISODate(doc.dueDate).getTime() - parseISODate(doc.issueDate).getTime()) / 86_400_000) : 0
+  const pending = lang === 'en' ? '(assigned on finalisation)' : '(wird beim Abschließen vergeben)'
   const values: Record<string, string> = {
-    Rechnungsnummer: doc.number ?? '(wird beim Abschließen vergeben)',
-    Angebotsnummer: doc.number ?? '(wird beim Abschließen vergeben)',
-    Fälligkeitsdatum: formatDate(doc.dueDate),
+    Rechnungsnummer: doc.number ?? pending,
+    Angebotsnummer: doc.number ?? pending,
+    Dokumentnummer: doc.number ?? pending,
+    Fälligkeitsdatum: formatDocDate(doc.dueDate, lang),
     Zahlungsziel: String(term),
-    Rechnungsdatum: formatDate(doc.issueDate),
-    'Gültig bis': formatDate(doc.validUntil),
+    Rechnungsdatum: formatDocDate(doc.issueDate, lang),
+    'Gültig bis': formatDocDate(doc.validUntil, lang),
     Kunde: doc.recipient.company || doc.recipient.contactPerson,
     Ansprechpartner: doc.recipient.contactPerson,
-    Gesamtbetrag: formatMoney(totals.grossCents, doc.currency),
+    Gesamtbetrag: formatDocMoney(totals.dueCents, doc.currency, lang),
+    Firma: doc.seller?.name ?? '',
+    ...extra,
   }
   return text.replace(/\{([^}]+)\}/g, (m, key: string) => values[key] ?? m)
 }

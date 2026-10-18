@@ -1,4 +1,4 @@
-import { calculateTotals } from './calc'
+import { documentTotals } from './calc'
 import { isEU, looksLikeVatId, vatIdCountry } from './countries'
 import type { Company, InvoiceDocument, Recipient, TaxMode } from './types'
 
@@ -31,7 +31,7 @@ function blank(s: string | undefined | null) {
 export function validateInvoice(doc: InvoiceDocument, seller: Company): Issue[] {
   const issues: Issue[] = []
   const add = (level: IssueLevel, field: string, message: string) => issues.push({ level, field, message })
-  const totals = calculateTotals(doc.items, doc.taxMode)
+  const totals = documentTotals(doc)
   const isQuote = doc.kind === 'quote'
   const small = Math.abs(totals.grossCents) <= SMALL_INVOICE_LIMIT_CENTS && doc.taxMode === 'standard'
   const r = doc.recipient
@@ -73,6 +73,15 @@ export function validateInvoice(doc: InvoiceDocument, seller: Company): Issue[] 
     if (doc.taxMode === 'standard' && !item.taxRate)
       add('warning', `items.${i}.taxRate`, `${label}: 0 % USt – prüfe, ob ein Befreiungshinweis nötig ist.`)
   })
+
+  if (doc.discount?.type === 'percent' && (doc.discount.value < 0 || doc.discount.value > 100))
+    add('error', 'discount', 'Der Rabatt muss zwischen 0 und 100 % liegen.')
+  if (doc.discount?.type === 'amount' && doc.discount.value > Math.abs(totals.lineNetCents))
+    add('warning', 'discount', 'Der Rabatt ist höher als die Summe der Positionen.')
+  if (doc.kind === 'invoice' && doc.billingType === 'final' && !doc.deductions.length)
+    add('info', 'deductions', 'Schlussrechnung ohne verrechnete Abschläge – wähle unten die Abschlagsrechnungen aus.')
+  if (doc.kind === 'creditNote' && !doc.creditsId)
+    add('error', 'creditsId', 'Eine Gutschrift braucht die Rechnung, auf die sie sich bezieht.')
 
   if (doc.taxMode !== 'standard' && blank(doc.taxNote))
     add('error', 'taxNote', 'Bei steuerfreien bzw. nicht steuerbaren Umsätzen ist ein Hinweis auf den Grund Pflicht.')

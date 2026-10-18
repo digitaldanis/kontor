@@ -11,7 +11,7 @@ import { customerName } from '../lib/defaults'
 import { useCustomers, useDocumentTitle } from '../lib/hooks'
 import { formatMoney } from '../lib/money'
 import { emptyCustomer } from '../lib/repo'
-import { grossOf, isOutstanding } from '../lib/status'
+import { amountDue, isOutstanding } from '../lib/status'
 import type { Customer } from '../lib/types'
 
 export function Customers() {
@@ -27,7 +27,7 @@ export function Customers() {
     for (const d of docs) {
       if (!d.customerId || !isOutstanding(d)) continue
       const s = map.get(d.customerId) ?? { open: 0, unbilled: 0 }
-      s.open += grossOf(d)
+      s.open += amountDue(d)
       map.set(d.customerId, s)
     }
     for (const e of entries) {

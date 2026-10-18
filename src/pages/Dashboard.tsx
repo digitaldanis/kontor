@@ -11,7 +11,7 @@ import { db } from '../lib/db'
 import { customerName, recipientName } from '../lib/defaults'
 import { useDocumentTitle, useSettings } from '../lib/hooks'
 import { formatMoney } from '../lib/money'
-import { countsAsRevenue, displayStatus, grossOf, isOutstanding, netOf } from '../lib/status'
+import { amountDue, countsAsRevenue, displayStatus, grossOf, isOutstanding, netOf } from '../lib/status'
 import { NewDocumentDialog } from './Documents'
 
 function greeting() {
@@ -105,8 +105,8 @@ export function Dashboard() {
         <Stat label={`Umsatz ${year}`} value={formatMoney(yearRevenue)} sub={`${revenueDocs.filter((d) => d.issueDate.startsWith(year) && d.kind === 'invoice').length} Rechnungen`} icon={ReceiptText} tone="blue" />
         <Stat
           label="Offene Rechnungen"
-          value={formatMoney(outstanding.reduce((s, d) => s + grossOf(d), 0))}
-          sub={overdue.length ? `${overdue.length} überfällig · ${formatMoney(overdue.reduce((s, d) => s + grossOf(d), 0))}` : `${outstanding.length} offen, keine überfällig`}
+          value={formatMoney(outstanding.reduce((s, d) => s + amountDue(d), 0))}
+          sub={overdue.length ? `${overdue.length} überfällig · ${formatMoney(overdue.reduce((s, d) => s + amountDue(d), 0))}` : `${outstanding.length} offen, keine überfällig`}
           icon={overdue.length ? AlertTriangle : FileText}
           tone={overdue.length ? 'red' : 'orange'}
         />
@@ -150,7 +150,7 @@ export function Dashboard() {
                         </div>
                       </div>
                       <StatusBadge doc={d} />
-                      <strong className="tabular">{formatMoney(grossOf(d), d.currency)}</strong>
+                      <strong className="tabular">{formatMoney(amountDue(d), d.currency)}</strong>
                     </Link>
                   </li>
                 ))}

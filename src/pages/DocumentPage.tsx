@@ -5,6 +5,7 @@ import {
   ArrowDown,
   ArrowUp,
   Ban,
+  BellRing,
   CheckCircle2,
   ChevronLeft,
   Clock,
@@ -14,11 +15,13 @@ import {
   FileCode2,
   Info,
   Lock,
+  Percent,
   Plus,
   Printer,
+  ReceiptText,
   Trash2,
-  Undo2,
   UserPlus,
+  X,
   XCircle,
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -28,33 +31,40 @@ import { useFeedback } from '../components/feedback'
 import { InvoicePreview, ScaledPage } from '../components/InvoicePreview'
 import { AccentPicker } from '../components/SettingsFields'
 import { Button, Dialog, Field, IconButton, MoneyInput, NumberInput, Segmented, SelectField, TextAreaField, TextField } from '../components/ui'
-import { calculateTotals, lineTotal } from '../lib/calc'
+import { documentTotals, lineTotal } from '../lib/calc'
 import { COUNTRIES } from '../lib/countries'
 import { addDays, daysBetween, formatDate, parseISODate, today } from '../lib/dates'
 import { db } from '../lib/db'
-import { customerName, recipientFromCustomer, recipientName, TAX_MODE_LABELS, TAX_NOTES, TAX_RATES, UNITS } from '../lib/defaults'
+import { CURRENCIES, customerName, recipientFromCustomer, recipientName, TAX_MODE_LABELS, TAX_NOTES, TAX_RATES, UNITS } from '../lib/defaults'
 import { eInvoiceIssues, type EInvoiceProfile } from '../lib/einvoice'
 import { downloadPdf, downloadXml, printDocument } from '../lib/exporters'
 import { useCustomers, useDocumentTitle, useMediaQuery, useSettings } from '../lib/hooks'
-import { buildInvoiceView, sellerFor } from '../lib/invoiceView'
+import { buildInvoiceView, docTitleLabel, sellerFor } from '../lib/invoiceView'
+import { DEFAULT_TEXTS, docText } from '../lib/docText'
 import { formatMoney, formatNumber } from '../lib/money'
 import { peekNextNumber } from '../lib/numbering'
 import {
+  addPayment,
   cancelInvoice,
+  createCreditNote,
+  createDraft,
+  creditableAmount,
+  deductionFor,
   deleteDraft,
   duplicateDocument,
   emptyCustomer,
   finalizeDocument,
   invoiceTimeEntries,
   newLineItem,
+  openDownPayments,
   releaseTimeEntries,
+  removePayment,
   saveCustomer,
   saveDocument,
-  setPaid,
   setQuoteStatus,
 } from '../lib/repo'
-import { documentLabel, displayStatus } from '../lib/status'
-import type { InvoiceDocument, LayoutId, LineItem, Settings, TaxMode } from '../lib/types'
+import { amountDue, creditedOf, documentLabel, displayStatus, paidOf } from '../lib/status'
+import type { BillingType, Deduction, InvoiceDiscount, InvoiceDocument, Language, LayoutId, LineItem, Payment, Settings, TaxMode } from '../lib/types'
 import { hasBlockingIssues, validateInvoice, type Issue } from '../lib/validation'
 import { NotFound } from './NotFound'
 import './editor.css'
@@ -218,7 +228,7 @@ function DraftEditor({ initial, settings }: { initial: InvoiceDocument; settings
   }
   const period = !!doc.serviceTo
   const term = doc.dueDate ? daysBetween(doc.issueDate, doc.dueDate) : 0
-  const nextNumber = peekNextNumber(isQuote ? settings.quoteNumbers : settings.invoiceNumbers, parseISODate(doc.issueDate))
+  const nextNumber = peekNextNumber(isQuote ? settings.quoteNumbers : doc.kind === 'creditNote' ? settings.creditNoteNumbers : settings.invoiceNumbers, parseISODate(doc.issueDate))
 
   const preview = (
     <div className="editor-preview">
@@ -236,7 +246,7 @@ function DraftEditor({ initial, settings }: { initial: InvoiceDocument; settings
             <ChevronLeft size={16} aria-hidden /> {isQuote ? 'Angebote' : 'Rechnungen'}
           </Link>
           <h1>
-            {doc.kind === 'cancellation' ? 'Stornorechnung' : isQuote ? 'Angebot' : doc.customerId ? 'Rechnung' : 'Schnellrechnung'}
+            {doc.kind === 'invoice' && doc.billingType === 'regular' && !doc.customerId ? 'Schnellrechnung' : documentLabel(doc)}
             <span className="badge" style={{ marginLeft: 12, verticalAlign: 'middle' }}>
               Entwurf
             </span>
@@ -308,8 +318,28 @@ function DraftEditor({ initial, settings }: { initial: InvoiceDocument; settings
             </div>
           </section>
 
+          {doc.kind === 'creditNote' && <CreditNoteInfo doc={doc} />}
+
           <section className="card card-pad">
-            <h2 style={{ marginBottom: 14 }}>{isQuote ? 'Angebotsdaten' : 'Rechnungsdaten'}</h2>
+            <h2 style={{ marginBottom: 14 }}>{isQuote ? 'Angebotsdaten' : doc.kind === 'creditNote' ? 'Gutschriftsdaten' : 'Rechnungsdaten'}</h2>
+            {doc.kind === 'invoice' && (
+              <div style={{ marginBottom: 16 }}>
+                <Segmented<BillingType>
+                  label="Rechnungsart"
+                  value={doc.billingType}
+                  onChange={(billingType) => {
+                    update({ billingType, deductions: billingType === 'final' ? doc.deductions : [], title: retitle(doc, billingType) })
+                    if (billingType === 'final' && !doc.deductions.length)
+                      void openDownPayments(doc.customerId, doc.id).then((list) => list.length && update({ deductions: list.map(deductionFor) }))
+                  }}
+                  options={[
+                    { value: 'regular', label: 'Rechnung' },
+                    { value: 'downPayment', label: 'Abschlag' },
+                    { value: 'final', label: 'Schlussrechnung' },
+                  ]}
+                />
+              </div>
+            )}
             <div className="form-grid">
               <TextField className="span-2" label="Titel" value={doc.title} onChange={(title) => update({ title })} />
               <TextField
@@ -345,17 +375,21 @@ function DraftEditor({ initial, settings }: { initial: InvoiceDocument; settings
                 </div>
               )}
               <TextField className={period ? 'span-6' : 'span-2'} label="Ihre Referenz / Bestellnr." value={doc.buyerReference} onChange={(buyerReference) => update({ buyerReference })} placeholder="optional" />
-              <SelectField className="span-3" label="Steuerfall" value={doc.taxMode} onChange={(m) => update(taxModePatch(doc, m as TaxMode, settings, true))}>
+              <SelectField className="span-2" label="Steuerfall" value={doc.taxMode} onChange={(m) => update(taxModePatch(doc, m as TaxMode, settings, true))}>
                 {(Object.keys(TAX_MODE_LABELS) as TaxMode[]).map((m) => (
                   <option key={m} value={m}>
                     {TAX_MODE_LABELS[m]}
                   </option>
                 ))}
               </SelectField>
-              <SelectField className="span-3" label="Währung" value={doc.currency} onChange={(currency) => update({ currency })}>
-                {['EUR', 'CHF', 'USD', 'GBP'].map((c) => (
+              <SelectField className="span-2" label="Währung" value={doc.currency} onChange={(currency) => update({ currency })}>
+                {CURRENCIES.map((c) => (
                   <option key={c}>{c}</option>
                 ))}
+              </SelectField>
+              <SelectField className="span-2" label="Sprache" value={doc.language} onChange={(language) => update(languagePatch(doc, language as Language, settings))}>
+                <option value="de">Deutsch</option>
+                <option value="en">English</option>
               </SelectField>
               {doc.taxMode !== 'standard' && (
                 <TextAreaField className="span-6" label="Hinweis zur Steuerbefreiung" value={doc.taxNote} onChange={(taxNote) => update({ taxNote })} rows={2} hint="Pflichtangabe – erscheint unter den Summen." />
@@ -387,14 +421,19 @@ function DraftEditor({ initial, settings }: { initial: InvoiceDocument; settings
                 + Stunden
               </Button>
             </div>
+            <DiscountEditor doc={doc} onChange={(discount) => update({ discount })} />
+            {doc.kind === 'invoice' && doc.billingType === 'final' && <DeductionPicker doc={doc} onChange={(deductions) => update({ deductions })} />}
             <div className="editor-totals">
               {view.totals.map((row) => (
                 <div key={row.label} className={row.strong ? 'grand' : ''}>
-                  <span>{row.label}</span>
+                  <span>
+                    {row.label}
+                    {row.detail && <small className="faint" style={{ display: 'block' }}>{row.detail}</small>}
+                  </span>
                   <span className="tabular">{row.value}</span>
                 </div>
               ))}
-              {totals.discountCents > 0 && <div className="small faint">enthält {formatMoney(totals.discountCents, doc.currency)} Rabatt</div>}
+              {totals.discountCents > 0 && <div className="small faint">enthält {formatMoney(totals.discountCents, doc.currency)} Positionsrabatt</div>}
             </div>
           </section>
 
@@ -437,7 +476,7 @@ function DraftEditor({ initial, settings }: { initial: InvoiceDocument; settings
       <Dialog
         open={finalizing}
         onClose={() => setFinalizing(false)}
-        title={isQuote ? 'Angebot abschließen?' : 'Rechnung abschließen?'}
+        title={`${documentLabel(doc)} abschließen?`}
         footer={
           <>
             <Button onClick={() => setFinalizing(false)}>Noch nicht</Button>
@@ -449,7 +488,7 @@ function DraftEditor({ initial, settings }: { initial: InvoiceDocument; settings
       >
         <div className="stack-sm">
           <p>
-            {isQuote ? 'Das Angebot' : 'Die Rechnung'} an <strong>{recipientName(doc.recipient)}</strong> über <strong>{formatMoney(totals.grossCents, doc.currency)}</strong> erhält die Nummer <strong>{nextNumber}</strong>.
+            {isQuote ? 'Das Angebot' : doc.kind === 'creditNote' ? 'Die Gutschrift' : 'Die Rechnung'} an <strong>{recipientName(doc.recipient)}</strong> über <strong>{formatMoney(totals.grossCents, doc.currency)}</strong> erhält die Nummer <strong>{nextNumber}</strong>.
           </p>
           {!isQuote && (
             <div className="callout info">
@@ -486,6 +525,127 @@ function taxModePatch(doc: InvoiceDocument, mode: TaxMode, settings: Settings, f
   const keepNote = doc.taxNote && !defaults.includes(doc.taxNote)
   const note = mode === 'smallBusiness' ? settings.smallBusinessNote || TAX_NOTES.smallBusiness : TAX_NOTES[mode]
   return { taxMode: mode, taxNote: keepNote ? doc.taxNote : note }
+}
+
+function retitle(doc: InvoiceDocument, billingType: BillingType): string {
+  const known = ['Rechnung', 'Abschlagsrechnung', 'Schlussrechnung', 'Invoice', 'Down payment invoice', 'Final invoice']
+  if (doc.title && !known.includes(doc.title)) return doc.title
+  return docTitleLabel({ ...doc, billingType })
+}
+
+/** Switches the document language and swaps texts that are still the defaults of the other language. */
+function languagePatch(doc: InvoiceDocument, language: Language, settings: Settings): Partial<InvoiceDocument> {
+  const from = DEFAULT_TEXTS[doc.language] ?? DEFAULT_TEXTS.de
+  const to = DEFAULT_TEXTS[language]
+  const quote = doc.kind === 'quote'
+  const intros = [from.intro, from.quoteIntro, settings.defaults.introText]
+  const closings = [from.closing, from.quoteClosing, settings.defaults.closingText]
+  const patch: Partial<InvoiceDocument> = { language }
+  if (intros.includes(doc.introText)) patch.introText = language === 'de' ? (quote ? to.quoteIntro : settings.defaults.introText) : quote ? to.quoteIntro : to.intro
+  if (closings.includes(doc.closingText)) patch.closingText = language === 'de' ? (quote ? to.quoteClosing : settings.defaults.closingText) : quote ? to.quoteClosing : to.closing
+  const fromNotes = Object.values(docText(doc.language).taxNotes)
+  if (doc.taxNote && (fromNotes.includes(doc.taxNote) || doc.taxNote === settings.smallBusinessNote)) {
+    patch.taxNote = language === 'de' && doc.taxMode === 'smallBusiness' ? settings.smallBusinessNote : docText(language).taxNotes[doc.taxMode]
+  }
+  const fromTitle = docTitleLabel(doc)
+  if (doc.title === fromTitle) patch.title = docTitleLabel({ ...doc, language })
+  return patch
+}
+
+function DiscountEditor({ doc, onChange }: { doc: InvoiceDocument; onChange: (d: InvoiceDiscount | null) => void }) {
+  const d = doc.discount
+  const symbol = doc.currency === 'EUR' ? '€' : doc.currency
+  if (!d) {
+    return (
+      <div className="row wrap" style={{ marginTop: 8 }}>
+        <Button size="sm" variant="ghost" icon={Percent} onClick={() => onChange({ type: 'percent', value: 0 })}>
+          Rabatt auf die ganze Rechnung
+        </Button>
+      </div>
+    )
+  }
+  return (
+    <div className="discount-editor">
+      <span className="small" style={{ fontWeight: 600 }}>Rabatt auf die ganze Rechnung</span>
+      <Segmented
+        label="Rabattart"
+        value={d.type}
+        onChange={(type) => onChange({ type, value: 0 })}
+        options={[
+          { value: 'percent', label: '%' },
+          { value: 'amount', label: symbol },
+        ]}
+      />
+      {d.type === 'percent' ? (
+        <NumberInput value={d.value} onChange={(value) => onChange({ type: 'percent', value: Math.min(100, Math.max(0, value)) })} suffix="%" maxFraction={2} aria-label="Gesamtrabatt in Prozent" style={{ width: 110 }} />
+      ) : (
+        <div style={{ width: 140 }}>
+          <MoneyInput value={d.value} onChange={(value) => onChange({ type: 'amount', value: Math.max(0, value ?? 0) })} currencySymbol={symbol} aria-label="Gesamtrabatt als Betrag" />
+        </div>
+      )}
+      <IconButton icon={X} label="Rabatt entfernen" size={16} onClick={() => onChange(null)} />
+      <span className="hint small faint" style={{ flexBasis: '100%' }}>
+        Wird anteilig auf die Steuersätze verteilt und in der E-Rechnung als Nachlass je Steuersatz ausgewiesen.
+      </span>
+    </div>
+  )
+}
+
+function DeductionPicker({ doc, onChange }: { doc: InvoiceDocument; onChange: (d: Deduction[]) => void }) {
+  const candidates = useLiveQuery(() => openDownPayments(doc.customerId, doc.id), [doc.customerId, doc.id])
+  const selected = new Set(doc.deductions.map((d) => d.invoiceId))
+  if (!doc.customerId) {
+    return <p className="callout small" style={{ marginTop: 12 }}><Info size={16} aria-hidden /><span>Wähle oben einen Kunden, um seine Abschlagsrechnungen zu verrechnen.</span></p>
+  }
+  if (candidates && !candidates.length && !doc.deductions.length) {
+    return <p className="callout small" style={{ marginTop: 12 }}><Info size={16} aria-hidden /><span>Für diesen Kunden gibt es keine offenen Abschlagsrechnungen.</span></p>
+  }
+  const toggle = (inv: InvoiceDocument) => {
+    if (selected.has(inv.id)) onChange(doc.deductions.filter((d) => d.invoiceId !== inv.id))
+    else onChange([...doc.deductions, deductionFor(inv)].sort((a, b) => a.issueDate.localeCompare(b.issueDate)))
+  }
+  return (
+    <div className="deductions">
+      <strong className="small">Abschläge verrechnen</strong>
+      <ul className="list">
+        {(candidates ?? []).map((inv) => (
+          <li key={inv.id}>
+            <label className="list-item" style={{ cursor: 'pointer', padding: '8px 0' }}>
+              <input type="checkbox" className="checkbox" checked={selected.has(inv.id)} onChange={() => toggle(inv)} />
+              <span className="grow">
+                <span className="title" style={{ display: 'block' }}>{inv.number}</span>
+                <span className="sub">vom {formatDate(inv.issueDate)}{paidOf(inv) ? ` · ${formatMoney(paidOf(inv), inv.currency)} bezahlt` : ' · noch nicht bezahlt'}</span>
+              </span>
+              <span className="tabular">{formatMoney(documentTotals(inv).grossCents, inv.currency)}</span>
+            </label>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+function CreditNoteInfo({ doc }: { doc: InvoiceDocument }) {
+  const original = useLiveQuery(() => (doc.creditsId ? db.documents.get(doc.creditsId) : undefined), [doc.creditsId])
+  if (!original) return null
+  const remaining = creditableAmount(original)
+  const current = documentTotals(doc).grossCents
+  return (
+    <section className={`card card-pad ${current > remaining ? 'overdue-card' : ''}`}>
+      <div className="row" style={{ alignItems: 'flex-start' }}>
+        <Info size={20} color="var(--purple)" aria-hidden />
+        <div className="grow" style={{ flex: 1 }}>
+          <strong>
+            Gutschrift zu <Link to={`/rechnungen/${original.id}`}>{original.number}</Link>
+          </strong>
+          <p className="small muted">
+            Noch gutschreibbar: {formatMoney(remaining, original.currency)} · diese Gutschrift: {formatMoney(current, doc.currency)}. Reduziere Mengen oder Preise für eine Teilgutschrift. Die Gutschrift bekommt eine Nummer aus dem eigenen Nummernkreis.
+          </p>
+          {current > remaining && <p className="small" style={{ color: 'var(--red)', marginTop: 6 }}>Die Gutschrift ist höher als der noch offene Rechnungsbetrag.</p>}
+        </div>
+      </div>
+    </section>
+  )
 }
 
 function ItemsEditor({
@@ -598,28 +758,29 @@ function ItemsEditor({
 function DocumentViewer({ doc, settings }: { doc: InvoiceDocument; settings: Settings }) {
   const navigate = useNavigate()
   const { run, confirm } = useFeedback()
-  const [payOpen, setPayOpen] = useState(false)
-  const [paidAt, setPaidAt] = useState(today())
   const [eOpen, setEOpen] = useState(false)
+  const [creditOpen, setCreditOpen] = useState(false)
   const [cancelOpen, setCancelOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   const view = useMemo(() => buildInvoiceView(doc, settings), [doc, settings])
-  const totals = calculateTotals(doc.items, doc.taxMode)
-  const status = displayStatus(doc)
+  const totals = documentTotals(doc)
   const isQuote = doc.kind === 'quote'
   const label = documentLabel(doc)
   useDocumentTitle(`${label} ${doc.number}`)
 
   const related = useLiveQuery(async () => {
-    const [cancelledBy, cancels, timeCount, source] = await Promise.all([
+    const [cancelledBy, cancels, timeCount, source, credits, settledBy] = await Promise.all([
       doc.cancelledById ? db.documents.get(doc.cancelledById) : undefined,
       doc.cancelsId ? db.documents.get(doc.cancelsId) : undefined,
       db.timeEntries.where('invoiceId').equals(doc.id).count(),
       doc.sourceQuoteId ? db.documents.get(doc.sourceQuoteId) : undefined,
+      doc.creditsId ? db.documents.get(doc.creditsId) : undefined,
+      doc.settledById ? db.documents.get(doc.settledById) : undefined,
     ])
     const invoicesFromQuote = isQuote ? await db.documents.filter((d) => d.sourceQuoteId === doc.id).toArray() : []
-    return { cancelledBy, cancels, timeCount, source, invoicesFromQuote }
-  }, [doc.id, doc.cancelledById, doc.cancelsId])
+    const creditDrafts = doc.kind === 'invoice' ? await db.documents.where('creditsId').equals(doc.id).filter((d) => d.status === 'draft').toArray() : []
+    return { cancelledBy, cancels, timeCount, source, invoicesFromQuote, credits, settledBy, creditDrafts }
+  }, [doc.id, doc.cancelledById, doc.cancelsId, doc.creditsId, doc.settledById])
 
   const pdf = async (withXml = false) => {
     setBusy(true)
@@ -630,6 +791,24 @@ function DocumentViewer({ doc, settings }: { doc: InvoiceDocument; settings: Set
   const duplicate = async (asKind?: 'invoice') => {
     const copy = await run(() => duplicateDocument(doc.id, asKind), asKind ? 'Rechnung aus Angebot erstellt' : 'Kopie als Entwurf erstellt')
     if (copy) navigate(`/rechnungen/${copy.id}`)
+  }
+
+  const credit = async (scope: 'full' | 'partial') => {
+    const draft = await run(() => createCreditNote(doc.id, scope))
+    setCreditOpen(false)
+    if (draft) navigate(`/rechnungen/${draft.id}`)
+  }
+
+  const createFinal = async () => {
+    const draft = await run(async () => {
+      const fin = await createDraft('invoice', { customerId: doc.customerId, billingType: 'final' })
+      const downs = await openDownPayments(doc.customerId)
+      const list = downs.length ? downs : [doc]
+      const next = { ...fin, title: 'Schlussrechnung', deductions: list.map(deductionFor), language: doc.language, currency: doc.currency, recipient: doc.recipient }
+      await saveDocument(next)
+      return next
+    })
+    if (draft) navigate(`/rechnungen/${draft.id}`)
   }
 
   const cancel = async (correct: boolean) => {
@@ -678,34 +857,7 @@ function DocumentViewer({ doc, settings }: { doc: InvoiceDocument; settings: Set
 
       <div className="editor-layout viewer">
         <div className="editor-form stack">
-          {doc.kind === 'invoice' && (status === 'open' || status === 'overdue') && (
-            <section className={`card card-pad ${status === 'overdue' ? 'overdue-card' : ''}`}>
-              <div className="row" style={{ alignItems: 'flex-start' }}>
-                {status === 'overdue' ? <AlertTriangle size={20} color="var(--red)" aria-hidden /> : <Clock size={20} color="var(--accent)" aria-hidden />}
-                <div className="grow" style={{ flex: 1 }}>
-                  <strong>{status === 'overdue' ? `Seit ${daysBetween(doc.dueDate, today())} Tagen überfällig` : `Fällig am ${formatDate(doc.dueDate)}`}</strong>
-                  <p className="small muted">{status === 'overdue' ? 'Zeit für eine freundliche Zahlungserinnerung.' : daysBetween(today(), doc.dueDate) === 0 ? 'Heute fällig.' : `Noch ${daysBetween(today(), doc.dueDate)} Tage bis zur Fälligkeit.`}</p>
-                </div>
-              </div>
-              <Button variant="success" icon={CheckCircle2} block style={{ marginTop: 14 }} onClick={() => setPayOpen(true)}>
-                Als bezahlt markieren
-              </Button>
-            </section>
-          )}
-
-          {doc.status === 'paid' && (
-            <section className="card card-pad">
-              <div className="row">
-                <CheckCircle2 size={20} color="var(--green)" aria-hidden />
-                <div className="grow" style={{ flex: 1 }}>
-                  <strong>Bezahlt am {formatDate(doc.paidAt)}</strong>
-                </div>
-                <Button size="sm" variant="ghost" icon={Undo2} onClick={() => run(() => setPaid(doc.id, null), 'Zahlung zurückgesetzt')}>
-                  Zurücksetzen
-                </Button>
-              </div>
-            </section>
-          )}
+          {doc.kind === 'invoice' && doc.status !== 'cancelled' && <PaymentsCard doc={doc} />}
 
           {isQuote && (
             <section className="card card-pad stack-sm">
@@ -781,6 +933,48 @@ function DocumentViewer({ doc, settings }: { doc: InvoiceDocument; settings: Set
                 Aus Angebot <Link to={`/rechnungen/${related.source.id}`}>{related.source.number}</Link>
               </div>
             )}
+            {related?.credits && (
+              <div className="callout small">
+                <Info size={16} aria-hidden />
+                <span>
+                  Gutschrift zur Rechnung <Link to={`/rechnungen/${related.credits.id}`}>{related.credits.number}</Link>
+                </span>
+              </div>
+            )}
+            {doc.creditNotes.length > 0 && (
+              <div className="small stack-sm" style={{ gap: 4 }}>
+                <strong>Gutschriften</strong>
+                {doc.creditNotes.map((c) => (
+                  <div key={c.id} className="row between">
+                    <Link to={`/rechnungen/${c.id}`}>{c.number}</Link>
+                    <span className="tabular muted">−{formatMoney(c.grossCents, doc.currency)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            {related?.creditDrafts.map((d) => (
+              <Link key={d.id} to={`/rechnungen/${d.id}`} className="small">
+                → Gutschrift-Entwurf fortsetzen
+              </Link>
+            ))}
+            {doc.deductions.length > 0 && (
+              <div className="small stack-sm" style={{ gap: 4 }}>
+                <strong>Verrechnete Abschläge</strong>
+                {doc.deductions.map((d) => (
+                  <Link key={d.invoiceId} to={`/rechnungen/${d.invoiceId}`}>
+                    {d.number} vom {formatDate(d.issueDate)}
+                  </Link>
+                ))}
+              </div>
+            )}
+            {related?.settledBy && (
+              <div className="callout small">
+                <Info size={16} aria-hidden />
+                <span>
+                  Verrechnet in der Schlussrechnung <Link to={`/rechnungen/${related.settledBy.id}`}>{related.settledBy.number ?? '(Entwurf)'}</Link>
+                </span>
+              </div>
+            )}
           </section>
 
           <section className="card card-pad stack-sm">
@@ -789,7 +983,17 @@ function DocumentViewer({ doc, settings }: { doc: InvoiceDocument; settings: Set
               <Button icon={Copy} onClick={() => duplicate()}>
                 Duplizieren
               </Button>
-              {doc.kind === 'invoice' && doc.status !== 'cancelled' && (
+              {doc.kind === 'invoice' && doc.status !== 'cancelled' && creditableAmount(doc) > 0 && (
+                <Button icon={ReceiptText} onClick={() => setCreditOpen(true)}>
+                  Gutschrift
+                </Button>
+              )}
+              {doc.kind === 'invoice' && doc.billingType === 'downPayment' && !doc.settledById && doc.status !== 'cancelled' && (
+                <Button icon={FileCheck2} onClick={createFinal}>
+                  Schlussrechnung erstellen
+                </Button>
+              )}
+              {doc.kind === 'invoice' && doc.status !== 'cancelled' && !doc.creditNotes.length && !doc.settledById && (
                 <Button variant="danger" icon={Ban} onClick={() => setCancelOpen(true)}>
                   Stornieren
                 </Button>
@@ -826,26 +1030,23 @@ function DocumentViewer({ doc, settings }: { doc: InvoiceDocument; settings: Set
       </div>
 
       <Dialog
-        open={payOpen}
-        onClose={() => setPayOpen(false)}
-        title="Zahlung erfassen"
-        description={`${formatMoney(totals.grossCents, doc.currency)} von ${recipientName(doc.recipient)}`}
+        open={creditOpen}
+        onClose={() => setCreditOpen(false)}
+        title={`Gutschrift zu ${doc.number}`}
+        description="Eine Gutschrift (Rechnungskorrektur) mindert den Rechnungsbetrag, ohne die Rechnung zu stornieren. Sie bekommt eine Nummer aus dem eigenen Nummernkreis."
         footer={
           <>
-            <Button onClick={() => setPayOpen(false)}>Abbrechen</Button>
-            <Button
-              variant="success"
-              onClick={async () => {
-                await run(() => setPaid(doc.id, paidAt || today()), 'Als bezahlt markiert')
-                setPayOpen(false)
-              }}
-            >
-              Bezahlt
+            <Button onClick={() => setCreditOpen(false)}>Abbrechen</Button>
+            <Button onClick={() => credit('partial')}>Teilgutschrift</Button>
+            <Button variant="primary" onClick={() => credit('full')}>
+              Vollgutschrift
             </Button>
           </>
         }
       >
-        <TextField label="Zahlungseingang am" type="date" value={paidAt} onChange={setPaidAt} max={today()} />
+        <p className="small muted">
+          Noch gutschreibbar: <strong>{formatMoney(creditableAmount(doc), doc.currency)}</strong>. Bei einer Teilgutschrift übernimmt Kontor die Positionen, die du anschließend reduzierst oder entfernst. Hinweis: Im Steuerrecht meint „Gutschrift“ eigentlich die Abrechnung durch den Leistungsempfänger – auf dem Dokument steht deshalb „Rechnungskorrektur“.
+        </p>
       </Dialog>
 
       <Dialog
@@ -870,6 +1071,146 @@ function DocumentViewer({ doc, settings }: { doc: InvoiceDocument; settings: Set
 
       <EInvoiceDialog open={eOpen} onClose={() => setEOpen(false)} doc={doc} settings={settings} seller={seller} onPdf={() => pdf(true)} />
     </div>
+  )
+}
+
+function PaymentsCard({ doc }: { doc: InvoiceDocument }) {
+  const { run, undoable } = useFeedback()
+  const [open, setOpen] = useState(false)
+  const [amount, setAmount] = useState<number | null>(null)
+  const [date, setDate] = useState(today())
+  const [note, setNote] = useState('')
+  const status = displayStatus(doc)
+  const totals = documentTotals(doc)
+  const due = amountDue(doc)
+  const paid = paidOf(doc)
+  const credited = creditedOf(doc)
+  const target = totals.dueCents - credited
+  const progress = target > 0 ? Math.min(100, (paid / target) * 100) : 100
+  const overdueDays = status === 'overdue' ? daysBetween(doc.dueDate, today()) : 0
+
+  const openDialog = () => {
+    setAmount(Math.max(0, due))
+    setDate(today())
+    setNote('')
+    setOpen(true)
+  }
+
+  const save = async () => {
+    const ok = await run(async () => {
+      await addPayment(doc.id, { date, amountCents: amount ?? 0, note: note.trim() })
+      return true
+    }, (amount ?? 0) >= due ? 'Rechnung ist bezahlt' : 'Zahlung erfasst')
+    if (ok) setOpen(false)
+  }
+
+  const remove = async (p: Payment) => {
+    await run(() => removePayment(doc.id, p.id))
+    undoable(`Zahlung über ${formatMoney(p.amountCents, doc.currency)} entfernt`, () => addPayment(doc.id, { date: p.date, amountCents: p.amountCents, note: p.note }))
+  }
+
+  return (
+    <section className={`card card-pad stack-sm ${status === 'overdue' ? 'overdue-card' : ''}`}>
+      <div className="row" style={{ alignItems: 'flex-start' }}>
+        {due <= 0 ? (
+          <CheckCircle2 size={20} color="var(--green)" aria-hidden />
+        ) : status === 'overdue' ? (
+          <AlertTriangle size={20} color="var(--red)" aria-hidden />
+        ) : (
+          <Clock size={20} color="var(--accent)" aria-hidden />
+        )}
+        <div className="grow" style={{ flex: 1 }}>
+          <strong>
+            {due <= 0
+              ? displayStatus(doc) === 'settled'
+                ? 'Durch Gutschrift ausgeglichen'
+                : `Bezahlt am ${formatDate(doc.paidAt)}`
+              : status === 'overdue'
+                ? `Seit ${overdueDays} ${overdueDays === 1 ? 'Tag' : 'Tagen'} überfällig`
+                : `Fällig am ${formatDate(doc.dueDate)}`}
+          </strong>
+          {due > 0 && (
+            <p className="small muted">
+              {paid > 0 ? `${formatMoney(due, doc.currency)} von ${formatMoney(target, doc.currency)} offen.` : status === 'overdue' ? 'Zeit für eine freundliche Zahlungserinnerung.' : daysBetween(today(), doc.dueDate) === 0 ? 'Heute fällig.' : `Noch ${daysBetween(today(), doc.dueDate)} Tage bis zur Fälligkeit.`}
+            </p>
+          )}
+        </div>
+      </div>
+      {(paid > 0 || credited > 0) && (
+        <>
+          <div className="progress" aria-label={`${Math.round(progress)} % bezahlt`}>
+            <span style={{ width: `${progress}%`, background: 'var(--green)' }} />
+          </div>
+          <ul className="list payments-list">
+            {doc.payments.map((p) => (
+              <li key={p.id} className="list-item">
+                <span className="grow">
+                  <span className="title" style={{ display: 'block' }}>{formatDate(p.date)}</span>
+                  {p.note && <span className="sub">{p.note}</span>}
+                </span>
+                <span className="tabular">{formatMoney(p.amountCents, doc.currency)}</span>
+                <IconButton icon={Trash2} label="Zahlung entfernen" danger size={15} onClick={() => remove(p)} />
+              </li>
+            ))}
+            {doc.creditNotes.map((c) => (
+              <li key={c.id} className="list-item">
+                <span className="grow">
+                  <Link to={`/rechnungen/${c.id}`} className="title" style={{ display: 'block' }}>
+                    Gutschrift {c.number}
+                  </Link>
+                  <span className="sub">{formatDate(c.issueDate)}</span>
+                </span>
+                <span className="tabular">{formatMoney(c.grossCents, doc.currency)}</span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+      {due > 0 && (
+        <div className="row wrap">
+          <Button variant="success" icon={CheckCircle2} onClick={openDialog} className="grow" style={{ flex: 1 }}>
+            Zahlung erfassen
+          </Button>
+          {status === 'overdue' && (
+            <Link to={`/mahnwesen?rechnung=${doc.id}`} className="btn">
+              <BellRing size={17} aria-hidden /> Mahnen
+            </Link>
+          )}
+        </div>
+      )}
+
+      <Dialog
+        open={open}
+        onClose={() => setOpen(false)}
+        title="Zahlung erfassen"
+        description={`${formatMoney(due, doc.currency)} offen von ${recipientName(doc.recipient)}`}
+        footer={
+          <>
+            <Button onClick={() => setOpen(false)}>Abbrechen</Button>
+            <Button variant="success" onClick={save}>
+              {(amount ?? 0) >= due ? 'Als bezahlt buchen' : 'Teilzahlung buchen'}
+            </Button>
+          </>
+        }
+      >
+        <form
+          className="form-grid"
+          onSubmit={(e) => {
+            e.preventDefault()
+            void save()
+          }}
+        >
+          <Field className="span-3" label="Betrag">
+            <MoneyInput value={amount} onChange={setAmount} currencySymbol={doc.currency === 'EUR' ? '€' : doc.currency} aria-label="Zahlungsbetrag" autoFocus />
+          </Field>
+          <TextField className="span-3" label="Zahlungseingang am" type="date" value={date} onChange={setDate} max={today()} />
+          <TextField className="span-6" label="Notiz" value={note} onChange={setNote} placeholder="optional, z. B. Verwendungszweck" />
+          {(amount ?? 0) > 0 && (amount ?? 0) < due && <p className="span-6 small muted">Teilzahlung – es bleiben {formatMoney(due - (amount ?? 0), doc.currency)} offen.</p>}
+          {(amount ?? 0) > due && <p className="span-6 small" style={{ color: 'var(--orange)' }}>Der Betrag ist höher als der offene Betrag ({formatMoney(due, doc.currency)}).</p>}
+          <button type="submit" hidden />
+        </form>
+      </Dialog>
+    </section>
   )
 }
 

@@ -23,6 +23,8 @@ export const UNITS = ['Std.', 'Tag', 'Stk.', 'Pauschal', 'Monat', 'km', 'Seite',
 
 export const TAX_RATES = [19, 7, 0]
 
+export const CURRENCIES = ['EUR', 'CHF', 'USD', 'GBP']
+
 export function emptyCompany(): Company {
   return {
     name: '',
