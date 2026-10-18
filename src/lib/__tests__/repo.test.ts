@@ -129,3 +129,24 @@ describe('duplicateDocument', () => {
     expect(copy.items[0].id).not.toBe(final.items[0].id)
   })
 })
+
+describe('backup', () => {
+  it('restores everything from a JSON backup', async () => {
+    const { createBackup, parseBackup, restoreBackup } = await import('../backup')
+    const c = await customer()
+    await finalizeDocument((await readyDraft(c.id)).id)
+    const json = JSON.stringify(await createBackup())
+    await db.delete()
+    await db.open()
+    await restoreBackup(parseBackup(json))
+    expect(await db.customers.count()).toBe(1)
+    expect((await db.documents.toArray())[0].number).toMatch(/^RE-/)
+    expect((await getSettings()).company.name).toBe('Muster Design')
+  })
+
+  it('rejects foreign files', async () => {
+    const { parseBackup } = await import('../backup')
+    expect(() => parseBackup('{"foo":1}')).toThrow(/Kontor/)
+    expect(() => parseBackup('kein json')).toThrow()
+  })
+})
