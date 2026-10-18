@@ -1,4 +1,5 @@
 import {
+  BellRing,
   Building2,
   Check,
   Database,
@@ -42,6 +43,7 @@ const SECTIONS = [
   { id: 'steuern', label: 'Steuern', icon: Percent },
   { id: 'rechnung', label: 'Rechnungsvorgaben', icon: ReceiptText },
   { id: 'nummern', label: 'Nummernkreise', icon: Hash },
+  { id: 'mahnwesen', label: 'Mahnwesen', icon: BellRing },
   { id: 'layout', label: 'Layout & Farbe', icon: Palette },
   { id: 'daten', label: 'Daten', icon: Database },
 ]
@@ -263,6 +265,52 @@ export function SettingsPage() {
                 />
               </div>
               <StartNumber settings={stored ?? draft} />
+            </div>
+          </section>
+
+          <section id="mahnwesen" className="card card-pad anchor-target">
+            <div className="form-section">
+              <h3>Mahnwesen</h3>
+              <p className="muted">Fristen, Gebühren und Texte für Zahlungserinnerung und Mahnungen. Die Tage zählen ab Fälligkeit bzw. ab Ablauf der vorherigen Frist.</p>
+              <div className="stack">
+                {draft.dunning.steps.map((step, i) => {
+                  const setStep = (patch: Partial<typeof step>) => {
+                    const steps = draft.dunning.steps.map((x, j) => (j === i ? { ...x, ...patch } : x)) as Settings['dunning']['steps']
+                    update({ dunning: { ...draft.dunning, steps } })
+                  }
+                  return (
+                    <div key={i} className="form-grid dunning-step">
+                      <TextField className="span-2" label={`Stufe ${i + 1}`} value={step.title} onChange={(title) => setStep({ title })} />
+                      <Field className="span-2" label={i === 0 ? 'Tage nach Fälligkeit' : 'Tage nach letzter Frist'}>
+                        <NumberInput value={step.afterDays} onChange={(n) => setStep({ afterDays: Math.max(0, Math.round(n)) })} suffix="Tage" maxFraction={0} aria-label={`Abstand Stufe ${i + 1}`} />
+                      </Field>
+                      <Field className="span-2" label="Gebühr">
+                        <MoneyInput value={step.feeCents} onChange={(v) => setStep({ feeCents: v ?? 0 })} aria-label={`Gebühr Stufe ${i + 1}`} />
+                      </Field>
+                      <TextAreaField className="span-6" label="Text" value={step.text} onChange={(text) => setStep({ text })} rows={3} />
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+            <div className="form-section">
+              <h3>Verzugszinsen</h3>
+              <p className="muted">
+                Basiszinssatz nach § 247 BGB – die Bundesbank passt ihn zum 1. Januar und 1. Juli an. Verzugszins: Basiszins + 9 Prozentpunkte gegenüber Unternehmen, + 5 gegenüber Verbrauchern.
+              </p>
+              <div className="form-grid">
+                <Field className="span-2" label="Basiszinssatz">
+                  <NumberInput value={draft.dunning.baseRatePercent} onChange={(baseRatePercent) => update({ dunning: { ...draft.dunning, baseRatePercent } })} suffix="%" maxFraction={2} aria-label="Basiszinssatz" />
+                </Field>
+                <TextField className="span-2" label="Gültig seit" type="date" value={draft.dunning.baseRateSince} onChange={(baseRateSince) => update({ dunning: { ...draft.dunning, baseRateSince } })} />
+                <Field className="span-2" label="Neue Zahlungsfrist">
+                  <NumberInput value={draft.dunning.deadlineDays} onChange={(n) => update({ dunning: { ...draft.dunning, deadlineDays: Math.max(1, Math.round(n)) } })} suffix="Tage" maxFraction={0} aria-label="Neue Zahlungsfrist" />
+                </Field>
+              </div>
+              <div className="stack-sm" style={{ marginTop: 14 }}>
+                <Toggle checked={draft.dunning.chargeInterest} onChange={(chargeInterest) => update({ dunning: { ...draft.dunning, chargeInterest } })} label="Verzugszinsen ab der 1. Mahnung vorschlagen" />
+                <Toggle checked={draft.dunning.flatFeeB2B} onChange={(flatFeeB2B) => update({ dunning: { ...draft.dunning, flatFeeB2B } })} label="Verzugspauschale 40 € bei Unternehmen vorschlagen" description="§ 288 Abs. 5 BGB, einmal je Forderung." />
+              </div>
             </div>
           </section>
 

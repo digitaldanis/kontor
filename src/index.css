@@ -1812,3 +1812,34 @@ a.list-item:hover {
     background: rgba(72, 72, 76, 0.92);
   }
 }
+
+/* Reminders */
+.reminder-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 22px;
+  align-items: start;
+}
+.reminder-preview {
+  position: sticky;
+  top: 0;
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+@media (max-width: 760px) {
+  .reminder-grid {
+    grid-template-columns: 1fr;
+  }
+  .reminder-preview {
+    position: static;
+  }
+}
+.dunning-step {
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.dunning-step:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}

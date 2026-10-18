@@ -37,7 +37,8 @@ import { addDays, daysBetween, formatDate, parseISODate, today } from '../lib/da
 import { db } from '../lib/db'
 import { CURRENCIES, customerName, recipientFromCustomer, recipientName, TAX_MODE_LABELS, TAX_NOTES, TAX_RATES, UNITS } from '../lib/defaults'
 import { eInvoiceIssues, type EInvoiceProfile } from '../lib/einvoice'
-import { downloadPdf, downloadXml, printDocument } from '../lib/exporters'
+import { downloadPdf, downloadReminderPdf, downloadXml, printDocument } from '../lib/exporters'
+import { LEVEL_LABELS, reminderTotal } from '../lib/dunning'
 import { useCustomers, useDocumentTitle, useMediaQuery, useSettings } from '../lib/hooks'
 import { buildInvoiceView, docTitleLabel, sellerFor } from '../lib/invoiceView'
 import { DEFAULT_TEXTS, docText } from '../lib/docText'
@@ -58,6 +59,7 @@ import {
   newLineItem,
   openDownPayments,
   releaseTimeEntries,
+  remindersFor,
   removePayment,
   saveCustomer,
   saveDocument,
@@ -858,6 +860,7 @@ function DocumentViewer({ doc, settings }: { doc: InvoiceDocument; settings: Set
       <div className="editor-layout viewer">
         <div className="editor-form stack">
           {doc.kind === 'invoice' && doc.status !== 'cancelled' && <PaymentsCard doc={doc} />}
+          {doc.kind === 'invoice' && <ReminderHistory doc={doc} settings={settings} />}
 
           {isQuote && (
             <section className="card card-pad stack-sm">
@@ -1071,6 +1074,32 @@ function DocumentViewer({ doc, settings }: { doc: InvoiceDocument; settings: Set
 
       <EInvoiceDialog open={eOpen} onClose={() => setEOpen(false)} doc={doc} settings={settings} seller={seller} onPdf={() => pdf(true)} />
     </div>
+  )
+}
+
+function ReminderHistory({ doc, settings }: { doc: InvoiceDocument; settings: Settings }) {
+  const { run } = useFeedback()
+  const reminders = useLiveQuery(() => remindersFor(doc.id), [doc.id])
+  if (!reminders?.length) return null
+  return (
+    <section className="card card-pad stack-sm">
+      <h3>Mahnverlauf</h3>
+      <ul className="list payments-list">
+        {reminders.map((r) => (
+          <li key={r.id} className="list-item">
+            <span className="grow">
+              <span className="title" style={{ display: 'block' }}>{LEVEL_LABELS[r.level]}</span>
+              <span className="sub">
+                {formatDate(r.issueDate)} · Frist {formatDate(r.deadline)}
+                {r.sentAt ? ' · versendet' : ''}
+              </span>
+            </span>
+            <span className="tabular">{formatMoney(reminderTotal(r), doc.currency)}</span>
+            <IconButton icon={Download} label="PDF herunterladen" size={15} onClick={() => run(() => downloadReminderPdf(r, doc, settings))} />
+          </li>
+        ))}
+      </ul>
+    </section>
   )
 }
 

@@ -22,6 +22,7 @@ import type {
   LineItem,
   NumberSequence,
   Payment,
+  Reminder,
   RunningTimer,
   Settings,
   TimeEntry,
@@ -546,6 +547,26 @@ export async function setQuoteStatus(id: string, status: 'sent' | 'accepted' | '
   await db.documents.update(id, { status, updatedAt: now() })
 }
 
+
+// Dunning
+
+export async function remindersFor(invoiceId: string): Promise<Reminder[]> {
+  return (await db.reminders.where('invoiceId').equals(invoiceId).toArray()).sort((a, b) => a.issueDate.localeCompare(b.issueDate) || a.level - b.level)
+}
+
+export async function saveReminder(r: Omit<Reminder, 'id' | 'createdAt'> & { id?: string }): Promise<Reminder> {
+  const invoice = await db.documents.get(r.invoiceId)
+  if (!invoice || invoice.kind !== 'invoice' || invoice.status !== 'open') throw new Error('Nur offene Rechnungen können gemahnt werden.')
+  const saved: Reminder = { ...r, id: r.id ?? uid(), createdAt: now() }
+  await db.reminders.put(saved)
+  return saved
+}
+
+export async function deleteReminder(id: string): Promise<Reminder | undefined> {
+  const r = await db.reminders.get(id)
+  await db.reminders.delete(id)
+  return r
+}
 
 // Time tracking
 

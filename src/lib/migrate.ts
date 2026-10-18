@@ -34,6 +34,7 @@ export function normalizeSettings(raw: Partial<Settings> | undefined | null): Se
     ...raw,
     defaults: { ...base.defaults, ...raw.defaults },
     company: { ...base.company, ...raw.company },
+    dunning: { ...base.dunning, ...raw.dunning },
     id: 'main',
   }
 }

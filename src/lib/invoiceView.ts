@@ -2,7 +2,7 @@ import { documentTotals, type Totals } from './calc'
 import { countryName } from './countries'
 import { docText, formatDocDate, formatDocMoney, formatDocNumber, formatDocPeriod, type DocText } from './docText'
 import { resolvePlaceholders } from './repo'
-import type { Company, InvoiceDocument, LayoutId, Logo, Recipient, Settings } from './types'
+import type { Company, InvoiceDocument, LayoutId, Logo, Recipient, Reminder, Settings } from './types'
 import { formatIban } from './validation'
 
 export interface ViewItem {
@@ -46,6 +46,8 @@ export interface InvoiceView {
   accent: string
   label: string
   title: string
+  /** Title as printed above the items, including the number where it belongs. */
+  heading: string
   seller: Company
   logo: Logo | null
   senderLine: string
@@ -186,6 +188,7 @@ export function buildInvoiceView(doc: InvoiceDocument, settings: Settings): Invo
     accent: doc.accentColor || settings.defaults.accentColor,
     label,
     title: doc.title || label,
+    heading: `${doc.title || label}${doc.number && doc.status !== 'draft' ? ` ${doc.number}` : ''}`,
     seller,
     logo,
     senderLine: senderLine(seller),
@@ -202,5 +205,115 @@ export function buildInvoiceView(doc: InvoiceDocument, settings: Settings): Invo
     footerText: doc.footerText,
     isDraft: doc.status === 'draft',
     raw: totals,
+  }
+}
+
+const REMINDER_TEXT = {
+  de: {
+    date: 'Datum',
+    invoiceNo: 'Rechnungsnr.',
+    invoiceDate: 'Rechnungsdatum',
+    dueSince: 'Fällig seit',
+    deadline: 'Zahlbar bis',
+    invoiceLine: (n: string, d: string) => `Rechnung ${n} vom ${d}`,
+    dueLine: (d: string) => `fällig am ${d}`,
+    paidLine: (amount: string) => `abzüglich bereits gezahlter ${amount}`,
+    previousFees: 'Mahngebühren aus vorherigen Schreiben',
+    fee: 'Mahngebühr',
+    interest: 'Verzugszinsen',
+    interestLine: (rate: string, days: number, since: string) => `${rate} % p. a. für ${days} Tage ab ${since}`,
+    flatFee: 'Verzugspauschale',
+    flatFeeLine: '§ 288 Abs. 5 BGB',
+    total: 'Gesamtforderung',
+    hello: (name: string) => (name ? `Guten Tag ${name},` : 'Sehr geehrte Damen und Herren,'),
+    regards: 'Mit freundlichen Grüßen',
+    amount: 'Betrag',
+  },
+  en: {
+    date: 'Date',
+    invoiceNo: 'Invoice no.',
+    invoiceDate: 'Invoice date',
+    dueSince: 'Due since',
+    deadline: 'Payable by',
+    invoiceLine: (n: string, d: string) => `Invoice ${n} of ${d}`,
+    dueLine: (d: string) => `due on ${d}`,
+    paidLine: (amount: string) => `less ${amount} already paid`,
+    previousFees: 'Reminder fees from earlier letters',
+    fee: 'Reminder fee',
+    interest: 'Default interest',
+    interestLine: (rate: string, days: number, since: string) => `${rate} % p.a. for ${days} days from ${since}`,
+    flatFee: 'Flat-rate compensation',
+    flatFeeLine: '§ 288 (5) BGB',
+    total: 'Total amount due',
+    hello: (name: string) => (name ? `Dear ${name},` : 'Dear Sir or Madam,'),
+    regards: 'Kind regards',
+    amount: 'Amount',
+  },
+}
+
+export function buildReminderView(reminder: Reminder, invoice: InvoiceDocument, settings: Settings): InvoiceView {
+  const { seller, logo } = sellerFor(invoice, settings)
+  const lang = reminder.language ?? invoice.language ?? 'de'
+  const t = docText(lang)
+  const r = REMINDER_TEXT[lang]
+  const money = (c: number) => formatDocMoney(c, invoice.currency, lang)
+  const date = (d: string) => formatDocDate(d, lang)
+  const invoiceTotals = documentTotals(invoice)
+  const paidBefore = invoiceTotals.dueCents - reminder.openCents
+
+  const lines: { title: string; description: string; cents: number }[] = [
+    {
+      title: r.invoiceLine(invoice.number ?? '', date(invoice.issueDate)),
+      description: [r.dueLine(date(invoice.dueDate)), paidBefore > 0 ? r.paidLine(money(paidBefore)) : ''].filter(Boolean).join(', '),
+      cents: reminder.openCents,
+    },
+  ]
+  if (reminder.previousFeesCents) lines.push({ title: r.previousFees, description: '', cents: reminder.previousFeesCents })
+  if (reminder.feeCents) lines.push({ title: r.fee, description: '', cents: reminder.feeCents })
+  if (reminder.interestCents)
+    lines.push({ title: r.interest, description: r.interestLine(formatDocNumber(reminder.interestRatePercent, lang), reminder.interestDays, date(invoice.dueDate)), cents: reminder.interestCents })
+  if (reminder.flatFeeCents) lines.push({ title: r.flatFee, description: r.flatFeeLine, cents: reminder.flatFeeCents })
+  const total = lines.reduce((s, l) => s + l.cents, 0)
+
+  const placeholderDoc = { ...invoice, language: lang }
+  const extra = {
+    'Offener Betrag': money(reminder.openCents),
+    Gesamtforderung: money(total),
+    'Neue Frist': date(reminder.deadline),
+  }
+  const name = invoice.recipient.company ? invoice.recipient.contactPerson : invoice.recipient.contactPerson
+  const intro = `${r.hello(name)}\n\n${resolvePlaceholders(reminder.text, placeholderDoc, extra)}`
+
+  return {
+    lang,
+    labels: { ...viewLabels(t), item: t.item, total: r.amount },
+    columns: 'amount',
+    layout: invoice.layout,
+    accent: invoice.accentColor || settings.defaults.accentColor,
+    label: reminder.title,
+    title: reminder.title,
+    heading: reminder.title,
+    seller,
+    logo,
+    senderLine: senderLine(seller),
+    recipientLines: recipientLines(invoice.recipient, seller.country, lang),
+    meta: [
+      { label: r.date, value: date(reminder.issueDate), strong: true },
+      { label: r.invoiceNo, value: invoice.number ?? '' },
+      { label: r.invoiceDate, value: date(invoice.issueDate) },
+      { label: r.dueSince, value: date(invoice.dueDate) },
+      { label: r.deadline, value: date(reminder.deadline) },
+    ],
+    intro,
+    closing: `${r.regards}\n${seller.owner || seller.name}`,
+    items: lines.map((l, i) => ({ pos: i + 1, title: l.title, description: l.description, quantity: '', unit: '', unitPrice: '', discount: '', taxRate: '', total: money(l.cents) })),
+    showDiscount: false,
+    showTaxColumn: false,
+    totals: [{ label: r.total, value: money(total), strong: true }],
+    taxNote: '',
+    footerColumns: footerColumns(seller, t),
+    footerText: invoice.footerText,
+    isDraft: false,
+    raw: invoiceTotals,
   }
 }

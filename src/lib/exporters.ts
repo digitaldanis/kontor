@@ -1,8 +1,8 @@
 import { downloadFile } from './backup'
 import { db } from './db'
 import { buildCii, type EInvoiceProfile } from './einvoice'
-import { buildInvoiceView, sellerFor } from './invoiceView'
-import type { InvoiceDocument, Settings } from './types'
+import { buildInvoiceView, buildReminderView, sellerFor } from './invoiceView'
+import type { InvoiceDocument, Reminder, Settings } from './types'
 
 export function baseName(doc: InvoiceDocument): string {
   const label = doc.kind === 'quote' ? 'Angebot' : doc.kind === 'cancellation' ? 'Storno' : doc.kind === 'creditNote' ? 'Gutschrift' : 'Rechnung'
@@ -36,6 +36,18 @@ export async function downloadPdf(doc: InvoiceDocument, settings: Settings, with
 export async function downloadXml(doc: InvoiceDocument, settings: Settings, profile: EInvoiceProfile): Promise<void> {
   const xml = await buildXml(doc, settings, profile)
   downloadFile(`${baseName(doc)}-${profile === 'xrechnung' ? 'XRechnung' : 'CII'}.xml`, xml, 'application/xml')
+}
+
+export async function renderReminderPdf(reminder: Reminder, invoice: InvoiceDocument, settings: Settings): Promise<{ bytes: Uint8Array; filename: string }> {
+  const { renderInvoicePdf } = await import('./pdf')
+  const bytes = await renderInvoicePdf(buildReminderView(reminder, invoice, settings), { documentTitle: `${reminder.title} ${invoice.number}` })
+  const label = reminder.level === 0 ? 'Zahlungserinnerung' : `${reminder.level}-Mahnung`
+  return { bytes, filename: `${label}-${(invoice.number ?? '').replace(/[^\w.-]+/g, '_')}.pdf` }
+}
+
+export async function downloadReminderPdf(reminder: Reminder, invoice: InvoiceDocument, settings: Settings): Promise<void> {
+  const { bytes, filename } = await renderReminderPdf(reminder, invoice, settings)
+  downloadFile(filename, bytes as BlobPart, 'application/pdf')
 }
 
 export function printDocument(): void {

@@ -1,6 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
   BarChart3,
+  BellRing,
   Clock,
   FileText,
   LayoutGrid,
@@ -30,6 +31,7 @@ const NAV: NavItem[] = [
   { to: '/rechnungen', label: 'Rechnungen', icon: FileText },
   { to: '/kunden', label: 'Kunden', icon: Users },
   { to: '/zeit', label: 'Zeiterfassung', icon: Clock },
+  { to: '/mahnwesen', label: 'Mahnwesen', icon: BellRing },
   { to: '/berichte', label: 'Berichte', icon: BarChart3 },
   { to: '/einstellungen', label: 'Einstellungen', icon: SettingsIcon },
 ]
@@ -81,7 +83,7 @@ export function Layout() {
       const target = e.target as HTMLElement
       if (target.closest('input, textarea, select, [contenteditable]') || e.metaKey || e.ctrlKey || e.altKey) return
       if (armed) {
-        const map: Record<string, string> = { u: '/', r: '/rechnungen', k: '/kunden', z: '/zeit', b: '/berichte', e: '/einstellungen' }
+        const map: Record<string, string> = { u: '/', r: '/rechnungen', k: '/kunden', z: '/zeit', m: '/mahnwesen', b: '/berichte', e: '/einstellungen' }
         if (map[e.key]) navigate(map[e.key])
         armed = false
         return
@@ -99,7 +101,7 @@ export function Layout() {
   const company = settings?.company
   const logo = settings?.logo
   const badge = (to: string) => {
-    if (to === '/rechnungen' && counts?.overdue) return <span className="nav-count" title="Überfällig">{counts.overdue}</span>
+    if (to === '/mahnwesen' && counts?.overdue) return <span className="nav-count" title="Überfällig">{counts.overdue}</span>
     return null
   }
 
@@ -157,7 +159,7 @@ export function Layout() {
         ))}
         <button
           type="button"
-          className={`tab ${['/berichte', '/einstellungen'].some((p) => location.pathname.startsWith(p)) ? 'active' : ''}`}
+          className={`tab ${NAV.slice(4).some((p) => location.pathname.startsWith(p.to)) ? 'active' : ''}`}
           onClick={() => setMoreOpen(true)}
           aria-haspopup="dialog"
         >

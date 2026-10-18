@@ -203,10 +203,10 @@ export async function renderInvoicePdf(view: InvoiceView, options: { xml?: strin
     w.text(view.title.toUpperCase(), LEFT, w.y, { size: 11, font: fonts.bold, spacing: 1.5 })
     w.y += lh(11) + 6
   } else if (layout === 'classic') {
-    w.text(`${view.title}${number && !view.isDraft ? ` ${number}` : ''}`, LEFT, w.y, { size: 18, font: fonts.serif })
+    w.text(view.heading, LEFT, w.y, { size: 18, font: fonts.serif })
     w.y += lh(18, 1.2) + 5
   } else {
-    w.text(`${view.title}${number && !view.isDraft ? ` ${number}` : ''}`, LEFT, w.y, { size: 20, font: fonts.bold, color: accent })
+    w.text(view.heading, LEFT, w.y, { size: 20, font: fonts.bold, color: accent })
     w.y += lh(20, 1.2) + 5
   }
   if (view.intro) {
@@ -362,8 +362,7 @@ function drawTableHeader(w: Writer, cols: Column[]) {
 
 function newContinuationPage(w: Writer) {
   w.addPage()
-  const number = w.view.meta[0]?.value
-  w.text(`${w.view.title} ${number && !w.view.isDraft ? number : ''}`.trim(), LEFT, 16, { size: 8.5, color: MUTED })
+  w.text(w.view.heading, LEFT, 16, { size: 8.5, color: MUTED })
   w.text(w.view.seller.name, RIGHT, 16, { size: 8.5, color: MUTED, align: 'right' })
   w.hline(LEFT, RIGHT, 22, 0.4, LINE)
   w.y = 28

@@ -6,6 +6,7 @@ import { Customers } from './pages/Customers'
 import { Dashboard } from './pages/Dashboard'
 import { DocumentPage } from './pages/DocumentPage'
 import { Documents } from './pages/Documents'
+import { Dunning } from './pages/Dunning'
 import { NotFound } from './pages/NotFound'
 import { Onboarding } from './pages/Onboarding'
 import { Reports } from './pages/Reports'
@@ -22,6 +23,7 @@ export default function App() {
             <Route index element={<Dashboard />} />
             <Route path="rechnungen" element={<Documents />} />
             <Route path="rechnungen/:id" element={<DocumentPage />} />
+            <Route path="mahnwesen" element={<Dunning />} />
             <Route path="kunden" element={<Customers />} />
             <Route path="kunden/:id" element={<CustomerDetail />} />
             <Route path="zeit" element={<TimeTracking />} />

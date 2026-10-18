@@ -1,6 +1,6 @@
 import Dexie, { type EntityTable } from 'dexie'
 import { normalizeDocument, normalizeSettings } from './migrate'
-import type { Customer, InvoiceDocument, RunningTimer, Settings, TimeEntry } from './types'
+import type { Customer, InvoiceDocument, Reminder, RunningTimer, Settings, TimeEntry } from './types'
 
 export class KontorDB extends Dexie {
   settings!: EntityTable<Settings, 'id'>
@@ -8,6 +8,7 @@ export class KontorDB extends Dexie {
   documents!: EntityTable<InvoiceDocument, 'id'>
   timeEntries!: EntityTable<TimeEntry, 'id'>
   timer!: EntityTable<RunningTimer, 'id'>
+  reminders!: EntityTable<Reminder, 'id'>
 
   constructor(name = 'kontor') {
     super(name)
@@ -33,6 +34,9 @@ export class KontorDB extends Dexie {
         const settings = await tx.table('settings').get('main')
         if (settings) await tx.table('settings').put(normalizeSettings(settings))
       })
+    this.version(3).stores({
+      reminders: 'id, invoiceId, customerId, issueDate',
+    })
   }
 }
 

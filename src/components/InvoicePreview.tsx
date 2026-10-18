@@ -83,7 +83,7 @@ export function InvoicePreview({ view }: { view: InvoiceView }) {
       </section>
 
       <div className="inv-body">
-        <h1 className="inv-title">{v.title}{v.layout !== 'minimal' && !v.isDraft && v.meta[0] ? ` ${v.meta[0].value}` : ''}</h1>
+        <h1 className="inv-title">{v.layout === 'minimal' ? v.title : v.heading}</h1>
         {v.intro && <p className="inv-text">{v.intro}</p>}
 
         <table className="inv-table">

@@ -1,3 +1,4 @@
+import { defaultDunning } from './dunning'
 import type { Company, Customer, InvoiceDocument, Recipient, Settings, TaxMode } from './types'
 
 export const TAX_NOTES: Record<TaxMode, string> = {
@@ -70,6 +71,7 @@ export function defaultSettings(): Settings {
     creditNoteNumbers: { pattern: 'GS-{YYYY}-{0001}', counters: {} },
     smallBusiness: false,
     taxation: 'accrual',
+    dunning: defaultDunning(),
     smallBusinessNote: TAX_NOTES.smallBusiness,
     onboarded: false,
     updatedAt: new Date().toISOString(),

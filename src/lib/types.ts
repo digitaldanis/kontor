@@ -98,6 +98,50 @@ export interface CreditRef {
   grossCents: number
 }
 
+export type DunningLevel = 0 | 1 | 2
+
+export interface DunningStep {
+  title: string
+  /** Days after the due date (first step) or after the previous deadline. */
+  afterDays: number
+  feeCents: number
+  text: string
+}
+
+export interface DunningSettings {
+  steps: [DunningStep, DunningStep, DunningStep]
+  /** New payment deadline in days from the reminder date. */
+  deadlineDays: number
+  /** Basiszinssatz nach § 247 BGB in percent, entered by the user. */
+  baseRatePercent: number
+  baseRateSince: string
+  chargeInterest: boolean
+  /** 40 € flat fee for business customers, § 288 Abs. 5 BGB. */
+  flatFeeB2B: boolean
+}
+
+export interface Reminder {
+  id: string
+  invoiceId: string
+  customerId: string | null
+  level: DunningLevel
+  title: string
+  text: string
+  issueDate: string
+  deadline: string
+  openCents: number
+  feeCents: number
+  /** Fees of earlier reminders that are still claimed. */
+  previousFeesCents: number
+  interestCents: number
+  interestRatePercent: number
+  interestDays: number
+  flatFeeCents: number
+  language: Language
+  sentAt: string | null
+  createdAt: string
+}
+
 export interface NumberSequence {
   pattern: string
   counters: Record<string, number>
@@ -115,6 +159,7 @@ export interface Settings {
   smallBusinessNote: string
   /** Soll- (accrual, by invoice date) or Ist-Versteuerung (cash, by payment date). */
   taxation: 'accrual' | 'cash'
+  dunning: DunningSettings
   onboarded: boolean
   updatedAt: string
 }
