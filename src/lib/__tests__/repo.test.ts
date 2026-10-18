@@ -1,6 +1,6 @@
-import 'fake-indexeddb/auto'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { db } from '../db'
+import { db, setDatabase } from '../db'
+import { memoryDatabase } from '../store'
 import {
   addPayment,
   cancelInvoice,
@@ -43,8 +43,7 @@ async function readyDraft(customerId: string) {
 }
 
 beforeEach(async () => {
-  await db.delete()
-  await db.open()
+  setDatabase(memoryDatabase())
   await setupCompany()
 })
 
@@ -142,8 +141,7 @@ describe('backup', () => {
     const c = await customer()
     await finalizeDocument((await readyDraft(c.id)).id)
     const json = JSON.stringify(await createBackup())
-    await db.delete()
-    await db.open()
+    setDatabase(memoryDatabase())
     await restoreBackup(parseBackup(json))
     expect(await db.customers.count()).toBe(1)
     expect((await db.documents.toArray())[0].number).toMatch(/^RE-/)

@@ -1,6 +1,6 @@
-import 'fake-indexeddb/auto'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { db } from '../db'
+import { db, setDatabase } from '../db'
+import { memoryDatabase } from '../store'
 import { defaultSettings } from '../defaults'
 import { emptyProject, ensureProject, projectUsage, roundMinutes, saveProject } from '../projects'
 import type { TimeEntry } from '../types'
@@ -55,8 +55,7 @@ describe('project budgets', () => {
 
 describe('project records', () => {
   beforeEach(async () => {
-    await db.delete()
-    await db.open()
+    setDatabase(memoryDatabase())
   })
 
   it('creates projects once and renames time entries along', async () => {

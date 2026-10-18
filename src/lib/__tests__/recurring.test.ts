@@ -1,12 +1,11 @@
-import 'fake-indexeddb/auto'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { db } from '../db'
+import { db, setDatabase } from '../db'
+import { memoryDatabase } from '../store'
 import { addMonths, dueRuns, fillPeriod, newRecurring, runDate, runPeriod, runRecurring, saveRecurring } from '../recurring'
 import { emptyCustomer, getSettings, newLineItem, saveCustomer } from '../repo'
 
 beforeEach(async () => {
-  await db.delete()
-  await db.open()
+  setDatabase(memoryDatabase())
 })
 
 const template = {
