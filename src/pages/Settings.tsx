@@ -19,7 +19,7 @@ import {
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
-import { useFeedback } from '../components/feedback'
+import { useFeedback } from '../components/useFeedback'
 import {
   AccentPicker,
   BankFields,
@@ -83,16 +83,17 @@ export function SettingsPage() {
   const [textLang, setTextLang] = useState<Language>(uiLanguage())
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined)
 
-  useEffect(() => {
-    if (stored && !draft) setDraft(stored)
-  }, [stored, draft])
+  // edit a copy once the stored settings have loaded
+  if (stored && !draft) setDraft(stored)
 
   const patternErrors = draft
     ? { invoice: validatePattern(draft.invoiceNumbers.pattern), quote: validatePattern(draft.quoteNumbers.pattern) }
     : { invoice: null, quote: null }
 
   const latest = useRef<Settings | null>(null)
-  latest.current = draft
+  useEffect(() => {
+    latest.current = draft
+  })
 
   const update = (patch: Partial<Settings>) => {
     if (!latest.current) return
@@ -416,7 +417,7 @@ export function SettingsPage() {
 function StartNumber({ settings }: { settings: Settings }) {
   const { confirm, run } = useFeedback()
   const [value, setValue] = useState(1)
-  const key = settings.invoiceNumbers.pattern.includes('{YYYY}') || settings.invoiceNumbers.pattern.includes('{YY}') ? String(new Date().getFullYear()) : 'all'
+  const key = settings.invoiceNumbers.pattern.includes('{YYYY}') || settings.invoiceNumbers.pattern.includes('{YY}') ? today().slice(0, 4) : 'all'
   const current = settings.invoiceNumbers.counters[key] ?? 0
   if (validatePattern(settings.invoiceNumbers.pattern) || settings.invoiceNumbers.pattern.includes('{MM}')) return null
 

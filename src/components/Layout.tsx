@@ -72,9 +72,11 @@ export function Layout() {
   })
   const timerCustomer = useLiveQuery(() => (timer ? db.customers.get(timer.customerId) : undefined), [timer?.customerId])
 
-  useEffect(() => {
+  const [path, setPath] = useState(location.pathname)
+  if (path !== location.pathname) {
+    setPath(location.pathname)
     setMoreOpen(false)
-  }, [location.pathname])
+  }
 
   useEffect(() => {
     if (settings && !settings.onboarded && location.pathname !== '/willkommen') navigate('/willkommen', { replace: true })

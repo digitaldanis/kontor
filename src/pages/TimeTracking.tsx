@@ -3,10 +3,11 @@ import { useLiveQuery } from '../lib/live'
 import { ChevronLeft, ChevronRight, Clock, Plus, ReceiptText } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { BarChart } from '../components/BarChart'
-import { BillTimeDialog, emptyEntry, TimeEntryDialog, TimeEntryList, TimerCard } from '../components/TimeComponents'
+import { BillTimeDialog, TimeEntryDialog, TimeEntryList, TimerCard } from '../components/TimeComponents'
+import { emptyEntry } from '../lib/repo'
 import { Button, EmptyState, IconButton, PageHeader, Segmented } from '../components/ui'
 import { minutesToHours } from '../lib/calc'
-import { durationMinutes, formatDuration, formatMonth, isoWeek, startOfMonth, startOfWeek, toISODate } from '../lib/dates'
+import { durationMinutes, formatDuration, formatMonth, isoWeek, startOfMonth, startOfWeek, today, toISODate } from '../lib/dates'
 import { db } from '../lib/db'
 import { customerName } from '../lib/defaults'
 import { useCustomers, useDocumentTitle, useNewParam, useSettings } from '../lib/hooks'
@@ -14,7 +15,8 @@ import { formatMoney } from '../lib/money'
 import { billableMinutes } from '../lib/projects'
 import { entryRate } from '../lib/repo'
 import type { TimeEntry } from '../lib/types'
-import { ProjectsPanel, useBudgetWarnings } from '../components/Projects'
+import { ProjectsPanel } from '../components/Projects'
+import { useBudgetWarnings } from '../lib/hooks'
 import './time.css'
 
 type Period = 'week' | 'month'
@@ -77,7 +79,7 @@ export function TimeTracking() {
     const k = toISODate(new Date(e.start))
     byDay.set(k, (byDay.get(k) ?? 0) + durationMinutes(e.start, e.end))
   }
-  const todayKey = toISODate(new Date())
+  const todayKey = today()
   const customerById = new Map((customers ?? []).map((c) => [c.id, c]))
 
   const unbilledRows = [...(unbilled?.entries() ?? [])]

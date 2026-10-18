@@ -4,10 +4,10 @@ import { BarChart3, ChevronLeft, ChevronRight, Download, Info } from 'lucide-rea
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { BarChart } from '../components/BarChart'
-import { useFeedback } from '../components/feedback'
+import { useFeedback } from '../components/useFeedback'
 import { Button, EmptyState, IconButton, PageHeader, Segmented, Stat } from '../components/ui'
 import { downloadFile, invoicesToCsv } from '../lib/backup'
-import { durationMinutes, formatDuration, toISODate } from '../lib/dates'
+import { durationMinutes, formatDuration, today, toISODate } from '../lib/dates'
 import { db } from '../lib/db'
 import { customerName, recipientName } from '../lib/defaults'
 import { useDocumentTitle, useSettings } from '../lib/hooks'
@@ -22,7 +22,7 @@ const MONTHS = Array.from({ length: 12 }, (_, i) => new Date(2026, i, 1).toLocal
 export function Reports() {
   useDocumentTitle(t('Berichte'))
   const { run } = useFeedback()
-  const [year, setYear] = useState(new Date().getFullYear())
+  const [year, setYear] = useState(() => new Date().getFullYear())
   const [taxPeriod, setTaxPeriod] = useState<'month' | 'quarter'>('quarter')
   const settings = useSettings()
   const [taxationChoice, setTaxation] = useState<Taxation | null>(null)
@@ -142,7 +142,7 @@ export function Reports() {
             <div className="card-body">
               <BarChart
                 label={t('Nettoumsatz pro Monat {p0}', { p0: year })}
-                bars={monthly.map((m) => ({ key: m.key, label: m.label, hint: `${m.label} ${year}`, value: Math.max(0, m.net), display: formatMoney(m.net), current: m.key === toISODate(new Date()).slice(0, 7) }))}
+                bars={monthly.map((m) => ({ key: m.key, label: m.label, hint: `${m.label} ${year}`, value: Math.max(0, m.net), display: formatMoney(m.net), current: m.key === today().slice(0, 7) }))}
               />
             </div>
             <div className="table-wrap">
@@ -321,8 +321,7 @@ function periodRange(year: number, period: string): [string, string] {
 }
 
 function VatReturnCard({ docs, expenses, year, taxation, smallBusiness }: { docs: InvoiceDocument[]; expenses: Expense[]; year: number; taxation: Taxation; smallBusiness: boolean }) {
-  const current = new Date()
-  const [period, setPeriod] = useState(year === current.getFullYear() ? `q${Math.floor(current.getMonth() / 3)}` : 'q0')
+  const [period, setPeriod] = useState(() => (year === new Date().getFullYear() ? `q${Math.floor(new Date().getMonth() / 3)}` : 'q0'))
   const [from, to] = periodRange(year, period)
   const r = vatReturn(docs, expenses, from, to, taxation)
   const euro = (n: number) => `${n.toLocaleString(uiLocale())} €`

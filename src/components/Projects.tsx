@@ -10,7 +10,7 @@ import { useSettings } from '../lib/hooks'
 import { formatMoney, formatNumber } from '../lib/money'
 import { emptyProject, projectUsage, type ProjectUsage } from '../lib/projects'
 import type { Customer, Project } from '../lib/types'
-import { useFeedback } from './feedback'
+import { useFeedback } from './useFeedback'
 import { Button, Dialog, EmptyState, Field, IconButton, MoneyInput, NumberInput, TextField } from './ui'
 
 const STATE_COLOR = { none: 'var(--accent)', ok: 'var(--accent)', warning: 'var(--orange)', over: 'var(--red)' }
@@ -154,18 +154,4 @@ export function ProjectDialog({ project, onClose }: { project: Project | null; o
       </form>
     </Dialog>
   )
-}
-
-/** Projects of all customers that are at or above the warning threshold. */
-export function useBudgetWarnings() {
-  const settings = useSettings()
-  return useLiveQuery(async () => {
-    if (!settings) return []
-    const [projects, entries, customers] = await Promise.all([db.projects.filter((p) => !p.archived && (!!p.budgetMinutes || !!p.budgetCents)).toArray(), db.timeEntries.toArray(), db.customers.toArray()])
-    const byId = new Map(customers.map((c) => [c.id, c]))
-    return projects
-      .map((p) => ({ project: p, customer: byId.get(p.customerId), usage: projectUsage(p, entries, byId.get(p.customerId), settings) }))
-      .filter((x) => x.usage.state === 'warning' || x.usage.state === 'over')
-      .sort((a, b) => b.usage.ratio - a.usage.ratio)
-  }, [settings?.timeRounding.minutes, settings?.timeRounding.mode, settings?.defaults.hourlyRateCents])
 }

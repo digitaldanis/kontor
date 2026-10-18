@@ -8,7 +8,7 @@ import { readLogo } from '../lib/logo'
 import { sampleDocument } from '../lib/sample'
 import type { Company, LayoutId, Logo, Settings } from '../lib/types'
 import { isPlausibleIban } from '../lib/validation'
-import { useFeedback } from './feedback'
+import { useFeedback } from './useFeedback'
 import { InvoicePreview, ScaledPage } from './InvoicePreview'
 import { Button, SelectField, TextField } from './ui'
 

@@ -5,10 +5,11 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { BarChart } from '../components/BarChart'
 import { StatusBadge } from '../components/DocumentsTable'
-import { BudgetBar, useBudgetWarnings } from '../components/Projects'
+import { BudgetBar } from '../components/Projects'
+import { useBudgetWarnings } from '../lib/hooks'
 import { TimerCard } from '../components/TimeComponents'
 import { Button, Stat } from '../components/ui'
-import { addDays, durationMinutes, formatDate, formatDuration, startOfWeek, today, toISODate } from '../lib/dates'
+import { addDays, durationMinutes, formatDate, formatDuration, parseISODate, startOfWeek, today, toISODate } from '../lib/dates'
 import { db } from '../lib/db'
 import { customerName, recipientName } from '../lib/defaults'
 import { useDocumentTitle, useSettings } from '../lib/hooks'
@@ -37,7 +38,7 @@ export function Dashboard() {
 
   if (!data || !settings) return <div className="page" />
   const { docs, entries, customers, recurring } = data
-  const now = new Date()
+  const now = parseISODate(today())
   const year = String(now.getFullYear())
   const month = today().slice(0, 7)
 

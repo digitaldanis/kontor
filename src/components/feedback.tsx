@@ -1,36 +1,10 @@
 import { t } from '../lib/i18n'
 import { AlertTriangle, CheckCircle2 } from 'lucide-react'
-import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useRef, useState, type ReactNode } from 'react'
 import { Button, Dialog } from './ui'
 
-interface ToastAction {
-  label: string
-  onClick: () => void | Promise<void>
-}
+import { FeedbackContext, type ConfirmOptions, type Toast, type ToastAction } from './useFeedback'
 
-interface Toast {
-  id: number
-  message: string
-  tone: 'default' | 'error'
-  action?: ToastAction
-}
-
-interface ConfirmOptions {
-  title: string
-  message?: ReactNode
-  confirmLabel?: string
-  danger?: boolean
-}
-
-interface FeedbackApi {
-  toast: (message: string, tone?: Toast['tone'], action?: ToastAction) => void
-  /** Shows a toast with an undo button; `undo` restores what was just removed. */
-  undoable: (message: string, undo: () => Promise<unknown>) => void
-  confirm: (options: ConfirmOptions) => Promise<boolean>
-  run: <T>(task: () => Promise<T>, success?: string) => Promise<T | undefined>
-}
-
-const FeedbackContext = createContext<FeedbackApi | null>(null)
 
 export function FeedbackProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([])
@@ -132,10 +106,4 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
       />
     </FeedbackContext.Provider>
   )
-}
-
-export function useFeedback(): FeedbackApi {
-  const ctx = useContext(FeedbackContext)
-  if (!ctx) throw new Error('FeedbackProvider fehlt')
-  return ctx
 }

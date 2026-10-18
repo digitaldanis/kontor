@@ -17,15 +17,15 @@ import {
   today,
   toISODate,
 } from '../lib/dates'
-import { db, now, uid } from '../lib/db'
+import { db } from '../lib/db'
 import { customerName } from '../lib/defaults'
 import { useCustomers, useNow, useSettings, useTimer } from '../lib/hooks'
 import { formatMoney } from '../lib/money'
 import { billableMinutes } from '../lib/projects'
 import { entryRate, type TimeGrouping } from '../lib/repo'
 import type { Customer, RunningTimer, TimeEntry } from '../lib/types'
-import { useFeedback } from './feedback'
-import { useBudgetWarnings } from './Projects'
+import { useFeedback } from './useFeedback'
+import { useBudgetWarnings } from '../lib/hooks'
 import { Button, Dialog, EmptyState, Field, IconButton, MoneyInput, Segmented, SelectField, TextAreaField, TextField, Toggle } from './ui'
 
 function useProjects(customerId: string) {
@@ -41,15 +41,13 @@ export function TimerCard({ defaultCustomerId }: { defaultCustomerId?: string })
   const customers = useCustomers()
   const { run } = useFeedback()
   const navigate = useNavigate()
-  const [customerId, setCustomerId] = useState(defaultCustomerId ?? '')
+  const [chosenCustomer, setCustomerId] = useState(defaultCustomerId ?? '')
+  const customerId = chosenCustomer || defaultCustomerId || customers?.[0]?.id || ''
   const [project, setProject] = useState('')
   const [description, setDescription] = useState('')
   const [billable, setBillable] = useState(true)
   const projects = useProjects(customerId)
 
-  useEffect(() => {
-    if (!customerId && customers?.length) setCustomerId(defaultCustomerId ?? customers[0].id)
-  }, [customers, customerId, defaultCustomerId])
 
   if (customers && customers.length === 0) {
     return (
@@ -171,27 +169,6 @@ function RunningTimerCard({ timer, customer }: { timer: RunningTimer; customer?:
   )
 }
 
-export function emptyEntry(customerId: string): TimeEntry {
-  const start = new Date()
-  start.setMinutes(0, 0, 0)
-  start.setHours(Math.max(8, start.getHours() - 1))
-  const end = new Date(start.getTime() + 60 * 60_000)
-  return {
-    id: uid(),
-    customerId,
-    project: '',
-    description: '',
-    details: '',
-    start: start.toISOString(),
-    end: end.toISOString(),
-    billable: true,
-    rateCents: null,
-    invoiceId: null,
-    createdAt: now(),
-    updatedAt: now(),
-  }
-}
-
 export function TimeEntryDialog({ entry, onClose }: { entry: TimeEntry | null; onClose: () => void }) {
   const customers = useCustomers()
   const { run } = useFeedback()
@@ -202,7 +179,10 @@ export function TimeEntryDialog({ entry, onClose }: { entry: TimeEntry | null; o
   const [tried, setTried] = useState(false)
   const projects = useProjects(e?.customerId ?? '')
 
-  useEffect(() => {
+  const [shown, setShown] = useState<TimeEntry | null>(null)
+  // load the form whenever another entry is opened
+  if (entry !== shown) {
+    setShown(entry)
     setE(entry)
     setTried(false)
     if (entry) {
@@ -210,7 +190,7 @@ export function TimeEntryDialog({ entry, onClose }: { entry: TimeEntry | null; o
       setFrom(timeOfDay(entry.start))
       setTo(timeOfDay(entry.end))
     }
-  }, [entry])
+  }
 
   if (!e) return null
   const locked = !!e.invoiceId
@@ -395,11 +375,16 @@ export function BillTimeDialog({ customerId, open, onClose }: { customerId: stri
     return { customer, entries: entries.sort((a, b) => a.start.localeCompare(b.start)), drafts }
   }, [customerId])
 
-  useEffect(() => {
-    if (open && data) setSelected(new Set(data.entries.map((e) => e.id)))
-    if (open) setTarget('new')
-    // only when the dialog opens or the customer changes
-  }, [open, data?.entries.length, customerId])
+  // preselect all open entries when the dialog opens or new entries arrive
+  const selectionKey = open && data ? `${customerId}|${data.entries.length}` : ''
+  const [selectedFor, setSelectedFor] = useState('')
+  if (selectionKey !== selectedFor) {
+    setSelectedFor(selectionKey)
+    if (selectionKey && data) {
+      setSelected(new Set(data.entries.map((e) => e.id)))
+      setTarget('new')
+    }
+  }
 
   if (!data || !settings) return null
   const chosen = data.entries.filter((e) => selected.has(e.id))

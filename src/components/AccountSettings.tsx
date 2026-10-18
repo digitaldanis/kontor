@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../lib/api'
 import { t, uiLocale } from '../lib/i18n'
 import { logout, useSession } from '../lib/session'
-import { useFeedback } from './feedback'
+import { useFeedback } from './useFeedback'
 import { Button, Dialog, Field, IconButton, NumberInput, TextField, Toggle } from './ui'
 
 interface Member {

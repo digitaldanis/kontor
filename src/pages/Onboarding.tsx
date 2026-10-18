@@ -1,9 +1,9 @@
 import { seedDemo, updateSettings } from '../lib/actions'
 import { t } from '../lib/i18n'
 import { ArrowLeft, ArrowRight, Clock, FileText, ShieldCheck, Sparkles } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useFeedback } from '../components/feedback'
+import { useFeedback } from '../components/useFeedback'
 import { BrandMark } from '../components/Layout'
 import { AccentPicker, BankFields, CompanyFields, LayoutPicker, LogoField, TaxFields } from '../components/SettingsFields'
 import { LanguageSwitch } from '../components/LanguageSwitch'
@@ -24,9 +24,8 @@ export function Onboarding() {
   const [step, setStep] = useState(0)
   const [showErrors, setShowErrors] = useState(false)
 
-  useEffect(() => {
-    if (stored && !draft) setDraft(stored)
-  }, [stored, draft])
+  // take over the stored settings once they have loaded
+  if (stored && !draft) setDraft(stored)
 
   if (!draft) return null
   const c = draft.company

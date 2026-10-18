@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom'
 import { formatClock } from '../lib/dates'
 import { useNow } from '../lib/hooks'
 import type { RunningTimer } from '../lib/types'
-import { useFeedback } from './feedback'
+import { useFeedback } from './useFeedback'
 import { IconButton } from './ui'
 
 export function TimerPill({ timer, customerName, compact }: { timer: RunningTimer; customerName: string; compact?: boolean }) {

@@ -173,9 +173,12 @@ export function MoneyInput({
 }) {
   const [text, setText] = useState(value == null ? '' : formatAmount(value))
   const [focused, setFocused] = useState(false)
-  useEffect(() => {
-    if (!focused) setText(value == null ? '' : formatAmount(value))
-  }, [value, focused])
+  const [synced, setSynced] = useState(value)
+  // follow outside changes while the field isn't being edited
+  if (!focused && value !== synced) {
+    setSynced(value)
+    setText(value == null ? '' : formatAmount(value))
+  }
   return (
     <div className="input-affix">
       <input
@@ -223,9 +226,11 @@ export function NumberInput({
   const fmt = (n: number) => n.toLocaleString(uiLocale(), { maximumFractionDigits: maxFraction, useGrouping: false })
   const [text, setText] = useState(fmt(value))
   const [focused, setFocused] = useState(false)
-  useEffect(() => {
-    if (!focused) setText(fmt(value))
-  }, [value, focused])
+  const [synced, setSynced] = useState(value)
+  if (!focused && value !== synced) {
+    setSynced(value)
+    setText(fmt(value))
+  }
   const input = (
     <input
       className={`input num ${className}`}
@@ -368,7 +373,12 @@ export function Dialog({
   wide?: boolean
 }) {
   const ref = useRef<HTMLDivElement>(null)
+  const close = useRef(onClose)
   const titleId = useId()
+
+  useEffect(() => {
+    close.current = onClose
+  })
 
   useEffect(() => {
     if (!open) return
@@ -380,7 +390,7 @@ export function Dialog({
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.stopPropagation()
-        onClose()
+        close.current()
       }
       if (e.key === 'Tab' && el) {
         const items = [...el.querySelectorAll<HTMLElement>('a[href], button:not(:disabled), input:not(:disabled), select, textarea, [tabindex]:not([tabindex="-1"])')]

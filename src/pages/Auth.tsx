@@ -1,6 +1,6 @@
 import { ArrowRight, LockKeyhole } from 'lucide-react'
 import { useState } from 'react'
-import { useFeedback } from '../components/feedback'
+import { useFeedback } from '../components/useFeedback'
 import { LanguageSwitch } from '../components/LanguageSwitch'
 import { BrandMark } from '../components/Layout'
 import { Button, TextField } from '../components/ui'

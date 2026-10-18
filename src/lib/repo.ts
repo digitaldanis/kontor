@@ -631,6 +631,28 @@ export async function deleteTimeEntry(id: string): Promise<void> {
   await db.timeEntries.delete(id)
 }
 
+/** A one-hour entry ending around now, as a starting point for manual time. */
+export function emptyEntry(customerId: string): TimeEntry {
+  const start = new Date()
+  start.setMinutes(0, 0, 0)
+  start.setHours(Math.max(8, start.getHours() - 1))
+  const end = new Date(start.getTime() + 60 * 60_000)
+  return {
+    id: uid(),
+    customerId,
+    project: '',
+    description: '',
+    details: '',
+    start: start.toISOString(),
+    end: end.toISOString(),
+    billable: true,
+    rateCents: null,
+    invoiceId: null,
+    createdAt: now(),
+    updatedAt: now(),
+  }
+}
+
 export function entryRate(e: TimeEntry, customer: Customer | undefined, settings: Settings): number {
   return e.rateCents ?? customer?.hourlyRateCents ?? settings.defaults.hourlyRateCents
 }

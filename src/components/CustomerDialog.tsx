@@ -1,11 +1,11 @@
 import { saveCustomer } from '../lib/actions'
 import { t } from '../lib/i18n'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { COUNTRIES, isEU } from '../lib/countries'
 import { CURRENCIES } from '../lib/defaults'
 import { useSettings } from '../lib/hooks'
 import type { Customer, CustomerType, Language } from '../lib/types'
-import { useFeedback } from './feedback'
+import { useFeedback } from './useFeedback'
 import { Button, Dialog, Field, MoneyInput, NumberInput, SelectField, TextAreaField, TextField } from './ui'
 
 export function CustomerDialog({
@@ -24,12 +24,14 @@ export function CustomerDialog({
   const { run } = useFeedback()
   const settingsCurrency = useSettings()?.defaults.currency ?? 'EUR'
 
-  useEffect(() => {
-    if (open) {
-      setC(customer)
-      setTried(false)
-    }
-  }, [open, customer])
+  const [shown, setShown] = useState<Customer | null>(null)
+  // reset the form whenever the dialog opens for another customer
+  if (open && customer !== shown) {
+    setShown(customer)
+    setC(customer)
+    setTried(false)
+  }
+  if (!open && shown) setShown(null)
 
   if (!c) return null
   const set = <K extends keyof Customer>(key: K) => (v: Customer[K]) => setC({ ...c, [key]: v })

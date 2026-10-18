@@ -6,7 +6,7 @@ import { Link } from 'react-router-dom'
 import { db, now } from '../lib/db'
 import { buildAttachments, composeMail, sendViaMailto, sendViaServer, serverMailReady, type AttachmentChoice, type MailDraft } from '../lib/mail'
 import type { InvoiceDocument, Reminder, Settings } from '../lib/types'
-import { useFeedback } from './feedback'
+import { useFeedback } from './useFeedback'
 import { Button, Dialog, Segmented, TextAreaField, TextField } from './ui'
 
 export function SendDialog({ doc, reminder, settings, open, onClose }: { doc: InvoiceDocument; reminder?: Reminder; settings: Settings; open: boolean; onClose: () => void }) {

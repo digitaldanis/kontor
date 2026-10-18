@@ -12,7 +12,7 @@ import { buildReminderView } from '../lib/invoiceView'
 import { formatMoney } from '../lib/money'
 import { remindersFor } from '../lib/repo'
 import type { DunningLevel, InvoiceDocument, Reminder } from '../lib/types'
-import { useFeedback } from './feedback'
+import { useFeedback } from './useFeedback'
 import { InvoicePreview, ScaledPage } from './InvoicePreview'
 import { Button, Dialog, Field, MoneyInput, Segmented, TextAreaField, TextField, Toggle } from './ui'
 

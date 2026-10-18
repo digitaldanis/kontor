@@ -3,7 +3,7 @@ import { deleteExpense, saveExpense, storeAttachment } from '../lib/actions'
 import { useLiveQuery } from '../lib/live'
 import { ChevronLeft, ChevronRight, Download, FileInput, Paperclip, Plus, Receipt, Search, Trash2, Upload, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useFeedback } from '../components/feedback'
+import { useFeedback } from '../components/useFeedback'
 import { Button, Dialog, EmptyState, Field, IconButton, MoneyInput, PageHeader, SelectField, Stat, TextAreaField, TextField } from '../components/ui'
 import { downloadFile } from '../lib/backup'
 import { formatDate } from '../lib/dates'
@@ -19,7 +19,7 @@ export function Expenses() {
   useDocumentTitle(t('Ausgaben'))
   const settings = useSettings()
   const { run, undoable, toast } = useFeedback()
-  const [year, setYear] = useState(new Date().getFullYear())
+  const [year, setYear] = useState(() => new Date().getFullYear())
   const [q, setQ] = useState('')
   const [category, setCategory] = useState('')
   const [editing, setEditing] = useState<Expense | null>(null)

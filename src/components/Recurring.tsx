@@ -15,7 +15,7 @@ import { INTERVAL_LABELS, intervalText, newRecurring } from '../lib/recurring'
 import { newLineItem } from '../lib/repo'
 import type { LineItem, RecurringInterval, RecurringInvoice } from '../lib/types'
 import { CatalogPicker } from './CatalogDialog'
-import { useFeedback } from './feedback'
+import { useFeedback } from './useFeedback'
 import { Button, Dialog, EmptyState, Field, IconButton, MoneyInput, NumberInput, SelectField, TextAreaField, TextField, Toggle } from './ui'
 
 export function RecurringList() {
