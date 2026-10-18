@@ -1,5 +1,5 @@
 import { addDays, today } from './dates'
-import { blankDocument, emptyRecipient, TAX_NOTES } from './defaults'
+import { blankDocument, emptyRecipient } from './defaults'
 import type { InvoiceDocument, LayoutId, Settings } from './types'
 
 /** A representative invoice used for layout previews in the settings. */
@@ -13,7 +13,6 @@ export function sampleDocument(settings: Settings, layout?: LayoutId): InvoiceDo
     number: null,
     customerId: null,
     recipient: { ...emptyRecipient(), company: 'Beispiel GmbH', contactPerson: 'Frau Erika Mustermann', street: 'Musterweg 12', zip: '20095', city: 'Hamburg' },
-    title: 'Rechnung',
     issueDate: d,
     serviceFrom: addDays(d, -30),
     serviceTo: addDays(d, -1),
@@ -24,11 +23,13 @@ export function sampleDocument(settings: Settings, layout?: LayoutId): InvoiceDo
       { id: '2', title: 'Umsetzung', description: 'Design und Entwicklung der Startseite', quantity: 14.5, unit: 'Std.', unitPriceCents: settings.defaults.hourlyRateCents, taxRate: rate, discountPercent: 0 },
       { id: '3', title: 'Hosting', description: '', quantity: 1, unit: 'Monat', unitPriceCents: 1900, taxRate: rate, discountPercent: 0 },
     ],
-    introText: settings.defaults.introText,
-    closingText: settings.defaults.closingText,
+    introText: settings.texts[settings.documentLanguage].intro,
+    closingText: settings.texts[settings.documentLanguage].closing,
+    language: settings.documentLanguage,
+    title: settings.documentLanguage === 'en' ? 'Invoice' : 'Rechnung',
     footerText: settings.defaults.footerText,
     taxMode: settings.smallBusiness ? 'smallBusiness' : 'standard',
-    taxNote: settings.smallBusiness ? settings.smallBusinessNote || TAX_NOTES.smallBusiness : '',
+    taxNote: settings.smallBusiness ? settings.texts[settings.documentLanguage].smallBusinessNote : '',
     currency: settings.defaults.currency,
     layout: layout ?? settings.defaults.layout,
     accentColor: settings.defaults.accentColor,

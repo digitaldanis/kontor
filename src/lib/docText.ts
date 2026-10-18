@@ -1,4 +1,4 @@
-import type { Language, TaxMode } from './types'
+import type { DocumentTexts, Language, TaxMode } from './types'
 
 /** Labels printed on documents. The customer gets the document in their language. */
 export interface DocText {
@@ -229,4 +229,42 @@ export function formatDocPeriod(from: string, to: string, lang: Language | undef
   if (!from && !to) return '–'
   if (!to || from === to) return formatDocDate(from || to, lang)
   return `${formatDocDate(from, lang)} – ${formatDocDate(to, lang)}`
+}
+
+export function defaultDocumentTexts(lang: Language): DocumentTexts {
+  return { ...DEFAULT_TEXTS[lang], smallBusinessNote: DOC_TEXT[lang].taxNotes.smallBusiness }
+}
+
+/** Texts Kontor writes into generated documents, in the document's language. */
+export const GENERATED = {
+  de: {
+    cancelIntro: (number: string, date: string) => `Hiermit stornieren wir die Rechnung ${number} vom ${date} vollständig.`,
+    cancelRefund: 'Der bereits gezahlte Betrag wird Ihnen erstattet.',
+    cancelVoid: 'Die ursprüngliche Rechnung ist damit gegenstandslos. Bitte nicht überweisen.',
+    creditTitle: 'Rechnungskorrektur',
+    creditIntro: (number: string, date: string) => `Zu unserer Rechnung ${number} vom ${date} schreiben wir Ihnen folgende Beträge gut:`,
+    creditRefund: 'Den Betrag erstatten wir Ihnen auf Ihr Konto.',
+    creditOffset: 'Der Betrag wird mit der offenen Rechnung verrechnet.',
+    creditRemainder: (number: string) => `Gutschrift zu Rechnung ${number}`,
+    remainder: 'Restbetrag',
+    remainderRate: (rate: number) => `Restbetrag, ${rate} % USt`,
+    work: 'Arbeitszeit',
+    services: 'Leistungen',
+    servicesOn: (date: string) => `Leistungen am ${date}`,
+  },
+  en: {
+    cancelIntro: (number: string, date: string) => `We hereby cancel invoice ${number} of ${date} in full.`,
+    cancelRefund: 'The amount already paid will be refunded to you.',
+    cancelVoid: 'The original invoice is void. Please do not pay it.',
+    creditTitle: 'Credit note',
+    creditIntro: (number: string, date: string) => `With reference to our invoice ${number} of ${date}, we credit you the following amounts:`,
+    creditRefund: 'We will refund the amount to your account.',
+    creditOffset: 'The amount will be offset against the open invoice.',
+    creditRemainder: (number: string) => `Credit for invoice ${number}`,
+    remainder: 'Remaining amount',
+    remainderRate: (rate: number) => `Remaining amount, ${rate} % VAT`,
+    work: 'Work',
+    services: 'Services',
+    servicesOn: (date: string) => `Services on ${date}`,
+  },
 }

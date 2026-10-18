@@ -25,22 +25,22 @@ export function defaultDunning(): DunningSettings {
   return {
     steps: [
       {
-        title: 'Zahlungserinnerung',
+        title: { de: 'Zahlungserinnerung', en: LEVEL_LABELS_EN[0] },
         afterDays: 7,
         feeCents: 0,
-        text: 'sicher ist es Ihrer Aufmerksamkeit entgangen: Die Rechnung {Rechnungsnummer} vom {Rechnungsdatum} war am {Fälligkeitsdatum} fällig. Bitte überweisen Sie den offenen Betrag von {Gesamtforderung} bis zum {Neue Frist}.\n\nSollten Sie die Zahlung bereits veranlasst haben, betrachten Sie dieses Schreiben bitte als gegenstandslos.',
+        text: { en: EN_TEXTS[0], de: 'sicher ist es Ihrer Aufmerksamkeit entgangen: Die Rechnung {Rechnungsnummer} vom {Rechnungsdatum} war am {Fälligkeitsdatum} fällig. Bitte überweisen Sie den offenen Betrag von {Gesamtforderung} bis zum {Neue Frist}.\n\nSollten Sie die Zahlung bereits veranlasst haben, betrachten Sie dieses Schreiben bitte als gegenstandslos.' },
       },
       {
-        title: '1. Mahnung',
+        title: { de: '1. Mahnung', en: LEVEL_LABELS_EN[1] },
         afterDays: 14,
         feeCents: 500,
-        text: 'leider konnten wir trotz unserer Zahlungserinnerung noch keinen Zahlungseingang zur Rechnung {Rechnungsnummer} vom {Rechnungsdatum} feststellen. Bitte überweisen Sie den Gesamtbetrag von {Gesamtforderung} bis zum {Neue Frist}.',
+        text: { en: EN_TEXTS[1], de: 'leider konnten wir trotz unserer Zahlungserinnerung noch keinen Zahlungseingang zur Rechnung {Rechnungsnummer} vom {Rechnungsdatum} feststellen. Bitte überweisen Sie den Gesamtbetrag von {Gesamtforderung} bis zum {Neue Frist}.' },
       },
       {
-        title: '2. Mahnung',
+        title: { de: '2. Mahnung', en: LEVEL_LABELS_EN[2] },
         afterDays: 14,
         feeCents: 1000,
-        text: 'die Rechnung {Rechnungsnummer} vom {Rechnungsdatum} ist weiterhin offen. Bitte begleichen Sie den Gesamtbetrag von {Gesamtforderung} spätestens bis zum {Neue Frist}. Nach Ablauf dieser Frist geben wir die Forderung ohne weitere Ankündigung an ein Inkassounternehmen bzw. leiten das gerichtliche Mahnverfahren ein.',
+        text: { en: EN_TEXTS[2], de: 'die Rechnung {Rechnungsnummer} vom {Rechnungsdatum} ist weiterhin offen. Bitte begleichen Sie den Gesamtbetrag von {Gesamtforderung} spätestens bis zum {Neue Frist}. Nach Ablauf dieser Frist geben wir die Forderung ohne weitere Ankündigung an ein Inkassounternehmen bzw. leiten das gerichtliche Mahnverfahren ein.' },
       },
     ],
     deadlineDays: 10,
@@ -52,11 +52,11 @@ export function defaultDunning(): DunningSettings {
 }
 
 export function reminderText(level: DunningLevel, lang: Language, settings: DunningSettings): string {
-  return lang === 'en' ? EN_TEXTS[level] : settings.steps[level].text
+  return settings.steps[level].text[lang] || (lang === 'en' ? EN_TEXTS[level] : defaultDunning().steps[level].text.de)
 }
 
 export function reminderTitle(level: DunningLevel, lang: Language, settings: DunningSettings): string {
-  return lang === 'en' ? LEVEL_LABELS_EN[level] : settings.steps[level].title || LEVEL_LABELS[level]
+  return settings.steps[level].title[lang] || (lang === 'en' ? LEVEL_LABELS_EN[level] : LEVEL_LABELS[level])
 }
 
 export function isConsumer(invoice: InvoiceDocument, customer?: Customer): boolean {

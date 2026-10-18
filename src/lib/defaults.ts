@@ -1,3 +1,4 @@
+import { defaultDocumentTexts } from './docText'
 import { defaultDunning } from './dunning'
 import { defaultMailTemplates } from './mailTemplates'
 import type { Company, Customer, InvoiceDocument, Recipient, Settings, TaxMode } from './types'
@@ -57,9 +58,6 @@ export function defaultSettings(): Settings {
     defaults: {
       paymentTermDays: 14,
       taxRate: 19,
-      introText: 'Vielen Dank für Ihren Auftrag. Für die erbrachten Leistungen erlaube ich mir, folgende Positionen in Rechnung zu stellen:',
-      closingText:
-        'Bitte überweisen Sie den Rechnungsbetrag bis zum {Fälligkeitsdatum} unter Angabe der Rechnungsnummer {Rechnungsnummer} auf das unten genannte Konto.\n\nVielen Dank für die gute Zusammenarbeit.',
       footerText: '',
       currency: 'EUR',
       layout: 'modern',
@@ -71,11 +69,12 @@ export function defaultSettings(): Settings {
     quoteNumbers: { pattern: 'AN-{YYYY}-{0001}', counters: {} },
     creditNoteNumbers: { pattern: 'GS-{YYYY}-{0001}', counters: {} },
     smallBusiness: false,
+    documentLanguage: 'en',
+    texts: { de: defaultDocumentTexts('de'), en: defaultDocumentTexts('en') },
     taxation: 'accrual',
     dunning: defaultDunning(),
     timeRounding: { minutes: 0, mode: 'up' },
     mailTemplates: defaultMailTemplates(),
-    smallBusinessNote: TAX_NOTES.smallBusiness,
     onboarded: false,
     updatedAt: new Date().toISOString(),
   }

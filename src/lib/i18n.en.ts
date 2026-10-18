@@ -1107,4 +1107,12 @@ export const EN: Record<string, string> = {
   "Interner Fehler.": "Internal error.",
   "Die Anfrage ist zu groß.": "The request is too large.",
   "Unbekannte Aktion.": "Unknown action.",
+  // document languages
+  "Die Vorlage folgt der Sprache des Dokuments.": "The template follows the document's language.",
+  "Kunden können eine eigene Sprache haben.": "Clients can have their own language.",
+  "SMTP-Server": "SMTP server",
+  "Sprache der Texte": "Language of the texts",
+  "Standard-Dokumentsprache": "Default document language",
+  "Texte auf Englisch": "English texts",
+  "Texte auf Deutsch": "German texts",
 }

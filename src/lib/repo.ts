@@ -1,5 +1,5 @@
 import { calculateTotals, documentTotals, minutesToHours } from './calc'
-import { addDays, durationMinutes, formatDate, parseISODate, today, toISODate } from './dates'
+import { addDays, durationMinutes, parseISODate, today, toISODate } from './dates'
 import { db, now, uid } from './db'
 import {
   blankDocument,
@@ -7,11 +7,11 @@ import {
   defaultSettings,
   emptyRecipient,
   recipientFromCustomer,
-  TAX_NOTES,
 } from './defaults'
 import { normalizeSettings } from './migrate'
 import { billableMinutes, ensureProject } from './projects'
-import { formatDocDate, formatDocMoney } from './docText'
+import { docText, formatDocDate, formatDocMoney, GENERATED } from './docText'
+import { uiLanguage } from './i18n'
 import { takeNextNumber } from './numbering'
 import { amountDue, creditedOf } from './status'
 import type {
@@ -112,31 +112,27 @@ export async function createDraft(
   const issueDate = today()
   const term = customer?.paymentTermDays ?? d.paymentTermDays
   const taxMode = suggestTaxMode(settings.smallBusiness, settings.company.country, recipient)
+  const language = customer?.language ?? settings.documentLanguage
+  const texts = settings.texts[language]
 
   const doc: InvoiceDocument = blankDocument({
     id: uid(),
     kind,
     customerId: customer?.id ?? null,
     recipient,
-    title: kind === 'quote' ? 'Angebot' : kind === 'creditNote' ? 'Rechnungskorrektur' : 'Rechnung',
+    title: kind === 'quote' ? docText(language).quote : kind === 'creditNote' ? GENERATED[language].creditTitle : docText(language).invoice,
     issueDate,
     serviceFrom: issueDate,
     dueDate: addDays(issueDate, term),
     validUntil: addDays(issueDate, 30),
     items: options.items ?? [],
-    introText:
-      kind === 'quote'
-        ? 'Vielen Dank für Ihre Anfrage. Gerne unterbreite ich Ihnen folgendes Angebot:'
-        : d.introText,
-    closingText:
-      kind === 'quote'
-        ? 'Das Angebot ist gültig bis zum {Gültig bis}. Ich freue mich auf Ihre Rückmeldung.'
-        : d.closingText,
+    introText: kind === 'quote' ? texts.quoteIntro : texts.intro,
+    closingText: kind === 'quote' ? texts.quoteClosing : texts.closing,
     footerText: d.footerText,
     taxMode,
-    taxNote: taxMode === 'smallBusiness' ? settings.smallBusinessNote : TAX_NOTES[taxMode],
+    taxNote: taxMode === 'smallBusiness' ? texts.smallBusinessNote : docText(language).taxNotes[taxMode],
     currency: customer?.currency || d.currency,
-    language: customer?.language ?? 'de',
+    language,
     layout: d.layout,
     accentColor: d.accentColor,
     billingType: options.billingType ?? 'regular',
@@ -275,15 +271,13 @@ export async function cancelInvoice(id: string, releaseTime = true): Promise<Inv
     kind: 'cancellation',
     status: 'draft',
     number: null,
-    title: 'Stornorechnung',
     issueDate,
     dueDate: issueDate,
     items: original.items.map((i) => ({ ...i, id: uid(), quantity: -i.quantity, timeEntryIds: undefined })),
     deductions: original.deductions.map((d) => ({ ...d, groups: d.groups.map((g) => ({ ...g, netCents: -g.netCents, taxCents: -g.taxCents })) })),
-    introText: `Hiermit stornieren wir die Rechnung ${original.number} vom ${formatDate(original.issueDate)} vollständig.`,
-    closingText: original.payments.length
-      ? 'Der bereits gezahlte Betrag wird Ihnen erstattet.'
-      : 'Die ursprüngliche Rechnung ist damit gegenstandslos. Bitte nicht überweisen.',
+    title: docText(original.language).cancellation,
+    introText: GENERATED[original.language].cancelIntro(original.number ?? '', formatDocDate(original.issueDate, original.language)),
+    closingText: original.payments.length ? GENERATED[original.language].cancelRefund : GENERATED[original.language].cancelVoid,
     cancelsId: original.id,
     cancelsNumber: original.number,
     cancelledById: null,
@@ -361,15 +355,15 @@ export async function createCreditNote(invoiceId: string, scope: 'full' | 'parti
     kind: 'creditNote',
     status: 'draft',
     number: null,
-    title: 'Rechnungskorrektur',
+    title: GENERATED[original.language].creditTitle,
     issueDate,
     dueDate: issueDate,
     items,
     discount: scope === 'full' && items.length === original.items.length ? original.discount : null,
     billingType: 'regular',
     deductions: [],
-    introText: `Zu unserer Rechnung ${original.number} vom ${formatDate(original.issueDate)} schreiben wir Ihnen folgende Beträge gut:`,
-    closingText: original.payments.length ? 'Den Betrag erstatten wir Ihnen auf Ihr Konto.' : 'Der Betrag wird mit der offenen Rechnung verrechnet.',
+    introText: GENERATED[original.language].creditIntro(original.number ?? '', formatDocDate(original.issueDate, original.language)),
+    closingText: original.payments.length ? GENERATED[original.language].creditRefund : GENERATED[original.language].creditOffset,
     creditsId: original.id,
     creditsNumber: original.number,
     cancelsId: null,
@@ -416,8 +410,8 @@ function creditRemainderItems(original: InvoiceDocument, settings: Settings): Li
   }
   return groups.map((g, i) =>
     newLineItem(settings, {
-      title: `Gutschrift zu Rechnung ${original.number}`,
-      description: groups.length > 1 ? `Restbetrag, ${g.rate} % USt` : 'Restbetrag',
+      title: GENERATED[original.language].creditRemainder(original.number ?? ''),
+      description: groups.length > 1 ? GENERATED[original.language].remainderRate(g.rate) : GENERATED[original.language].remainder,
       quantity: 1,
       unit: 'Pauschal',
       unitPriceCents: nets[i],
@@ -459,7 +453,7 @@ export async function duplicateDocument(id: string, asKind?: DocumentKind): Prom
     kind,
     status: 'draft',
     number: null,
-    title: kind === 'quote' ? 'Angebot' : 'Rechnung',
+    title: kind === 'quote' ? docText(src.language).quote : src.kind === 'invoice' ? src.title : docText(src.language).invoice,
     issueDate,
     serviceFrom: kind === 'quote' ? src.serviceFrom : issueDate,
     serviceTo: '',
@@ -492,8 +486,9 @@ export async function duplicateDocument(id: string, asKind?: DocumentKind): Prom
     updatedAt: now(),
   }
   if (kind === 'invoice' && src.kind === 'quote') {
-    copy.introText = settings.defaults.introText
-    copy.closingText = settings.defaults.closingText
+    copy.introText = settings.texts[src.language].intro
+    copy.closingText = settings.texts[src.language].closing
+    copy.title = docText(src.language).invoice
   }
   await db.documents.put(copy)
   return copy
@@ -599,7 +594,7 @@ export async function stopTimer(): Promise<TimeEntry | null> {
       id: uid(),
       customerId: t.customerId,
       project: t.project,
-      description: t.description || 'Arbeitszeit',
+      description: t.description || GENERATED[uiLanguage()].work,
       details: '',
       start: t.startedAt,
       end,
@@ -657,6 +652,9 @@ export async function invoiceTimeEntries(
   if (!entries.length) throw new Error('Keine offenen, abrechenbaren Einträge ausgewählt.')
 
   const taxRate = settings.smallBusiness ? 0 : settings.defaults.taxRate
+  const target = targetDraftId ? await db.documents.get(targetDraftId) : undefined
+  const lang = target?.language ?? customer.language ?? settings.documentLanguage
+  const fmt = (iso: string) => formatDocDate(iso, lang)
   const groups = new Map<string, TimeEntry[]>()
   for (const e of entries) {
     const key =
@@ -672,12 +670,12 @@ export async function invoiceTimeEntries(
     let description: string
     if (grouping === 'entry') {
       title = first.description
-      description = [formatDate(date), first.project, first.details].filter(Boolean).join(' · ')
+      description = [fmt(date), first.project, first.details].filter(Boolean).join(' · ')
     } else {
       const last = toISODate(new Date(group[group.length - 1].start))
-      title = grouping === 'project' ? first.project || 'Leistungen' : `Leistungen am ${formatDate(date)}`
-      const period = date === last ? formatDate(date) : `${formatDate(date)} – ${formatDate(last)}`
-      description = [period, ...group.map((e) => `${formatDate(e.start)}: ${e.description}${e.details ? ` (${e.details})` : ''}`)].join('\n')
+      title = grouping === 'project' ? first.project || GENERATED[lang].services : GENERATED[lang].servicesOn(fmt(date))
+      const period = date === last ? fmt(date) : `${fmt(date)} – ${fmt(last)}`
+      description = [period, ...group.map((e) => `${fmt(toISODate(new Date(e.start)))}: ${e.description}${e.details ? ` (${e.details})` : ''}`)].join('\n')
     }
     return newLineItem(settings, {
       title,

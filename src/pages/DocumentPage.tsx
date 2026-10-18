@@ -46,7 +46,7 @@ import { documentTotals, lineTotal } from '../lib/calc'
 import { COUNTRIES } from '../lib/countries'
 import { addDays, daysBetween, formatDate, parseISODate, today } from '../lib/dates'
 import { db } from '../lib/db'
-import { CURRENCIES, customerName, recipientFromCustomer, recipientName, TAX_MODE_LABELS, TAX_NOTES, TAX_RATES, UNITS } from '../lib/defaults'
+import { CURRENCIES, customerName, recipientFromCustomer, recipientName, TAX_MODE_LABELS, TAX_RATES, UNITS } from '../lib/defaults'
 import { eInvoiceIssues, type EInvoiceProfile } from '../lib/einvoice'
 import { downloadPdf, downloadReminderPdf, downloadXml, printDocument } from '../lib/exporters'
 import { LEVEL_LABELS, reminderTotal } from '../lib/dunning'
@@ -521,37 +521,38 @@ function suggestMode(settings: Settings, country: string, vatId: string): TaxMod
   return 'thirdCountry'
 }
 
+function noteFor(mode: TaxMode, language: Language, settings: Settings): string {
+  return mode === 'smallBusiness' ? settings.texts[language].smallBusinessNote || docText(language).taxNotes.smallBusiness : docText(language).taxNotes[mode]
+}
+
+/** Every built-in or configured tax note, so a note the user hasn't touched can be replaced. */
+function knownNotes(settings: Settings): string[] {
+  return (['de', 'en'] as Language[]).flatMap((l) => [...Object.values(docText(l).taxNotes), settings.texts[l].smallBusinessNote]).filter(Boolean)
+}
+
 /** Switches the tax mode and swaps the note if it still is one of the defaults. */
 function taxModePatch(doc: InvoiceDocument, mode: TaxMode, settings: Settings, force = false): Partial<InvoiceDocument> {
   if (mode === doc.taxMode && !force) return {}
-  const defaults = [...Object.values(TAX_NOTES), settings.smallBusinessNote]
-  const keepNote = doc.taxNote && !defaults.includes(doc.taxNote)
-  const note = mode === 'smallBusiness' ? settings.smallBusinessNote || TAX_NOTES.smallBusiness : TAX_NOTES[mode]
-  return { taxMode: mode, taxNote: keepNote ? doc.taxNote : note }
+  const keepNote = doc.taxNote && !knownNotes(settings).includes(doc.taxNote)
+  return { taxMode: mode, taxNote: keepNote ? doc.taxNote : noteFor(mode, doc.language, settings) }
 }
 
 function retitle(doc: InvoiceDocument, billingType: BillingType): string {
-  const known = ['Rechnung', 'Abschlagsrechnung', 'Schlussrechnung', 'Invoice', 'Down payment invoice', 'Final invoice']
+  const known = (['de', 'en'] as Language[]).flatMap((language) => (['regular', 'downPayment', 'final'] as BillingType[]).map((b) => docTitleLabel({ ...doc, language, billingType: b })))
   if (doc.title && !known.includes(doc.title)) return doc.title
   return docTitleLabel({ ...doc, billingType })
 }
 
 /** Switches the document language and swaps texts that are still the defaults of the other language. */
 function languagePatch(doc: InvoiceDocument, language: Language, settings: Settings): Partial<InvoiceDocument> {
-  const from = DEFAULT_TEXTS[doc.language] ?? DEFAULT_TEXTS.de
-  const to = DEFAULT_TEXTS[language]
+  const from = settings.texts[doc.language]
+  const to = settings.texts[language]
   const quote = doc.kind === 'quote'
-  const intros = [from.intro, from.quoteIntro, settings.defaults.introText]
-  const closings = [from.closing, from.quoteClosing, settings.defaults.closingText]
   const patch: Partial<InvoiceDocument> = { language }
-  if (intros.includes(doc.introText)) patch.introText = language === 'de' ? (quote ? to.quoteIntro : settings.defaults.introText) : quote ? to.quoteIntro : to.intro
-  if (closings.includes(doc.closingText)) patch.closingText = language === 'de' ? (quote ? to.quoteClosing : settings.defaults.closingText) : quote ? to.quoteClosing : to.closing
-  const fromNotes = Object.values(docText(doc.language).taxNotes)
-  if (doc.taxNote && (fromNotes.includes(doc.taxNote) || doc.taxNote === settings.smallBusinessNote)) {
-    patch.taxNote = language === 'de' && doc.taxMode === 'smallBusiness' ? settings.smallBusinessNote : docText(language).taxNotes[doc.taxMode]
-  }
-  const fromTitle = docTitleLabel(doc)
-  if (doc.title === fromTitle) patch.title = docTitleLabel({ ...doc, language })
+  if ([from.intro, from.quoteIntro, DEFAULT_TEXTS[doc.language].intro, DEFAULT_TEXTS[doc.language].quoteIntro].includes(doc.introText)) patch.introText = quote ? to.quoteIntro : to.intro
+  if ([from.closing, from.quoteClosing, DEFAULT_TEXTS[doc.language].closing, DEFAULT_TEXTS[doc.language].quoteClosing].includes(doc.closingText)) patch.closingText = quote ? to.quoteClosing : to.closing
+  if (doc.taxNote && knownNotes(settings).includes(doc.taxNote)) patch.taxNote = noteFor(doc.taxMode, language, settings)
+  if (doc.title === docTitleLabel(doc)) patch.title = docTitleLabel({ ...doc, language })
   return patch
 }
 

@@ -1,5 +1,5 @@
 import { updateSettings } from '../lib/actions'
-import { t, uiLocale } from '../lib/i18n'
+import { t, uiLanguage, uiLocale } from '../lib/i18n'
 import {
   BellRing,
   Building2,
@@ -40,11 +40,12 @@ import { invalidate } from '../lib/remote'
 import { useSession } from '../lib/session'
 import { today } from '../lib/dates'
 import { db } from '../lib/db'
-import { TAX_NOTES, TAX_RATES, UNITS } from '../lib/defaults'
+import { TAX_RATES, UNITS } from '../lib/defaults'
 import { useDocumentTitle, useSettings } from '../lib/hooks'
 import { peekNextNumber, validatePattern } from '../lib/numbering'
 import { PLACEHOLDERS } from '../lib/repo'
-import type { MailTemplateKey, Settings } from '../lib/types'
+import type { Language, MailTemplateKey, Settings } from '../lib/types'
+import { docText } from '../lib/docText'
 
 const SECTIONS = [
   { id: 'firma', label: t('Firma'), icon: Building2 },
@@ -79,6 +80,7 @@ export function SettingsPage() {
   const stored = useSettings()
   const [draft, setDraft] = useState<Settings | null>(null)
   const [saved, setSaved] = useState(true)
+  const [textLang, setTextLang] = useState<Language>(uiLanguage())
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   useEffect(() => {
@@ -113,6 +115,9 @@ export function SettingsPage() {
   if (!draft) return <div className="page" />
   const d = draft.defaults
   const setDefaults = (patch: Partial<Settings['defaults']>) => update({ defaults: { ...d, ...patch } })
+  const setTexts = (patch: Partial<Settings['texts']['en']>) => update({ texts: { ...draft.texts, [textLang]: { ...draft.texts[textLang], ...patch } } })
+  const setMail = (key: MailTemplateKey, patch: Partial<Settings['mailTemplates']['en']['invoice']>) =>
+    update({ mailTemplates: { ...draft.mailTemplates, [textLang]: { ...draft.mailTemplates[textLang], [key]: { ...draft.mailTemplates[textLang][key], ...patch } } } })
 
   return (
     <div className="page">
@@ -192,13 +197,16 @@ export function SettingsPage() {
                 description={t('Rechnungen ohne Umsatzsteuer, mit Hinweis auf die Steuerbefreiung.')}
               />
               {draft.smallBusiness && (
-                <TextAreaField
-                  label={t('Hinweistext auf der Rechnung')}
-                  value={draft.smallBusinessNote}
-                  onChange={(smallBusinessNote) => update({ smallBusinessNote })}
-                  rows={2}
-                  hint={t('Standard: „{p0}“', { p0: TAX_NOTES.smallBusiness })}
-                />
+                <>
+                  <TextLanguageSwitch value={textLang} onChange={setTextLang} />
+                  <TextAreaField
+                    label={t('Hinweistext auf der Rechnung')}
+                    value={draft.texts[textLang].smallBusinessNote}
+                    onChange={(smallBusinessNote) => setTexts({ smallBusinessNote })}
+                    rows={2}
+                    hint={t('Standard: „{p0}“', { p0: docText(textLang).taxNotes.smallBusiness })}
+                  />
+                </>
               )}
             </div>
             <div className="form-section stack-sm">
@@ -262,12 +270,19 @@ export function SettingsPage() {
                   <option value="up">{t('Aufrunden')}</option>
                   <option value="nearest">{t('Kaufmännisch runden')}</option>
                 </SelectField>
-                <TextAreaField className="span-6" label={t('Einleitungstext')} value={d.introText} onChange={(introText) => setDefaults({ introText })} rows={3} />
+                <SelectField className="span-3" label={t('Standard-Dokumentsprache')} value={draft.documentLanguage} onChange={(v) => update({ documentLanguage: v as Language })} hint={t('Kunden können eine eigene Sprache haben.')}>
+                  <option value="en">English</option>
+                  <option value="de">Deutsch</option>
+                </SelectField>
+                <div className="span-3" style={{ alignSelf: 'end' }}>
+                  <TextLanguageSwitch value={textLang} onChange={setTextLang} />
+                </div>
+                <TextAreaField className="span-6" label={t('Einleitungstext')} value={draft.texts[textLang].intro} onChange={(intro) => setTexts({ intro })} rows={3} />
                 <TextAreaField
                   className="span-6"
                   label={t('Schlusstext')}
-                  value={d.closingText}
-                  onChange={(closingText) => setDefaults({ closingText })}
+                  value={draft.texts[textLang].closing}
+                  onChange={(closing) => setTexts({ closing })}
                   rows={4}
                   hint={<>{t('Platzhalter:')} {PLACEHOLDERS.map((p) => <code key={p} className="kbd" style={{ marginRight: 4 }}>{`{${p}}`}</code>)}</>}
                 />
@@ -311,7 +326,8 @@ export function SettingsPage() {
             <div className="form-section">
               <h3>{t('Mahnwesen')}</h3>
               <p className="muted">{t('Fristen, Gebühren und Texte für Zahlungserinnerung und Mahnungen. Die Tage zählen ab Fälligkeit bzw. ab Ablauf der vorherigen Frist.')}</p>
-              <div className="stack">
+              <TextLanguageSwitch value={textLang} onChange={setTextLang} />
+              <div className="stack" style={{ marginTop: 14 }}>
                 {draft.dunning.steps.map((step, i) => {
                   const setStep = (patch: Partial<typeof step>) => {
                     const steps = draft.dunning.steps.map((x, j) => (j === i ? { ...x, ...patch } : x)) as Settings['dunning']['steps']
@@ -319,14 +335,14 @@ export function SettingsPage() {
                   }
                   return (
                     <div key={i} className="form-grid dunning-step">
-                      <TextField className="span-2" label={t('Stufe {p0}', { p0: i + 1 })} value={step.title} onChange={(title) => setStep({ title })} />
+                      <TextField className="span-2" label={t('Stufe {p0}', { p0: i + 1 })} value={step.title[textLang]} onChange={(title) => setStep({ title: { ...step.title, [textLang]: title } })} />
                       <Field className="span-2" label={i === 0 ? t('Tage nach Fälligkeit') : t('Tage nach letzter Frist')}>
                         <NumberInput value={step.afterDays} onChange={(n) => setStep({ afterDays: Math.max(0, Math.round(n)) })} suffix="Tage" maxFraction={0} aria-label={t('Abstand Stufe {p0}', { p0: i + 1 })} />
                       </Field>
                       <Field className="span-2" label={t('Gebühr')}>
                         <MoneyInput value={step.feeCents} onChange={(v) => setStep({ feeCents: v ?? 0 })} aria-label={t('Gebühr Stufe {p0}', { p0: i + 1 })} />
                       </Field>
-                      <TextAreaField className="span-6" label={t('Text')} value={step.text} onChange={(text) => setStep({ text })} rows={3} />
+                      <TextAreaField className="span-6" label={t('Text')} value={step.text[textLang]} onChange={(text) => setStep({ text: { ...step.text, [textLang]: text } })} rows={3} />
                     </div>
                   )
                 })}
@@ -370,13 +386,14 @@ export function SettingsPage() {
             <div className="form-section">
               <h3>{t('E-Mail-Vorlagen')}</h3>
               <p className="muted">
-                {t('Betreff und Text beim Versand. Platzhalter:')} {MAIL_PLACEHOLDERS.map((p) => <code key={p} className="kbd" style={{ marginRight: 4 }}>{`{${p}}`}</code>)} {t('Englische Dokumente bekommen englische Standardtexte.')}
+                {t('Betreff und Text beim Versand. Platzhalter:')} {MAIL_PLACEHOLDERS.map((p) => <code key={p} className="kbd" style={{ marginRight: 4 }}>{`{${p}}`}</code>)} {t('Die Vorlage folgt der Sprache des Dokuments.')}
               </p>
-              <div className="stack">
+              <TextLanguageSwitch value={textLang} onChange={setTextLang} />
+              <div className="stack" style={{ marginTop: 14 }}>
                 {(Object.keys(MAIL_TEMPLATE_LABELS) as MailTemplateKey[]).map((key) => (
                   <div key={key} className="form-grid dunning-step">
-                    <TextField className="span-6" label={t('{p0}: Betreff', { p0: MAIL_TEMPLATE_LABELS[key] })} value={draft.mailTemplates[key].subject} onChange={(subject) => update({ mailTemplates: { ...draft.mailTemplates, [key]: { ...draft.mailTemplates[key], subject } } })} />
-                    <TextAreaField className="span-6" label={t('Text')} value={draft.mailTemplates[key].body} onChange={(body) => update({ mailTemplates: { ...draft.mailTemplates, [key]: { ...draft.mailTemplates[key], body } } })} rows={5} />
+                    <TextField className="span-6" label={t('{p0}: Betreff', { p0: MAIL_TEMPLATE_LABELS[key] })} value={draft.mailTemplates[textLang][key].subject} onChange={(subject) => setMail(key, { subject })} />
+                    <TextAreaField className="span-6" label={t('Text')} value={draft.mailTemplates[textLang][key].body} onChange={(body) => setMail(key, { body })} rows={5} />
                   </div>
                 ))}
               </div>
@@ -575,5 +592,20 @@ function DataSection() {
         )}
       </div>
     </section>
+  )
+}
+
+/** Picks which language's texts are being edited. */
+function TextLanguageSwitch({ value, onChange }: { value: Language; onChange: (l: Language) => void }) {
+  return (
+    <Segmented<Language>
+      label={t('Sprache der Texte')}
+      value={value}
+      onChange={onChange}
+      options={[
+        { value: 'en', label: t('Texte auf Englisch') },
+        { value: 'de', label: t('Texte auf Deutsch') },
+      ]}
+    />
   )
 }

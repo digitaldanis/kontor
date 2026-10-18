@@ -54,8 +54,6 @@ export interface Logo {
 export interface InvoiceDefaults {
   paymentTermDays: number
   taxRate: number
-  introText: string
-  closingText: string
   footerText: string
   currency: string
   layout: LayoutId
@@ -101,11 +99,20 @@ export interface CreditRef {
 export type DunningLevel = 0 | 1 | 2
 
 export interface DunningStep {
-  title: string
+  title: Record<Language, string>
   /** Days after the due date (first step) or after the previous deadline. */
   afterDays: number
   feeCents: number
-  text: string
+  text: Record<Language, string>
+}
+
+/** Default texts for new documents, kept per document language. */
+export interface DocumentTexts {
+  intro: string
+  closing: string
+  quoteIntro: string
+  quoteClosing: string
+  smallBusinessNote: string
 }
 
 export interface DunningSettings {
@@ -169,12 +176,14 @@ export interface Settings {
   quoteNumbers: NumberSequence
   creditNoteNumbers: NumberSequence
   smallBusiness: boolean
-  smallBusinessNote: string
+  /** Language of new documents unless the client has their own. */
+  documentLanguage: Language
+  texts: Record<Language, DocumentTexts>
   /** Soll- (accrual, by invoice date) or Ist-Versteuerung (cash, by payment date). */
   taxation: 'accrual' | 'cash'
   dunning: DunningSettings
   timeRounding: TimeRounding
-  mailTemplates: Record<MailTemplateKey, MailTemplate>
+  mailTemplates: Record<Language, Record<MailTemplateKey, MailTemplate>>
   onboarded: boolean
   updatedAt: string
 }

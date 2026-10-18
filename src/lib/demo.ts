@@ -13,7 +13,7 @@ export async function seedDemo(): Promise<void> {
   await updateSettings({
     company: {
       ...s.company,
-      name: 'Studio Nordlicht',
+      name: 'Northlight Studio',
       owner: 'Lena Berger',
       street: 'Kastanienallee 21',
       zip: '10435',
@@ -21,20 +21,22 @@ export async function seedDemo(): Promise<void> {
       country: 'DE',
       taxNumber: '30/245/67890',
       vatId: 'DE298765432',
-      email: 'hallo@studio-nordlicht.de',
+      email: 'hello@northlight.example',
       phone: '030 1234567',
-      website: 'studio-nordlicht.de',
+      website: 'northlight.example',
       bankName: 'GLS Bank',
       iban: 'DE89370400440532013000',
       bic: 'COBADEFFXXX',
     },
     onboarded: true,
+    documentLanguage: 'en',
   })
 
   const make = (c: Partial<Customer>) => saveCustomer({ ...emptyCustomer(), ...c })
-  const acme = await make({ company: 'Kaffeerösterei Bohnenglück GmbH', contactPerson: 'Jonas Weber', street: 'Speicherstadt 4', zip: '20457', city: 'Hamburg', email: 'jonas@bohnenglueck.de', hourlyRateCents: 9500 })
-  const verein = await make({ company: 'Sportverein Grün-Weiß e. V.', contactPerson: 'Petra Schulz', street: 'Am Sportplatz 1', zip: '04109', city: 'Leipzig', email: 'vorstand@gruen-weiss.de', hourlyRateCents: 7000 })
-  const wien = await make({ company: 'Alpenblick Hotels GmbH', contactPerson: 'Mag. Thomas Huber', street: 'Mariahilfer Straße 88', zip: '1070', city: 'Wien', country: 'AT', vatId: 'ATU12345678', email: 't.huber@alpenblick.at', hourlyRateCents: 11000 })
+  const acme = await make({ company: 'Bean & Brew Coffee Roasters GmbH', contactPerson: 'Jonas Weber', street: 'Speicherstadt 4', zip: '20457', city: 'Hamburg', email: 'jonas@beanandbrew.example', hourlyRateCents: 9500, language: 'en' })
+  const verein = await make({ company: 'Greenfield Sports Club e. V.', contactPerson: 'Petra Schulz', street: 'Am Sportplatz 1', zip: '04109', city: 'Leipzig', email: 'board@greenfield.example', hourlyRateCents: 7000, language: 'en' })
+  const wien = await make({ company: 'Alpine View Hotels GmbH', contactPerson: 'Thomas Huber', street: 'Mariahilfer Straße 88', zip: '1070', city: 'Vienna', country: 'AT', vatId: 'ATU12345678', email: 't.huber@alpineview.example', hourlyRateCents: 11000, language: 'en' })
+  await make({ company: 'Harbour Digital Ltd', contactPerson: 'Amelia Clarke', street: '12 Wharf Road', zip: 'N1 7GR', city: 'London', country: 'GB', email: 'accounts@harbourdigital.example', hourlyRateCents: 12000, language: 'en', currency: 'EUR' })
 
   const entries: TimeEntry[] = []
   const add = (customer: Customer, daysAgo: number, from: string, to: string, project: string, description: string, details = '') => {
@@ -54,23 +56,23 @@ export async function seedDemo(): Promise<void> {
       updatedAt: new Date().toISOString(),
     })
   }
-  add(acme, 40, '09:00', '12:30', 'Relaunch Onlineshop', 'Workshop Markenauftritt', 'Moodboards und Farbwelt abgestimmt')
-  add(acme, 38, '13:30', '17:00', 'Relaunch Onlineshop', 'Wireframes Startseite')
-  add(acme, 9, '09:15', '11:45', 'Relaunch Onlineshop', 'Produktseiten gestalten', 'Varianten für Filterkaffee und Espresso')
-  add(acme, 6, '14:00', '18:15', 'Relaunch Onlineshop', 'Umsetzung Warenkorb')
-  add(acme, 2, '10:00', '11:30', 'Newsletter', 'Template für Herbstaktion')
-  add(verein, 12, '18:00', '20:00', 'Website', 'Mitgliederbereich eingerichtet')
-  add(verein, 3, '17:30', '19:00', 'Website', 'Spielplan-Seite aktualisiert')
-  add(wien, 20, '08:30', '12:00', 'Buchungsstrecke', 'UX-Analyse Buchungsprozess', 'Heatmaps ausgewertet, Empfehlungen erstellt')
-  add(wien, 19, '13:00', '16:30', 'Buchungsstrecke', 'Prototyp neue Zimmerauswahl')
+  add(acme, 40, '09:00', '12:30', 'Online shop relaunch', 'Brand workshop', 'Moodboards and colour palette agreed')
+  add(acme, 38, '13:30', '17:00', 'Online shop relaunch', 'Home page wireframes')
+  add(acme, 9, '09:15', '11:45', 'Online shop relaunch', 'Product page design', 'Variants for filter coffee and espresso')
+  add(acme, 6, '14:00', '18:15', 'Online shop relaunch', 'Shopping cart implementation')
+  add(acme, 2, '10:00', '11:30', 'Newsletter', 'Template for the autumn campaign')
+  add(verein, 12, '18:00', '20:00', 'Website', 'Members area set up')
+  add(verein, 3, '17:30', '19:00', 'Website', 'Fixture page updated')
+  add(wien, 20, '08:30', '12:00', 'Booking flow', 'UX review of the booking process', 'Heatmaps analysed, recommendations written')
+  add(wien, 19, '13:00', '16:30', 'Booking flow', 'Prototype for the new room picker')
   await db.timeEntries.bulkPut(entries)
   for (const e of entries) await ensureProject(e.customerId, e.project)
-  await db.projects.where('[customerId+name]').equals([acme.id, 'Relaunch Onlineshop']).modify({ budgetMinutes: 16 * 60, budgetCents: 150000 })
+  await db.projects.where('[customerId+name]').equals([acme.id, 'Online shop relaunch']).modify({ budgetMinutes: 16 * 60, budgetCents: 150000 })
   await db.catalog.bulkPut([
-    emptyCatalogItem({ name: 'Konzeption und Beratung', description: 'Workshop, Abstimmung und Konzept', unit: 'Std.', priceCents: 9500 }),
-    emptyCatalogItem({ name: 'Webdesign', description: 'Gestaltung und Umsetzung', unit: 'Std.', priceCents: 8500 }),
-    emptyCatalogItem({ name: 'Wartungspauschale', description: 'Updates, Backups und Monitoring', unit: 'Monat', priceCents: 4900 }),
-    emptyCatalogItem({ name: 'Fachbuch', unit: 'Stk.', priceCents: 3990, taxRate: 7 }),
+    emptyCatalogItem({ name: 'Concept and consulting', description: 'Workshop, alignment and concept', unit: 'Std.', priceCents: 9500 }),
+    emptyCatalogItem({ name: 'Web design', description: 'Design and implementation', unit: 'Std.', priceCents: 8500 }),
+    emptyCatalogItem({ name: 'Maintenance plan', description: 'Updates, backups and monitoring', unit: 'Monat', priceCents: 4900 }),
+    emptyCatalogItem({ name: 'Reference book', unit: 'Stk.', priceCents: 3990, taxRate: 7 }),
   ])
 
   // An older paid invoice, an overdue one and an open one from time entries
@@ -79,7 +81,7 @@ export async function seedDemo(): Promise<void> {
   old.issueDate = addDays(today(), -75)
   old.serviceFrom = addDays(today(), -80)
   old.dueDate = addDays(old.issueDate, 14)
-  old.items = [newLineItem(settings, { title: 'Logo-Überarbeitung', description: 'inkl. drei Korrekturschleifen', quantity: 1, unit: 'Pauschal', unitPriceCents: 45000 })]
+  old.items = [newLineItem(settings, { title: 'Logo refresh', description: 'including three rounds of revisions', quantity: 1, unit: 'Pauschal', unitPriceCents: 45000 })]
   await db.documents.put(old)
   await finalizeDocument(old.id)
   await setPaid(old.id, addDays(today(), -66))
@@ -101,17 +103,17 @@ export async function seedDemo(): Promise<void> {
   await finalizeDocument(rc.id)
 
   const draft = await createDraft('invoice', { customerId: verein.id })
-  draft.items = [newLineItem(settings, { title: 'Wartung Website', description: `Monatspauschale ${new Intl.DateTimeFormat('de-DE', { month: 'long' }).format(new Date())}`, quantity: 1, unit: 'Monat', unitPriceCents: 4900 })]
+  draft.items = [newLineItem(settings, { title: 'Website maintenance', description: `Monthly plan ${new Intl.DateTimeFormat('en-GB', { month: 'long' }).format(new Date())}`, quantity: 1, unit: 'Monat', unitPriceCents: 4900 })]
   await db.documents.put(draft)
 
   await saveRecurring({
-    ...newRecurring(verein.id, { ...templateFromDocument(draft), items: draft.items.map((i) => ({ ...i, description: 'Monatspauschale {Monat} {Jahr}' })) }, addMonths(today(), 1).slice(0, 8) + '01'),
-    name: 'Wartung Website',
+    ...newRecurring(verein.id, { ...templateFromDocument(draft), items: draft.items.map((i) => ({ ...i, description: 'Monthly plan {Monat} {Jahr}' })) }, addMonths(today(), 1).slice(0, 8) + '01'),
+    name: 'Website maintenance',
   })
 
   await db.expenses.bulkPut([
     emptyExpense({ date: addDays(today(), -20), paidAt: addDays(today(), -20), vendor: 'Adobe Systems', description: 'Creative Cloud', category: 'Software & Abos', grossCents: 7139, vatCents: vatFromGross(7139, 19) }),
-    emptyExpense({ date: addDays(today(), -12), paidAt: addDays(today(), -12), vendor: 'Deutsche Bahn', description: 'Fahrt Hamburg Kundentermin', category: 'Reisekosten', grossCents: 8990, vatCents: vatFromGross(8990, 7), taxRate: 7 }),
-    emptyExpense({ date: addDays(today(), -5), paidAt: null, vendor: 'Hosting Nord GmbH', description: 'Webhosting', category: 'Telefon & Internet', grossCents: 2380, vatCents: 380, invoiceNumber: 'HN-4711' }),
+    emptyExpense({ date: addDays(today(), -12), paidAt: addDays(today(), -12), vendor: 'Deutsche Bahn', description: 'Train to Hamburg, client meeting', category: 'Reisekosten', grossCents: 8990, vatCents: vatFromGross(8990, 7), taxRate: 7 }),
+    emptyExpense({ date: addDays(today(), -5), paidAt: null, vendor: 'North Hosting GmbH', description: 'Web hosting', category: 'Telefon & Internet', grossCents: 2380, vatCents: 380, invoiceNumber: 'NH-4711' }),
   ])
 }
