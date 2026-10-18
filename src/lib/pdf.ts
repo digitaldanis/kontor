@@ -11,6 +11,7 @@ import {
   type PDFPage,
   type RGB,
 } from 'pdf-lib'
+import fontkit from '@pdf-lib/fontkit'
 import type { InvoiceView } from './invoiceView'
 
 const MM = 72 / 25.4
@@ -29,17 +30,56 @@ const WHITE = rgb(1, 1, 1)
 
 // Characters outside WinAnsi cannot be encoded with the standard fonts.
 const WIN_ANSI_EXTRA = '€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ'
-function sanitize(text: string): string {
+const charsets = new WeakMap<PDFFont, Set<number>>()
+
+/** Replaces characters the font can't draw; embedded fonts would otherwise reference .notdef. */
+function sanitize(text: string, font?: PDFFont): string {
+  const supported = font ? charsets.get(font) : undefined
   let out = ''
   for (const ch of text.normalize('NFC')) {
     const code = ch.codePointAt(0) ?? 0
-    if (ch === '\n' || (code >= 0x20 && code <= 0x7e) || (code >= 0xa0 && code <= 0xff) || WIN_ANSI_EXTRA.includes(ch)) out += ch
-    else if (ch === '\t') out += ' '
-    else if (ch === ' ' || ch === ' ' || ch === ' ') out += ' '
-    else if (ch === '−') out += '-'
-    else if (ch !== '\r') out += '?'
+    if (ch === '\n') out += ch
+    else if (ch === '\t' || ch === '\u00a0' || ch === '\u2009' || ch === '\u202f') out += ' '
+    else if (ch === '\r' || code < 0x20 || (code >= 0x7f && code < 0xa0)) continue
+    else if (supported) out += supported.has(code) ? ch : ch === '\u2212' && supported.has(45) ? '-' : '?'
+    else if ((code >= 0x20 && code <= 0x7e) || (code >= 0xa0 && code <= 0xff) || WIN_ANSI_EXTRA.includes(ch)) out += ch
+    else if (ch === '\u2212') out += '-'
+    else out += '?'
   }
   return out
+}
+
+/** Embedded fonts and the colour profile needed for PDF/A. */
+export interface PdfAssets {
+  regular: Uint8Array
+  bold: Uint8Array
+  serif: Uint8Array
+  icc: Uint8Array
+}
+
+let assets: Promise<PdfAssets | null> | null = null
+
+/** Loads the bundled fonts and sRGB profile once; returns null when they can't be fetched. */
+export function loadPdfAssets(): Promise<PdfAssets | null> {
+  if (typeof document === 'undefined') return Promise.resolve(null)
+  assets ??= (async () => {
+    const get = async (path: string) => {
+      const res = await fetch(new URL(path, document.baseURI))
+      if (!res.ok) throw new Error(path)
+      return new Uint8Array(await res.arrayBuffer())
+    }
+    const [regular, bold, serif, icc] = await Promise.all([
+      get('fonts/LiberationSans-Regular.ttf'),
+      get('fonts/LiberationSans-Bold.ttf'),
+      get('fonts/LiberationSerif-Regular.ttf'),
+      get('color/sRGB.icc'),
+    ])
+    return { regular, bold, serif, icc }
+  })().catch(() => {
+    assets = null
+    return null
+  })
+  return assets
 }
 
 function hexToRgb(hex: string): RGB {
@@ -65,7 +105,7 @@ interface Fonts {
 function wrap(text: string, font: PDFFont, size: number, maxWidthMm: number): string[] {
   const max = maxWidthMm * MM
   const lines: string[] = []
-  for (const paragraph of sanitize(text).split('\n')) {
+  for (const paragraph of sanitize(text, font).split('\n')) {
     const words = paragraph.split(/ +/)
     let line = ''
     for (let word of words) {
@@ -115,7 +155,7 @@ class Writer {
   text(s: string, x: number, y: number, opts: { size?: number; font?: PDFFont; color?: RGB; align?: 'left' | 'right' | 'center'; spacing?: number } = {}) {
     const size = opts.size ?? 9.5
     const font = opts.font ?? this.fonts.regular
-    const clean = sanitize(s)
+    const clean = sanitize(s, font)
     if (!clean) return
     let width = font.widthOfTextAtSize(clean, size)
     if (opts.spacing) width += opts.spacing * (clean.length - 1)
@@ -172,12 +212,35 @@ interface Column {
   align: 'left' | 'right'
 }
 
-export async function renderInvoicePdf(view: InvoiceView, options: { xml?: string; documentTitle?: string } = {}): Promise<Uint8Array> {
-  const pdf = await PDFDocument.create()
-  const fonts: Fonts = {
-    regular: await pdf.embedFont(StandardFonts.Helvetica),
-    bold: await pdf.embedFont(StandardFonts.HelveticaBold),
-    serif: await pdf.embedFont(StandardFonts.TimesRoman),
+export interface RenderOptions {
+  /** CII XML to embed as factur-x.xml (ZUGFeRD / Factur-X). */
+  xml?: string
+  documentTitle?: string
+  /** Fonts and colour profile; loaded from the app when omitted. */
+  assets?: PdfAssets | null
+  /** Fixed timestamp, used by tests for reproducible output. */
+  date?: Date
+}
+
+export async function renderInvoicePdf(view: InvoiceView, options: RenderOptions = {}): Promise<Uint8Array> {
+  const pdf = await PDFDocument.create({ updateMetadata: false })
+  const kit = options.assets === undefined ? await loadPdfAssets() : options.assets
+  if (options.xml && !kit) throw new Error('Die Schriften für die E-Rechnung konnten nicht geladen werden. Bitte einmal mit Internetverbindung öffnen.')
+  let fonts: Fonts
+  if (kit) {
+    pdf.registerFontkit(fontkit)
+    fonts = {
+      regular: await pdf.embedFont(kit.regular, { subset: true }),
+      bold: await pdf.embedFont(kit.bold, { subset: true }),
+      serif: await pdf.embedFont(kit.serif, { subset: true }),
+    }
+    for (const f of Object.values(fonts)) charsets.set(f, new Set(f.getCharacterSet()))
+  } else {
+    fonts = {
+      regular: await pdf.embedFont(StandardFonts.Helvetica),
+      bold: await pdf.embedFont(StandardFonts.HelveticaBold),
+      serif: await pdf.embedFont(StandardFonts.TimesRoman),
+    }
   }
   const accent = hexToRgb(view.accent || '#0a66d8')
   const w = new Writer(pdf, fonts, view, accent)
@@ -198,7 +261,6 @@ export async function renderInvoicePdf(view: InvoiceView, options: { xml?: strin
 
   // Title and intro
   w.y = 103
-  const number = view.meta[0]?.value
   if (layout === 'minimal') {
     w.text(view.title.toUpperCase(), LEFT, w.y, { size: 11, font: fonts.bold, spacing: 1.5 })
     w.y += lh(11) + 6
@@ -254,16 +316,15 @@ export async function renderInvoicePdf(view: InvoiceView, options: { xml?: strin
     }
   })
 
-  pdf.setTitle(options.documentTitle ?? `${view.label} ${number ?? ''}`.trim())
-  pdf.setAuthor(sanitize(view.seller.name))
-  pdf.setSubject(view.label)
-  pdf.setCreator('Kontor')
-  pdf.setProducer('Kontor (pdf-lib)')
-  pdf.setLanguage('de-DE')
+  const title = options.documentTitle ?? (view.isDraft ? view.label : view.heading)
+  const meta = { title, author: view.seller.name || 'Kontor', lang: view.lang === 'en' ? 'en-GB' : 'de-DE', date: options.date ?? new Date() }
+  writeInfo(pdf, meta)
+  if (options.xml) embedFacturX(pdf, options.xml, meta.date)
+  if (kit) addOutputIntent(pdf, kit.icc)
+  writeMetadata(pdf, meta, { pdfa: !!kit, facturx: !!options.xml })
+  setDocumentId(pdf, `${title}|${meta.date.toISOString()}`)
 
-  if (options.xml) embedFacturX(pdf, options.xml, `${view.label} ${number ?? ''}`)
-
-  return pdf.save()
+  return pdf.save({ useObjectStreams: false })
 }
 
 function drawFirstPageHeader(w: Writer, logo: PDFImage | null) {
@@ -316,7 +377,7 @@ function drawFirstPageHeader(w: Writer, logo: PDFImage | null) {
 }
 
 function truncate(s: string, font: PDFFont, size: number, maxMm: number) {
-  let t = sanitize(s)
+  let t = sanitize(s, font)
   if (font.widthOfTextAtSize(t, size) <= maxMm * MM) return t
   while (t.length > 1 && font.widthOfTextAtSize(`${t}…`, size) > maxMm * MM) t = t.slice(0, -1)
   return `${t}…`
@@ -496,19 +557,62 @@ function drawFoldMarks(w: Writer) {
   }
 }
 
+interface DocMeta {
+  title: string
+  author: string
+  lang: string
+  date: Date
+}
+
+function writeInfo(pdf: PDFDocument, meta: DocMeta) {
+  // whole seconds, so the Info dictionary and XMP carry exactly the same timestamps
+  meta.date = new Date(Math.floor(meta.date.getTime() / 1000) * 1000)
+  pdf.setTitle(meta.title)
+  pdf.setAuthor(meta.author)
+  pdf.setCreator('Kontor')
+  pdf.setProducer('Kontor (pdf-lib)')
+  pdf.setCreationDate(meta.date)
+  pdf.setModificationDate(meta.date)
+  pdf.setLanguage(meta.lang)
+}
+
+/** sRGB output intent, required for device colours in PDF/A. */
+function addOutputIntent(pdf: PDFDocument, icc: Uint8Array) {
+  const ctx = pdf.context
+  const profile = ctx.register(ctx.flateStream(icc, { N: 3 }))
+  const intent = ctx.obj({
+    Type: 'OutputIntent',
+    S: 'GTS_PDFA1',
+    OutputConditionIdentifier: PDFString.of('sRGB IEC61966-2.1'),
+    Info: PDFString.of('sRGB IEC61966-2.1'),
+    DestOutputProfile: profile,
+  })
+  pdf.catalog.set(PDFName.of('OutputIntents'), ctx.obj([ctx.register(intent)]))
+}
+
+function setDocumentId(pdf: PDFDocument, seed: string) {
+  let h1 = 0x811c9dc5
+  let h2 = 0x01000193
+  for (let i = 0; i < seed.length; i++) {
+    h1 = Math.imul(h1 ^ seed.charCodeAt(i), 16777619) >>> 0
+    h2 = Math.imul(h2 + seed.charCodeAt(i), 2246822519) >>> 0
+  }
+  const rand = Array.from(crypto.getRandomValues(new Uint8Array(8)), (b) => b.toString(16).padStart(2, '0')).join('')
+  const id = PDFHexString.of(`${h1.toString(16).padStart(8, '0')}${h2.toString(16).padStart(8, '0')}${rand}`)
+  pdf.context.trailerInfo.ID = pdf.context.obj([id, id])
+}
+
 /**
- * Embeds the CII XML as factur-x.xml with AFRelationship and the Factur-X
- * XMP extension schema. The PDF itself is not validated as PDF/A-3, which is
- * why the export is labelled experimental in the UI.
+ * Embeds the CII XML as factur-x.xml with AFRelationship "Alternative",
+ * as ZUGFeRD 2.x / Factur-X expects for the EN 16931 profile.
  */
-function embedFacturX(pdf: PDFDocument, xml: string, title: string) {
+function embedFacturX(pdf: PDFDocument, xml: string, date: Date) {
   const ctx = pdf.context
   const bytes = new TextEncoder().encode(xml)
-  const date = new Date()
   const fileStream = ctx.flateStream(bytes, {
     Type: 'EmbeddedFile',
     Subtype: 'text/xml',
-    Params: { Size: bytes.length, ModDate: PDFString.fromDate(date), CreationDate: PDFString.fromDate(date) },
+    Params: { Size: bytes.length, ModDate: PDFString.fromDate(date) },
   })
   const fileRef = ctx.register(fileStream)
   const spec = ctx.obj({
@@ -523,26 +627,13 @@ function embedFacturX(pdf: PDFDocument, xml: string, title: string) {
   const catalog = pdf.catalog
   catalog.set(PDFName.of('Names'), ctx.obj({ EmbeddedFiles: { Names: [PDFHexString.fromText('factur-x.xml'), specRef] } }))
   catalog.set(PDFName.of('AF'), ctx.obj([specRef]))
+}
 
-  const iso = date.toISOString()
-  const xmp = `<?xpacket begin="﻿" id="W5M0MpCehiHzreSzNTczkc9d"?>
-<x:xmpmeta xmlns:x="adobe:ns:meta/">
- <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-  <rdf:Description rdf:about="" xmlns:pdfaid="http://www.aiim.org/pdfa/ns/id/">
-   <pdfaid:part>3</pdfaid:part>
-   <pdfaid:conformance>B</pdfaid:conformance>
-  </rdf:Description>
-  <rdf:Description rdf:about="" xmlns:dc="http://purl.org/dc/elements/1.1/">
-   <dc:title><rdf:Alt><rdf:li xml:lang="x-default">${escapeXml(title)}</rdf:li></rdf:Alt></dc:title>
-  </rdf:Description>
-  <rdf:Description rdf:about="" xmlns:xmp="http://ns.adobe.com/xap/1.0/">
-   <xmp:CreateDate>${iso}</xmp:CreateDate>
-   <xmp:ModifyDate>${iso}</xmp:ModifyDate>
-   <xmp:CreatorTool>Kontor</xmp:CreatorTool>
-  </rdf:Description>
-  <rdf:Description rdf:about="" xmlns:pdf="http://ns.adobe.com/pdf/1.3/">
-   <pdf:Producer>Kontor (pdf-lib)</pdf:Producer>
-  </rdf:Description>
+function xmpDate(d: Date): string {
+  return d.toISOString().replace(/\.\d{3}Z$/, 'Z')
+}
+
+const FACTURX_SCHEMA = `
   <rdf:Description rdf:about="" xmlns:fx="urn:factur-x:pdfa:CrossIndustryDocument:invoice:1p0#">
    <fx:DocumentType>INVOICE</fx:DocumentType>
    <fx:DocumentFileName>factur-x.xml</fx:DocumentFileName>
@@ -567,12 +658,41 @@ function embedFacturX(pdf: PDFDocument, xml: string, title: string) {
      </rdf:li>
     </rdf:Bag>
    </pdfaExtension:schemas>
+  </rdf:Description>`
+
+/** XMP metadata mirroring the Info dictionary, with the PDF/A-3B identification when fonts are embedded. */
+function writeMetadata(pdf: PDFDocument, meta: DocMeta, opts: { pdfa: boolean; facturx: boolean }) {
+  const date = xmpDate(meta.date)
+  const pdfaId = opts.pdfa
+    ? `
+  <rdf:Description rdf:about="" xmlns:pdfaid="http://www.aiim.org/pdfa/ns/id/">
+   <pdfaid:part>3</pdfaid:part>
+   <pdfaid:conformance>B</pdfaid:conformance>
+  </rdf:Description>`
+    : ''
+  const xmp = `<?xpacket begin="﻿" id="W5M0MpCehiHzreSzNTczkc9d"?>
+<x:xmpmeta xmlns:x="adobe:ns:meta/">
+ <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">${pdfaId}
+  <rdf:Description rdf:about="" xmlns:dc="http://purl.org/dc/elements/1.1/">
+   <dc:format>application/pdf</dc:format>
+   <dc:title><rdf:Alt><rdf:li xml:lang="x-default">${escapeXml(meta.title)}</rdf:li></rdf:Alt></dc:title>
+   <dc:creator><rdf:Seq><rdf:li>${escapeXml(meta.author)}</rdf:li></rdf:Seq></dc:creator>
   </rdf:Description>
+  <rdf:Description rdf:about="" xmlns:xmp="http://ns.adobe.com/xap/1.0/">
+   <xmp:CreateDate>${date}</xmp:CreateDate>
+   <xmp:ModifyDate>${date}</xmp:ModifyDate>
+   <xmp:MetadataDate>${date}</xmp:MetadataDate>
+   <xmp:CreatorTool>Kontor</xmp:CreatorTool>
+  </rdf:Description>
+  <rdf:Description rdf:about="" xmlns:pdf="http://ns.adobe.com/pdf/1.3/">
+   <pdf:Producer>Kontor (pdf-lib)</pdf:Producer>
+  </rdf:Description>${opts.facturx ? FACTURX_SCHEMA : ''}
  </rdf:RDF>
 </x:xmpmeta>
 <?xpacket end="w"?>`
-  const meta = ctx.stream(xmp, { Type: 'Metadata', Subtype: 'XML' })
-  catalog.set(PDFName.of('Metadata'), ctx.register(meta))
+  const ctx = pdf.context
+  const stream = ctx.stream(new TextEncoder().encode(xmp), { Type: 'Metadata', Subtype: 'XML' })
+  pdf.catalog.set(PDFName.of('Metadata'), ctx.register(stream))
 }
 
 function escapeXml(s: string) {

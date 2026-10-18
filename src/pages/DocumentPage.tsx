@@ -1353,10 +1353,10 @@ function EInvoiceDialog({
             ? 'PDF mit eingebetteter XML-Datei (factur-x.xml, Profil EN 16931). Für Menschen lesbar, für Buchhaltungssoftware auswertbar.'
             : 'Reines XML im CII-Format nach XRechnung 3.0 – Standard für öffentliche Auftraggeber.'}
         </p>
-        <div className="callout warning small">
-          <AlertTriangle size={16} aria-hidden />
+        <div className="callout small">
+          <Info size={16} aria-hidden />
           <span>
-            <strong>Experimentell:</strong> Der Export folgt EN 16931, wurde aber nicht offiziell zertifiziert. Das PDF ist kein validiertes PDF/A-3. Prüfe die Datei vor dem Versand z. B. mit dem KoSIT-Validator oder dem Prüfwerkzeug deines Empfängers.
+            Die XML-Daten folgen EN 16931 und wurden für typische Fälle mit dem KoSIT-Validator geprüft, das ZUGFeRD-PDF mit veraPDF als PDF/A-3B. Eine offizielle Zertifizierung gibt es nicht – prüfe neue Konstellationen vor dem Versand, z. B. mit dem Prüfwerkzeug deines Empfängers.
           </span>
         </div>
         {issues.length > 0 && <IssueList issues={issues.map((i) => ({ level: 'warning', field: '', message: i.message }))} />}

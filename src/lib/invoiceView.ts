@@ -107,6 +107,12 @@ export function senderLine(seller: Company): string {
   return [seller.name, seller.street, [seller.zip, seller.city].filter(Boolean).join(' ')].filter(Boolean).join(' · ')
 }
 
+const UNITS_EN: Record<string, string> = { 'Std.': 'h', Std: 'h', Stunden: 'h', Tag: 'days', Tage: 'days', 'Stk.': 'pcs', Stück: 'pcs', Pauschal: 'flat rate', Monat: 'months', Seite: 'pages', Lizenz: 'licences' }
+
+export function unitLabel(unit: string, lang: InvoiceDocument['language']): string {
+  return lang === 'en' ? (UNITS_EN[unit] ?? unit) : unit
+}
+
 export function buildInvoiceView(doc: InvoiceDocument, settings: Settings): InvoiceView {
   const { seller, logo } = sellerFor(doc, settings)
   const lang = doc.language ?? 'de'
@@ -144,7 +150,7 @@ export function buildInvoiceView(doc: InvoiceDocument, settings: Settings): Invo
     title: item.title,
     description: item.description,
     quantity: num(item.quantity, 3),
-    unit: item.unit,
+    unit: unitLabel(item.unit, lang),
     unitPrice: money(item.unitPriceCents),
     discount: item.discountPercent ? `${num(item.discountPercent)} %` : '',
     taxRate: `${num(standard ? item.taxRate : 0)} %`,
