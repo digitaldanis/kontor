@@ -89,7 +89,7 @@ export function Documents() {
           view === 'recurring'
             ? t('Wiederkehrende Rechnungen werden zum Stichtag als Entwurf angelegt.')
             : kind === 'invoice' && docs?.length
-            ? t('{p0} offen{p1}', { p0: formatMoney(openSum), p1: overdueSum ? ` · ${formatMoney(overdueSum)} überfällig` : '' })
+            ? overdueSum ? t('{p0} offen · {p1} überfällig', { p0: formatMoney(openSum), p1: formatMoney(overdueSum) }) : t('{p0} offen', { p0: formatMoney(openSum) })
             : kind === 'quote'
               ? t('Angebote lassen sich mit einem Klick in eine Rechnung umwandeln.')
               : undefined

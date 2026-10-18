@@ -1126,4 +1126,6 @@ export const EN: Record<string, string> = {
   "Seit einem Tag überfällig": "Overdue for one day",
   "Seit {n} Tagen überfällig": "Overdue for {n} days",
   "Anhang ansehen": "Preview attachment",
+  "{p0} offen · {p1} überfällig": "{p0} open · {p1} overdue",
+  "{p0} offen": "{p0} open",
 }

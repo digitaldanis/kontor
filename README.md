@@ -1,98 +1,156 @@
 # Kontor
 
-Rechnungen schreiben und Zeiten erfassen – an einem Ort. Kontor ist eine schlanke Web-App für Freelancer und kleine Unternehmen in Deutschland und der EU: Zeiten pro Kunde stoppen, mit einem Klick in eine Rechnung übernehmen, Pflichtangaben prüfen lassen und als PDF oder E-Rechnung exportieren.
+Invoicing and time tracking for freelancers and small businesses in Germany and the EU. Track time per client, turn it into an invoice with one click, let Kontor check the mandatory details, then send the invoice as PDF or e-invoice (ZUGFeRD / XRechnung) and follow up with payment reminders.
 
-Alle Daten bleiben lokal im Browser (IndexedDB). Es gibt keinen Server, kein Konto und kein Tracking.
+Kontor runs as a small self-hosted server. All data lives in the server's SQLite database; the browser keeps nothing but the session cookie and the interface language. The interface is English by default and available in German.
 
-![Übersicht](docs/screenshots/dashboard.png)
+![Dashboard](docs/screenshots/dashboard.png)
 
-| Rechnungseditor | Zeiterfassung |
+| Invoice editor | Time tracking |
 | --- | --- |
-| ![Editor](docs/screenshots/editor.png) | ![Zeiterfassung](docs/screenshots/time.png) |
+| ![Editor](docs/screenshots/editor.png) | ![Time tracking](docs/screenshots/time.png) |
 
-| Mobil | Dunkelmodus |
+| Reminders | Reports |
 | --- | --- |
-| ![Mobil](docs/screenshots/mobile.png) | ![Dunkel](docs/screenshots/dark.png) |
+| ![Reminders](docs/screenshots/dunning.png) | ![Reports](docs/screenshots/reports.png) |
 
-## Funktionen
+| Mobile | Dark mode |
+| --- | --- |
+| ![Mobile](docs/screenshots/mobile.png) | ![Dark](docs/screenshots/dark.png) |
 
-**Rechnungen**
-- Rechnung für einen Kunden oder als Schnellrechnung an einen frei eingetippten Empfänger
-- Positionen mit Menge, Einheit, Einzelpreis, Steuersatz und Rabatt pro Position
-- Summen in ganzen Cent, Umsatzsteuer je Steuersatz auf die Nettosumme gerundet
-- Status: Entwurf, offen, überfällig, bezahlt, storniert
-- Fortlaufende, lückenlose Nummern nach eigenem Schema (z. B. `RE-{YYYY}-{0001}`), vergeben erst beim Abschließen
-- Abgeschlossene Rechnungen sind unveränderbar; Korrektur nur per Stornorechnung (optional direkt mit korrigierter Kopie)
-- Duplizieren, Angebote mit Umwandlung in eine Rechnung
-- Drei Layouts (Klassisch, Modern, Minimal) mit Akzentfarbe und Live-Vorschau
-- PDF-Export in A4 nach DIN 5008 (Anschriftenfeld Form B, Falz- und Lochmarken), mehrseitig mit Seitenzahlen
-- E-Rechnung: ZUGFeRD/Factur-X-PDF mit eingebetteter `factur-x.xml` (Profil EN 16931) oder XRechnung 3.0 als CII-XML – **experimentell**, siehe unten
+## Features
 
-**Rechtliche Prüfung (§ 14 UStG, Art. 226 MwStSystRL)**
-- Prüft im Editor laufend alle Pflichtangaben: Name und Anschrift beider Seiten, Steuernummer oder USt-IdNr., Datum, Nummer, Menge und Art der Leistung, Leistungsdatum bzw. -zeitraum, Entgelt nach Steuersätzen, Steuerbetrag oder Befreiungshinweis
-- Sonderfälle: Kleinunternehmer (§ 19 UStG), Reverse Charge innerhalb der EU (USt-IdNr. beider Seiten, Hinweis auf Steuerschuldnerschaft des Leistungsempfängers), innergemeinschaftliche Lieferung, Drittland
-- Kleinbetragsrechnungen bis 250 € brutto (§ 33 UStDV)
-- Schlägt den Steuerfall anhand von Land und USt-IdNr. des Kunden vor
-- Fehler blockieren das Abschließen, Hinweise nicht
+**Invoices and documents**
+- Invoices for clients or as quick invoices to any recipient, quotations that convert into invoices
+- Items with quantity, unit, price, VAT rate and item discount; a discount on the whole invoice (percentage or amount) that is split across the VAT rates and exported as allowance per rate
+- Down payment invoices and final invoices that deduct them, with net and VAT per rate (§ 14 (5) UStG)
+- Credit notes (*Rechnungskorrektur*) with their own number range, full or partial, referencing the original invoice – in addition to cancellation invoices (*Stornorechnung*)
+- Partial payments with remaining amount; the invoice is settled by payments and credit notes
+- Gap-free, sequential numbers per range (e.g. `RE-{YYYY}-{0001}`), assigned by the server at finalisation, even with several people working at the same time
+- Finalised documents are immutable on the server (GoBD idea); payments, credit notes and other changes are written to an audit log
+- Recurring invoices: interval, next run, the server creates the draft on the due date; placeholders `{Monat}`, `{Jahr}`, `{Quartal}`, `{Zeitraum}`
+- Service catalogue with search in the editor
+- Documents in the client's language (English or German), currencies EUR, CHF, USD and GBP
+- Three PDF layouts in A4 / DIN 5008 with fold marks, live preview
 
-**Zeiterfassung**
-- Stoppuhr pro Kunde, läuft auch nach dem Neuladen weiter und ist in der Navigation sichtbar
-- Manuelle Einträge mit Tätigkeit, Details, Projekt, abrechenbar ja/nein und optionalem Stundensatz
-- Offene Zeiten mit einem Klick in eine Rechnung übernehmen – je Eintrag, je Tag oder je Projekt; die Einträge gelten danach als abgerechnet
-- Wochen- und Monatsübersicht mit Tagesbalken
+**Compliance**
+- Continuous check of the mandatory details (§ 14 (4) UStG, Art. 226 EU VAT Directive), including small business (§ 19 UStG), reverse charge, intra-Community supply, third country and small invoices (§ 33 UStDV)
+- E-invoices: ZUGFeRD / Factur-X PDF (profile EN 16931) as **PDF/A-3B** with embedded fonts, sRGB output intent and XMP metadata, or XRechnung 3.0 as CII XML
+- Import of incoming XRechnung / ZUGFeRD (CII or UBL, also embedded in a PDF) as expense
 
-**Außerdem**
-- Kundenverwaltung mit Suche, Archiv, Stundensatz und Zahlungsziel je Kunde; Kundenseite mit Rechnungen, Zeiten und offenen Beträgen
-- Dashboard: Umsatz Monat/Jahr, offene und überfällige Rechnungen, laufende Stoppuhr, Stunden
-- Berichte: Umsatz pro Monat, Umsatzsteuer-Übersicht nach Monat oder Quartal, Umsatz und Stunden nach Kunde und Projekt
-- Einstellungen: Firmendaten, Logo (PNG/JPG/SVG), Bankverbindung, Standardtexte mit Platzhaltern, Zahlungsziel, Steuersatz, Währung, Nummernkreise, Layout und Farbe
-- JSON-Sicherung und Wiederherstellung, CSV-Export der Rechnungen (Excel-kompatibel)
-- Onboarding beim ersten Start, optional mit Beispieldaten
-- Hell- und Dunkelmodus nach Systemeinstellung, responsiv vom Smartphone bis zum Desktop, per Tastatur bedienbar (`g` gefolgt von `u`, `r`, `k`, `z`, `b` oder `e` springt zwischen den Bereichen)
+**Getting paid**
+- Payment reminder, first and final reminder as separate documents with PDF, configurable intervals, fees and texts
+- Default interest per § 288 BGB: base rate (entered in the settings) plus 9 points for businesses or 5 for consumers, optional € 40 flat-rate compensation for businesses
+- Overview of overdue invoices with the next step, history per invoice
+- Sending by e-mail through your SMTP server with PDF, ZUGFeRD or XRechnung attachment and templates per language; without SMTP Kontor opens your mail program and downloads the file
 
-## Starten
+**Time, projects, expenses, reports**
+- Timer per user and manual entries, billing per entry, day or project, configurable rounding (e.g. 15 minutes)
+- Projects per client with hour and money budget, progress bars and warnings from 80 %
+- Expenses with input VAT, category and receipt file (image or PDF, stored on the server), CSV export
+- Revenue, VAT overview by invoice date (*Soll*) or payment date (*Ist*), simplified profit statement (*EÜR*) and figures for the VAT return (*USt-Voranmeldung*, boxes 81, 86, 21, 41, 45, 66, 83) – as orientation, not tax advice
 
-Voraussetzung: Node.js 20 oder neuer.
+**Everyday use**
+- Quick search with `Cmd/Ctrl + K` over clients, documents and actions; `g` followed by a letter jumps between sections
+- Undo for deletions, light and dark mode, responsive down to phone size, installable as an app
+- Owner account plus team members in the same workspace
+- Automatic database backups on the server, full JSON backup and restore in the interface, CSV export of invoices
+
+## Getting started
+
+Requirements: Node.js 22.13 or newer (Node 24 recommended).
 
 ```bash
 npm install
-npm run dev        # Entwicklungsserver auf http://localhost:5173
-npm test           # Unit-Tests (Vitest)
-npm run build      # Produktionsbuild nach dist/
-npm run preview    # Build lokal ansehen
+cp .env.example .env     # optional, see Configuration
+npm run dev              # web app on http://localhost:5173, API on port 8787
 ```
 
-Der Build ist eine rein statische Seite (relative Pfade, Hash-Routing) und läuft auf jedem Webspace, z. B. GitHub Pages oder Netlify.
+If port 8787 is taken, start with `API_PORT=8790 npm run dev`. Open the web app and create the owner account. The first account becomes the owner of the workspace; further people are added under *Settings → Account & team*.
 
-## Technik
+Other scripts:
 
-- Vite, React 19, TypeScript
-- Dexie (IndexedDB) für die lokale Datenhaltung
-- pdf-lib für PDF und das Einbetten der E-Rechnung
-- Eigenes CSS ohne UI-Framework, Icons von Lucide
-- Vitest für Steuer-, Summen-, Nummern- und Ablauf-Tests
-
-```
-src/
-  lib/          Geschäftslogik: Berechnung, Nummernkreise, Validierung, PDF, E-Rechnung, Datenbank
-  components/   wiederverwendbare Oberflächen-Bausteine
-  pages/        Seiten (Übersicht, Rechnungen, Kunden, Zeiterfassung, Berichte, Einstellungen)
+```bash
+npm test                 # unit tests (Vitest) and server tests (node:test)
+npm run test:e2e         # end-to-end tests with Playwright (needs `npm run build` first)
+npm run lint             # oxlint
+npm run build            # web app to dist/, server bundle to dist-server/
+npm start                # production server: API and web app on one port
 ```
 
-Geldbeträge werden durchgehend als ganze Cent gespeichert und mit BigInt kaufmännisch gerundet.
+## Running with Docker
 
-## E-Rechnung (experimentell)
+One image serves the API and the web app:
 
-Kontor erzeugt Rechnungsdaten im UN/CEFACT-CII-Format nach EN 16931, entweder eingebettet in ein PDF (ZUGFeRD 2.x / Factur-X, Profil EN 16931) oder als XRechnung 3.0. Beispielrechnungen für Regelbesteuerung, Reverse Charge, Kleinunternehmer, Drittland und Storno wurden mit dem KoSIT-Validator (Konfiguration XRechnung 3.0.2) ohne Fehler geprüft. Das PDF ist allerdings **kein validiertes PDF/A-3**, und der Export ist nicht offiziell zertifiziert. Prüfe die Dateien vor dem produktiven Einsatz, z. B. mit dem [KoSIT-Validator](https://github.com/itplr-kosit/validator).
+```bash
+cp .env.example .env     # set KONTOR_SECRET at least
+docker compose up -d     # http://localhost:8787
+```
 
-## Datensicherung
+Data, receipts and automatic backups live in the volume `kontor-data` (`/data` in the container). Put a reverse proxy with HTTPS in front of it for anything beyond your own machine; session cookies are marked `Secure` in production.
 
-Die Daten liegen nur in dem Browser, in dem du Kontor nutzt. Lade regelmäßig unter *Einstellungen → Daten* eine Sicherung herunter. Rechnungen müssen in Deutschland in der Regel acht Jahre aufbewahrt werden – bewahre die exportierten PDFs zusätzlich an einem sicheren Ort auf.
+## Configuration
 
-## Rechtlicher Hinweis
+All settings are environment variables, see [`.env.example`](.env.example):
 
-Kontor hilft dabei, formal vollständige Rechnungen zu schreiben, ersetzt aber keine Steuer- oder Rechtsberatung. Alle Prüfungen und Texte sind nach bestem Wissen erstellt, jedoch ohne Gewähr für Richtigkeit und Vollständigkeit. Ob ein Steuerfall (z. B. Reverse Charge oder Kleinunternehmerregelung) auf dich zutrifft, klärst du am besten mit deiner Steuerberatung. Kontor ist keine zertifizierte GoBD-Software; die Unveränderbarkeit abgeschlossener Rechnungen ist innerhalb der App umgesetzt, aber nicht gegen Eingriffe in die Browser-Datenbank geschützt.
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `PORT` | `8787` | Port of API and web app |
+| `DATA_DIR` | `./data` | SQLite database and backups |
+| `KONTOR_SECRET` | – | Key for encrypting stored SMTP passwords |
+| `ALLOW_SIGNUP` | `first` | `first`: only the owner may register, `true`: open, `false`: closed |
+| `COOKIE_SECURE` | `true` in production | Secure flag of the session cookie |
+| `SESSION_DAYS` | `30` | Session lifetime |
+| `BACKUP_INTERVAL_HOURS` | `24` | Automatic backups, `0` disables them |
+| `BACKUP_KEEP_DAYS` | `14` | Retention of automatic backups |
+| `SMTP_*` | – | Optional server-wide SMTP account |
 
-## Lizenz
+Secrets never belong in the repository; keep them in `.env`, which is ignored by git.
 
-MIT
+## Coming from the browser-only version
+
+Earlier versions stored everything in the browser (IndexedDB). After signing in, *Settings → Data & backup* offers to import that data once to the server. A JSON backup from the old version can also be restored there.
+
+## Architecture
+
+- **Web app:** Vite, React 19, TypeScript, own CSS, Lucide icons. It talks only to the API; collections are loaded on demand and kept in memory, changes from other devices arrive via server-sent events.
+- **Server:** Express 5 on Node, SQLite through `node:sqlite` with versioned migrations. Domain operations such as finalising, cancelling, crediting, payments or billing time run on the server in one transaction each and are serialised, which keeps numbering gap-free.
+- **Shared domain code:** `src/lib` (calculation, numbering, validation, dunning, VAT, e-invoice) runs unchanged in the browser, on the server and in tests on top of a small document store with three backends (API, SQLite, memory).
+- **Security:** passwords hashed with bcrypt, HttpOnly session cookies with SameSite, CSRF double-submit token plus origin check, rate limits on login, SMTP passwords encrypted with AES-256-GCM, logs contain only method, path and status.
+- **PDF:** pdf-lib in the browser; fonts (Liberation, SIL OFL) and an sRGB profile are bundled for PDF/A.
+
+```
+src/lib/        domain logic, store, API client, i18n
+src/pages/      pages     src/components/  UI building blocks
+server/src/     API, SQLite store, auth, backups, mail
+server/test/    server tests      e2e/  Playwright tests
+```
+
+Amounts are stored as whole cents and rounded commercially with BigInt.
+
+## E-invoices and validation
+
+The CII data follows EN 16931. Invoices with invoice discount, down payments and final invoices, credit notes, cancellations, reverse charge, small business, third country and CHF were checked with the [KoSIT validator](https://github.com/itplr-kosit/validator) (configuration XRechnung 3.0.2) without errors or warnings. The ZUGFeRD PDFs, reminders and multi-page documents pass [veraPDF](https://verapdf.org) as PDF/A-3B; CI runs veraPDF on every push. There is no official certification, so check new constellations with your recipient's validator before relying on them.
+
+## Data and retention
+
+Invoices generally have to be kept for eight years in Germany. The server writes daily copies of its database to `DATA_DIR/backups`; keep a copy of that folder or of the JSON backup somewhere else as well.
+
+## Deliberately open
+
+- No offline editing: the app shell can be installed, but data and number assignment need the server.
+- `node:sqlite` is used instead of a native driver to keep the image simple; it is marked experimental in Node 22 and stable enough in Node 24.
+- PDFs are rendered in the browser; the server sends what the client uploads.
+- XRechnung is exported in CII syntax only, not UBL.
+- No VIES check of VAT IDs, no bank import, no DATEV export.
+- The base interest rate (*Basiszinssatz*) is entered manually.
+- Reports sum amounts without currency conversion.
+- Kontor is not certified GoBD software; immutability and audit log are enforced by the server but not tamper-proof against direct database access.
+
+## Legal note
+
+Kontor helps to write formally complete invoices but is no substitute for tax or legal advice. All checks and texts are provided to the best of our knowledge, without any guarantee. Whether a tax treatment such as reverse charge or the small business scheme applies to you is best clarified with your tax adviser.
+
+## Licence
+
+MIT. The bundled Liberation fonts are licensed under the SIL Open Font License 1.1 (`public/fonts/LICENSE-Liberation.txt`).

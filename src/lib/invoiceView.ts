@@ -107,10 +107,24 @@ export function senderLine(seller: Company): string {
   return [seller.name, seller.street, [seller.zip, seller.city].filter(Boolean).join(' ')].filter(Boolean).join(' · ')
 }
 
-const UNITS_EN: Record<string, string> = { 'Std.': 'h', Std: 'h', Stunden: 'h', Tag: 'days', Tage: 'days', 'Stk.': 'pcs', Stück: 'pcs', Pauschal: 'flat rate', Monat: 'months', Seite: 'pages', Lizenz: 'licences' }
+const UNITS_EN: Record<string, [string, string]> = {
+  'Std.': ['h', 'h'],
+  Std: ['h', 'h'],
+  Stunden: ['h', 'h'],
+  Tag: ['day', 'days'],
+  Tage: ['day', 'days'],
+  'Stk.': ['pc', 'pcs'],
+  Stück: ['pc', 'pcs'],
+  Pauschal: ['flat rate', 'flat rate'],
+  Monat: ['month', 'months'],
+  Seite: ['page', 'pages'],
+  Lizenz: ['licence', 'licences'],
+}
 
-export function unitLabel(unit: string, lang: InvoiceDocument['language']): string {
-  return lang === 'en' ? (UNITS_EN[unit] ?? unit) : unit
+export function unitLabel(unit: string, lang: InvoiceDocument['language'], quantity = 2): string {
+  const en = UNITS_EN[unit]
+  if (lang !== 'en' || !en) return unit
+  return Math.abs(quantity) === 1 ? en[0] : en[1]
 }
 
 export function buildInvoiceView(doc: InvoiceDocument, settings: Settings): InvoiceView {
@@ -150,7 +164,7 @@ export function buildInvoiceView(doc: InvoiceDocument, settings: Settings): Invo
     title: item.title,
     description: item.description,
     quantity: num(item.quantity, 3),
-    unit: unitLabel(item.unit, lang),
+    unit: unitLabel(item.unit, lang, item.quantity),
     unitPrice: money(item.unitPriceCents),
     discount: item.discountPercent ? `${num(item.discountPercent)} %` : '',
     taxRate: `${num(standard ? item.taxRate : 0)} %`,
