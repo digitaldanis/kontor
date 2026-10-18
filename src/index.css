@@ -1777,3 +1777,8 @@ a.list-item:hover {
   color: var(--text-3);
   text-decoration: line-through;
 }
+
+.table .total-row td {
+  border-top: 1px solid var(--border-strong);
+  background: var(--surface-2);
+}
