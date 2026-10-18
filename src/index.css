@@ -1697,3 +1697,7 @@ a.list-item:hover {
     transition-duration: 0.01ms !important;
   }
 }
+
+.bar-col .bar {
+  max-height: calc(100% - 22px);
+}
