@@ -1377,6 +1377,20 @@ a.list-item:hover {
 .toast.error {
   background: rgba(190, 20, 30, 0.95);
 }
+.toast-action {
+  margin: -4px -8px -4px 4px;
+  padding: 5px 12px;
+  border: 0;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.16);
+  color: #8ec5ff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.toast-action:hover {
+  background: rgba(255, 255, 255, 0.26);
+}
 @keyframes toast-in {
   from {
     opacity: 0;
