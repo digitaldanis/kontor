@@ -2,6 +2,8 @@ import { addDays, combineDateTime, today } from './dates'
 import { db, uid } from './db'
 import { createDraft, emptyCustomer, finalizeDocument, getSettings, invoiceTimeEntries, newLineItem, saveCustomer, setPaid, updateSettings } from './repo'
 import { emptyCatalogItem } from './catalog'
+import { emptyExpense, vatFromGross } from './expenses'
+import { addMonths, newRecurring, saveRecurring, templateFromDocument } from './recurring'
 import { ensureProject } from './projects'
 import type { Customer, TimeEntry } from './types'
 
@@ -101,4 +103,15 @@ export async function seedDemo(): Promise<void> {
   const draft = await createDraft('invoice', { customerId: verein.id })
   draft.items = [newLineItem(settings, { title: 'Wartung Website', description: `Monatspauschale ${new Intl.DateTimeFormat('de-DE', { month: 'long' }).format(new Date())}`, quantity: 1, unit: 'Monat', unitPriceCents: 4900 })]
   await db.documents.put(draft)
+
+  await saveRecurring({
+    ...newRecurring(verein.id, { ...templateFromDocument(draft), items: draft.items.map((i) => ({ ...i, description: 'Monatspauschale {Monat} {Jahr}' })) }, addMonths(today(), 1).slice(0, 8) + '01'),
+    name: 'Wartung Website',
+  })
+
+  await db.expenses.bulkPut([
+    emptyExpense({ date: addDays(today(), -20), paidAt: addDays(today(), -20), vendor: 'Adobe Systems', description: 'Creative Cloud', category: 'Software & Abos', grossCents: 7139, vatCents: vatFromGross(7139, 19) }),
+    emptyExpense({ date: addDays(today(), -12), paidAt: addDays(today(), -12), vendor: 'Deutsche Bahn', description: 'Fahrt Hamburg Kundentermin', category: 'Reisekosten', grossCents: 8990, vatCents: vatFromGross(8990, 7), taxRate: 7 }),
+    emptyExpense({ date: addDays(today(), -5), paidAt: null, vendor: 'Hosting Nord GmbH', description: 'Webhosting', category: 'Telefon & Internet', grossCents: 2380, vatCents: 380, invoiceNumber: 'HN-4711' }),
+  ])
 }

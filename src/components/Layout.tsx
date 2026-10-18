@@ -7,6 +7,7 @@ import {
   LayoutGrid,
   MoreHorizontal,
   Package,
+  Receipt,
   Settings as SettingsIcon,
   Users,
   type LucideIcon,
@@ -36,6 +37,7 @@ const NAV: NavItem[] = [
   { to: '/kunden', label: 'Kunden', icon: Users },
   { to: '/zeit', label: 'Zeiterfassung', icon: Clock },
   { to: '/mahnwesen', label: 'Mahnwesen', icon: BellRing },
+  { to: '/ausgaben', label: 'Ausgaben', icon: Receipt },
   { to: '/leistungen', label: 'Leistungen', icon: Package },
   { to: '/berichte', label: 'Berichte', icon: BarChart3 },
   { to: '/einstellungen', label: 'Einstellungen', icon: SettingsIcon },
@@ -100,7 +102,7 @@ export function Layout() {
       const target = e.target as HTMLElement
       if (target.closest('input, textarea, select, [contenteditable]') || e.metaKey || e.ctrlKey || e.altKey) return
       if (armed) {
-        const map: Record<string, string> = { u: '/', r: '/rechnungen', k: '/kunden', z: '/zeit', m: '/mahnwesen', b: '/berichte', e: '/einstellungen' }
+        const map: Record<string, string> = { u: '/', r: '/rechnungen', k: '/kunden', z: '/zeit', m: '/mahnwesen', a: '/ausgaben', l: '/leistungen', b: '/berichte', e: '/einstellungen' }
         if (map[e.key]) navigate(map[e.key])
         armed = false
         return
