@@ -1,21 +1,14 @@
-import { createCipheriv, createDecipheriv, createHash, randomBytes, scrypt, timingSafeEqual } from 'node:crypto'
-import { promisify } from 'node:util'
+import bcrypt from 'bcryptjs'
+import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto'
 
-const scryptAsync = promisify(scrypt) as (password: string, salt: Buffer, keylen: number, options: object) => Promise<Buffer>
-const SCRYPT = { N: 16384, r: 8, p: 1, maxmem: 64 * 1024 * 1024 }
+const BCRYPT_ROUNDS = 12
 
-export async function hashPassword(password: string): Promise<string> {
-  const salt = randomBytes(16)
-  const hash = await scryptAsync(password, salt, 32, SCRYPT)
-  return `scrypt$${salt.toString('base64')}$${hash.toString('base64')}`
+export function hashPassword(password: string): Promise<string> {
+  return bcrypt.hash(password, BCRYPT_ROUNDS)
 }
 
-export async function verifyPassword(password: string, stored: string): Promise<boolean> {
-  const [scheme, saltB64, hashB64] = stored.split('$')
-  if (scheme !== 'scrypt' || !saltB64 || !hashB64) return false
-  const expected = Buffer.from(hashB64, 'base64')
-  const actual = await scryptAsync(password, Buffer.from(saltB64, 'base64'), expected.length, SCRYPT)
-  return actual.length === expected.length && timingSafeEqual(actual, expected)
+export function verifyPassword(password: string, stored: string): Promise<boolean> {
+  return bcrypt.compare(password, stored)
 }
 
 export function newToken(): string {
