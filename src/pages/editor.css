@@ -107,7 +107,7 @@
 }
 .item-fields {
   display: grid;
-  grid-template-columns: 88px 92px minmax(110px, 1fr) 84px 84px minmax(96px, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
   gap: 8px;
   align-items: end;
 }

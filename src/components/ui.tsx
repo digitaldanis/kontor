@@ -245,6 +245,7 @@ export function NumberInput({
         setText(fmt(n ?? value))
       }}
       {...rest}
+      style={suffix ? { paddingRight: 20 + suffix.length * 8, ...rest.style } : rest.style}
     />
   )
   if (!suffix) return input
