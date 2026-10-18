@@ -38,15 +38,17 @@ export function ScaledPage({ children, maxScale = 1 }: { children: React.ReactNo
 
 export function InvoicePreview({ view }: { view: InvoiceView }) {
   const v = view
+  const l = v.labels
+  const full = v.columns === 'full'
   const style = { '--inv-accent': v.accent } as React.CSSProperties
   const logo = v.logo ? <img className="inv-logo" src={v.logo.pngDataUrl ?? v.logo.dataUrl} alt="Logo" /> : null
 
   return (
-    <article className={`inv-page inv-${v.layout}`} style={style} aria-label={`${v.label} Vorschau`}>
+    <article className={`inv-page inv-${v.layout}`} style={style} lang={v.lang} aria-label={`${v.label} Vorschau`}>
       <span className="inv-fold inv-fold-1" aria-hidden />
       <span className="inv-fold inv-fold-2" aria-hidden />
       <span className="inv-fold inv-punch" aria-hidden />
-      {v.isDraft && <div className="inv-watermark" aria-hidden>Entwurf</div>}
+      {v.isDraft && <div className="inv-watermark" aria-hidden>{l.draft}</div>}
 
       <header className="inv-head">
         {v.layout === 'modern' && <div className="inv-band" aria-hidden />}
@@ -81,26 +83,26 @@ export function InvoicePreview({ view }: { view: InvoiceView }) {
       </section>
 
       <div className="inv-body">
-        <h1 className="inv-title">{v.title}{v.layout !== 'minimal' && v.meta[0].value !== 'Entwurf' ? ` ${v.meta[0].value}` : ''}</h1>
+        <h1 className="inv-title">{v.title}{v.layout !== 'minimal' && !v.isDraft && v.meta[0] ? ` ${v.meta[0].value}` : ''}</h1>
         {v.intro && <p className="inv-text">{v.intro}</p>}
 
         <table className="inv-table">
           <thead>
             <tr>
-              <th className="pos">Pos.</th>
-              <th>Leistung</th>
-              <th className="num">Menge</th>
-              <th className="num">Einzelpreis</th>
-              {v.showDiscount && <th className="num">Rabatt</th>}
-              {v.showTaxColumn && <th className="num">USt</th>}
-              <th className="num">Gesamt</th>
+              <th className="pos">{l.pos}</th>
+              <th>{l.item}</th>
+              {full && <th className="num">{l.quantity}</th>}
+              {full && <th className="num">{l.unitPrice}</th>}
+              {v.showDiscount && <th className="num">{l.discount}</th>}
+              {v.showTaxColumn && <th className="num">{l.vat}</th>}
+              <th className="num">{l.total}</th>
             </tr>
           </thead>
           <tbody>
             {v.items.length === 0 && (
               <tr>
                 <td colSpan={7} className="inv-placeholder" style={{ padding: '6mm 0', textAlign: 'center' }}>
-                  Noch keine Positionen
+                  {l.noItems}
                 </td>
               </tr>
             )}
@@ -111,10 +113,12 @@ export function InvoicePreview({ view }: { view: InvoiceView }) {
                   <div className="inv-item-title">{item.title || <span className="inv-placeholder">Bezeichnung</span>}</div>
                   {item.description && <div className="inv-item-desc">{item.description}</div>}
                 </td>
-                <td className="num">
-                  {item.quantity} {item.unit}
-                </td>
-                <td className="num">{item.unitPrice}</td>
+                {full && (
+                  <td className="num">
+                    {item.quantity} {item.unit}
+                  </td>
+                )}
+                {full && <td className="num">{item.unitPrice}</td>}
                 {v.showDiscount && <td className="num">{item.discount}</td>}
                 {v.showTaxColumn && <td className="num">{item.taxRate}</td>}
                 <td className="num">{item.total}</td>
@@ -123,10 +127,13 @@ export function InvoicePreview({ view }: { view: InvoiceView }) {
           </tbody>
         </table>
 
-        <div className="inv-totals">
+        <div className={`inv-totals ${v.totals.some((r) => r.label.length > 34) ? 'wide' : ''}`}>
           {v.totals.map((row) => (
             <div key={row.label} className={`inv-total-row ${row.strong ? 'grand' : ''}`}>
-              <span>{row.label}</span>
+              <span>
+                {row.label}
+                {row.detail && <small className="inv-total-detail">{row.detail}</small>}
+              </span>
               <span>{row.value}</span>
             </div>
           ))}

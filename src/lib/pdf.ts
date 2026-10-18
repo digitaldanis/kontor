@@ -203,10 +203,10 @@ export async function renderInvoicePdf(view: InvoiceView, options: { xml?: strin
     w.text(view.title.toUpperCase(), LEFT, w.y, { size: 11, font: fonts.bold, spacing: 1.5 })
     w.y += lh(11) + 6
   } else if (layout === 'classic') {
-    w.text(`${view.title}${number && number !== 'Entwurf' ? ` ${number}` : ''}`, LEFT, w.y, { size: 18, font: fonts.serif })
+    w.text(`${view.title}${number && !view.isDraft ? ` ${number}` : ''}`, LEFT, w.y, { size: 18, font: fonts.serif })
     w.y += lh(18, 1.2) + 5
   } else {
-    w.text(`${view.title}${number && number !== 'Entwurf' ? ` ${number}` : ''}`, LEFT, w.y, { size: 20, font: fonts.bold, color: accent })
+    w.text(`${view.title}${number && !view.isDraft ? ` ${number}` : ''}`, LEFT, w.y, { size: 20, font: fonts.bold, color: accent })
     w.y += lh(20, 1.2) + 5
   }
   if (view.intro) {
@@ -240,9 +240,9 @@ export async function renderInvoicePdf(view: InvoiceView, options: { xml?: strin
     w.page = p
     drawFooter(w)
     drawFoldMarks(w)
-    if (total > 1) w.text(`Seite ${i + 1} von ${total}`, RIGHT, PAGE_H - 33, { size: 7.5, color: MUTED, align: 'right' })
+    if (total > 1) w.text(view.labels.page(i + 1, total), RIGHT, PAGE_H - 33, { size: 7.5, color: MUTED, align: 'right' })
     if (view.isDraft) {
-      p.drawText('ENTWURF', {
+      p.drawText(view.labels.draft.toUpperCase(), {
         x: 38 * MM,
         y: 95 * MM,
         size: 96,
@@ -323,15 +323,18 @@ function truncate(s: string, font: PDFFont, size: number, maxMm: number) {
 }
 
 function columns(view: InvoiceView): Column[] {
+  const l = view.labels
   const cols: Column[] = [
-    { key: 'pos', label: 'Pos.', width: 9, align: 'left' },
-    { key: 'title', label: 'Leistung', width: 0, align: 'left' },
-    { key: 'quantity', label: 'Menge', width: 24, align: 'right' },
-    { key: 'unitPrice', label: 'Einzelpreis', width: 25, align: 'right' },
+    { key: 'pos', label: l.pos, width: 9, align: 'left' },
+    { key: 'title', label: l.item, width: 0, align: 'left' },
   ]
-  if (view.showDiscount) cols.push({ key: 'discount', label: 'Rabatt', width: 15, align: 'right' })
-  if (view.showTaxColumn) cols.push({ key: 'taxRate', label: 'USt', width: 13, align: 'right' })
-  cols.push({ key: 'total', label: 'Gesamt', width: 26, align: 'right' })
+  if (view.columns === 'full') {
+    cols.push({ key: 'quantity', label: l.quantity, width: 24, align: 'right' })
+    cols.push({ key: 'unitPrice', label: l.unitPrice, width: 25, align: 'right' })
+  }
+  if (view.showDiscount) cols.push({ key: 'discount', label: l.discount, width: 15, align: 'right' })
+  if (view.showTaxColumn) cols.push({ key: 'taxRate', label: l.vat, width: 13, align: 'right' })
+  cols.push({ key: 'total', label: l.total, width: 26, align: 'right' })
   const fixed = cols.reduce((s, c) => s + c.width, 0)
   cols[1].width = CONTENT_W - fixed
   return cols
@@ -360,7 +363,7 @@ function drawTableHeader(w: Writer, cols: Column[]) {
 function newContinuationPage(w: Writer) {
   w.addPage()
   const number = w.view.meta[0]?.value
-  w.text(`${w.view.title} ${number && number !== 'Entwurf' ? number : ''}`.trim(), LEFT, 16, { size: 8.5, color: MUTED })
+  w.text(`${w.view.title} ${number && !w.view.isDraft ? number : ''}`.trim(), LEFT, 16, { size: 8.5, color: MUTED })
   w.text(w.view.seller.name, RIGHT, 16, { size: 8.5, color: MUTED, align: 'right' })
   w.hline(LEFT, RIGHT, 22, 0.4, LINE)
   w.y = 28
@@ -381,7 +384,7 @@ function drawItems(w: Writer) {
   drawTableHeader(w, cols)
 
   if (!view.items.length) {
-    w.text('Noch keine Positionen', LEFT + CONTENT_W / 2, w.y + 4, { size: 9, color: MUTED, align: 'center' })
+    w.text(view.labels.noItems, LEFT + CONTENT_W / 2, w.y + 4, { size: 9, color: MUTED, align: 'center' })
     w.y += 12
   }
 
@@ -420,7 +423,7 @@ function drawItems(w: Writer) {
 function drawTotals(w: Writer) {
   const { view, fonts, accent } = w
   const layout = view.layout
-  const width = 78
+  const width = view.totals.some((r) => r.label.length > 34) ? 100 : 78
   const x = RIGHT - width
   const rowH = lh(9.5) + 2
   const needed = view.totals.length * rowH + 14
@@ -447,9 +450,13 @@ function drawTotals(w: Writer) {
       }
       w.y += h + 6
     } else {
-      w.text(row.label, x, w.y + 1, { size: 9.5, color: MUTED })
+      w.text(truncate(row.label, fonts.regular, 9.5, width - 28), x, w.y + 1, { size: 9.5, color: MUTED })
       w.text(row.value, RIGHT, w.y + 1, { size: 9.5, align: 'right' })
       w.y += rowH
+      if (row.detail) {
+        w.text(row.detail, x, w.y - 0.6, { size: 7.8, color: MUTED })
+        w.y += lh(7.8) + 0.6
+      }
     }
   }
 }

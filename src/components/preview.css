@@ -203,6 +203,7 @@
 .inv-totals {
   margin-left: auto;
   width: 78mm;
+  max-width: 100%;
   margin-bottom: 6mm;
   font-variant-numeric: tabular-nums;
 }
@@ -214,6 +215,13 @@
 }
 .inv-total-row span:first-child {
   color: var(--inv-muted);
+}
+.inv-totals.wide {
+  width: 100mm;
+}
+.inv-total-detail {
+  display: block;
+  font-size: 7.8pt;
 }
 .inv-total-row.grand {
   margin-top: 1.5mm;

@@ -64,7 +64,10 @@ export const COUNTRIES: Country[] = Object.entries(NAMES)
     return a.name.localeCompare(b.name, 'de')
   })
 
-export function countryName(code: string): string {
+const englishNames = typeof Intl.DisplayNames === 'function' ? new Intl.DisplayNames(['en'], { type: 'region' }) : null
+
+export function countryName(code: string, lang: 'de' | 'en' = 'de'): string {
+  if (lang === 'en') return englishNames?.of(code) ?? NAMES[code] ?? code
   return NAMES[code] ?? code
 }
 
