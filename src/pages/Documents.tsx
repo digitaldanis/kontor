@@ -3,6 +3,7 @@ import { FilePlus, FileText, Plus, Search, Zap } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { DocumentsTable } from '../components/DocumentsTable'
+import { RecurringList } from '../components/Recurring'
 import { useFeedback } from '../components/feedback'
 import { Avatar, Button, Dialog, EmptyState, PageHeader, Segmented } from '../components/ui'
 import { db } from '../lib/db'
@@ -35,8 +36,10 @@ const QUOTE_FILTERS: { value: Filter; label: string }[] = [
 
 export function Documents() {
   const [params, setParams] = useSearchParams()
-  const kind = params.get('art') === 'angebote' ? 'quote' : 'invoice'
-  useDocumentTitle(kind === 'quote' ? 'Angebote' : 'Rechnungen')
+  const art = params.get('art')
+  const view: 'invoice' | 'quote' | 'recurring' = art === 'angebote' ? 'quote' : art === 'serien' ? 'recurring' : 'invoice'
+  const kind = view === 'quote' ? 'quote' : 'invoice'
+  useDocumentTitle(view === 'quote' ? 'Angebote' : view === 'recurring' ? 'Serienrechnungen' : 'Rechnungen')
   const [filter, setFilter] = useState<Filter>((params.get('status') as Filter) || 'all')
   const [query, setQuery] = useState('')
   const [creating, setCreating] = useState<DocumentKind | null>(null)
@@ -71,24 +74,26 @@ export function Documents() {
   const openSum = (docs ?? []).filter(isOutstanding).reduce((s, d) => s + amountDue(d), 0)
   const overdueSum = (docs ?? []).filter((d) => displayStatus(d) === 'overdue').reduce((s, d) => s + amountDue(d), 0)
 
-  const switchKind = (k: 'invoice' | 'quote') => {
+  const switchKind = (k: 'invoice' | 'quote' | 'recurring') => {
     setFilter('all')
-    setParams(k === 'quote' ? { art: 'angebote' } : {})
+    setParams(k === 'quote' ? { art: 'angebote' } : k === 'recurring' ? { art: 'serien' } : {})
   }
 
   return (
     <div className="page">
       <PageHeader
-        title={kind === 'quote' ? 'Angebote' : 'Rechnungen'}
+        title={view === 'quote' ? 'Angebote' : view === 'recurring' ? 'Serienrechnungen' : 'Rechnungen'}
         subtitle={
-          kind === 'invoice' && docs?.length
+          view === 'recurring'
+            ? 'Wiederkehrende Rechnungen werden zum Stichtag als Entwurf angelegt.'
+            : kind === 'invoice' && docs?.length
             ? `${formatMoney(openSum)} offen${overdueSum ? ` · ${formatMoney(overdueSum)} überfällig` : ''}`
             : kind === 'quote'
               ? 'Angebote lassen sich mit einem Klick in eine Rechnung umwandeln.'
               : undefined
         }
         actions={
-          <Button variant="primary" icon={Plus} onClick={() => setCreating(kind)}>
+          view !== 'recurring' && <Button variant="primary" icon={Plus} onClick={() => setCreating(kind)}>
             {kind === 'quote' ? 'Neues Angebot' : 'Neue Rechnung'}
           </Button>
         }
@@ -97,14 +102,15 @@ export function Documents() {
       <div className="toolbar">
         <Segmented
           label="Dokumentart"
-          value={kind}
+          value={view}
           onChange={switchKind}
           options={[
             { value: 'invoice', label: 'Rechnungen' },
             { value: 'quote', label: 'Angebote' },
+            { value: 'recurring', label: 'Serien' },
           ]}
         />
-        {docs && docs.length > 0 && (
+        {view !== 'recurring' && docs && docs.length > 0 && (
           <>
             <Segmented label="Status" value={filter} onChange={setFilter} options={kind === 'quote' ? QUOTE_FILTERS : INVOICE_FILTERS} />
             <label className="search">
@@ -116,7 +122,7 @@ export function Documents() {
         )}
       </div>
 
-      <div className="card">
+      {view === 'recurring' ? <RecurringList /> : <div className="card">
         {docs && docs.length === 0 ? (
           <EmptyState
             icon={FileText}
@@ -138,7 +144,7 @@ export function Documents() {
         ) : (
           <DocumentsTable docs={list} />
         )}
-      </div>
+      </div>}
 
       <NewDocumentDialog kind={creating} onClose={() => setCreating(null)} />
     </div>

@@ -315,6 +315,9 @@ export interface RecurringInvoice {
   customerId: string
   interval: RecurringInterval
   every: number
+  startDate: string
+  /** Number of drafts created so far; the next run is derived from start date and runs. */
+  runs: number
   /** Date of the next draft. */
   nextRun: string
   endDate: string

@@ -1,12 +1,12 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { AlertTriangle, CheckCircle2, Circle, Clock, FilePlus, FileText, ReceiptText, TrendingUp, UserPlus } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Circle, Clock, FilePlus, FileText, ReceiptText, Repeat, TrendingUp, UserPlus } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { BarChart } from '../components/BarChart'
 import { StatusBadge } from '../components/DocumentsTable'
 import { TimerCard } from '../components/TimeComponents'
 import { Button, Stat } from '../components/ui'
-import { durationMinutes, formatDate, formatDuration, startOfWeek, today, toISODate } from '../lib/dates'
+import { addDays, durationMinutes, formatDate, formatDuration, startOfWeek, today, toISODate } from '../lib/dates'
 import { db } from '../lib/db'
 import { customerName, recipientName } from '../lib/defaults'
 import { useDocumentTitle, useSettings } from '../lib/hooks'
@@ -28,12 +28,12 @@ export function Dashboard() {
   const navigate = useNavigate()
   const [creating, setCreating] = useState(false)
   const data = useLiveQuery(async () => {
-    const [docs, entries, customers] = await Promise.all([db.documents.toArray(), db.timeEntries.toArray(), db.customers.toArray()])
-    return { docs, entries, customers }
+    const [docs, entries, customers, recurring] = await Promise.all([db.documents.toArray(), db.timeEntries.toArray(), db.customers.toArray(), db.recurring.toArray()])
+    return { docs, entries, customers, recurring }
   })
 
   if (!data || !settings) return <div className="page" />
-  const { docs, entries, customers } = data
+  const { docs, entries, customers, recurring } = data
   const now = new Date()
   const year = String(now.getFullYear())
   const month = today().slice(0, 7)
@@ -66,6 +66,9 @@ export function Dashboard() {
   const recent = [...entries].sort((a, b) => b.start.localeCompare(a.start)).slice(0, 5)
   const attention = [...outstanding].sort((a, b) => a.dueDate.localeCompare(b.dueDate)).slice(0, 5)
   const drafts = docs.filter((d) => d.status === 'draft')
+  const recurringDrafts = drafts.filter((d) => d.recurringId)
+  const soon = addDays(today(), 14)
+  const upcoming = recurring.filter((r) => r.active && r.nextRun <= soon).sort((a, b) => a.nextRun.localeCompare(b.nextRun)).slice(0, 3)
 
   const company = settings.company
   const setup = [
@@ -199,6 +202,40 @@ export function Dashboard() {
                       {s.done ? <CheckCircle2 size={18} color="var(--green)" aria-hidden /> : <Circle size={18} className="faint" aria-hidden />}
                       <span className="grow">{s.label}</span>
                     </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {(recurringDrafts.length > 0 || upcoming.length > 0) && (
+            <section className="card">
+              <div className="card-header">
+                <h2>Serienrechnungen</h2>
+                <Link to="/rechnungen?art=serien" className="small">
+                  Alle Serien
+                </Link>
+              </div>
+              <ul className="list" style={{ marginTop: 8 }}>
+                {recurringDrafts.map((d) => (
+                  <li key={d.id}>
+                    <Link to={`/rechnungen/${d.id}`} className="list-item">
+                      <Repeat size={17} color="var(--accent)" aria-hidden />
+                      <div className="grow">
+                        <div className="title">{recipientName(d.recipient)}</div>
+                        <div className="sub">Entwurf bereit · {formatDate(d.serviceFrom)}</div>
+                      </div>
+                      <strong className="tabular">{formatMoney(grossOf(d), d.currency)}</strong>
+                    </Link>
+                  </li>
+                ))}
+                {upcoming.map((r) => (
+                  <li key={r.id} className="list-item">
+                    <Repeat size={17} className="faint" aria-hidden />
+                    <div className="grow">
+                      <div className="title">{r.name}</div>
+                      <div className="sub">nächster Entwurf am {formatDate(r.nextRun)}</div>
+                    </div>
                   </li>
                 ))}
               </ul>

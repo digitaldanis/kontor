@@ -21,6 +21,7 @@ import {
   Plus,
   Printer,
   ReceiptText,
+  Repeat,
   Trash2,
   UserPlus,
   X,
@@ -29,6 +30,8 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { CatalogPicker } from '../components/CatalogDialog'
+import { RecurringDialog } from '../components/Recurring'
+import { addMonths, newRecurring, templateFromDocument } from '../lib/recurring'
 import { StatusBadge } from '../components/DocumentsTable'
 import { catalogToLine, lineToCatalog, saveCatalogItem } from '../lib/catalog'
 import { useFeedback } from '../components/feedback'
@@ -70,7 +73,7 @@ import {
   setQuoteStatus,
 } from '../lib/repo'
 import { amountDue, creditedOf, documentLabel, displayStatus, paidOf } from '../lib/status'
-import type { BillingType, Deduction, InvoiceDiscount, InvoiceDocument, Language, LayoutId, LineItem, Payment, Settings, TaxMode } from '../lib/types'
+import type { BillingType, Deduction, InvoiceDiscount, InvoiceDocument, Language, LayoutId, LineItem, Payment, RecurringInvoice, Settings, TaxMode } from '../lib/types'
 import { hasBlockingIssues, validateInvoice, type Issue } from '../lib/validation'
 import { NotFound } from './NotFound'
 import './editor.css'
@@ -779,6 +782,7 @@ function DocumentViewer({ doc, settings }: { doc: InvoiceDocument; settings: Set
   const { run, confirm } = useFeedback()
   const [eOpen, setEOpen] = useState(false)
   const [creditOpen, setCreditOpen] = useState(false)
+  const [recurring, setRecurring] = useState<RecurringInvoice | null>(null)
   const [cancelOpen, setCancelOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   const view = useMemo(() => buildInvoiceView(doc, settings), [doc, settings])
@@ -1003,6 +1007,11 @@ function DocumentViewer({ doc, settings }: { doc: InvoiceDocument; settings: Set
               <Button icon={Copy} onClick={() => duplicate()}>
                 Duplizieren
               </Button>
+              {doc.kind === 'invoice' && doc.customerId && doc.billingType === 'regular' && (
+                <Button icon={Repeat} onClick={() => setRecurring(newRecurring(doc.customerId!, templateFromDocument(doc), addMonths(doc.issueDate, 1)))}>
+                  Als Serie
+                </Button>
+              )}
               {doc.kind === 'invoice' && doc.status !== 'cancelled' && creditableAmount(doc) > 0 && (
                 <Button icon={ReceiptText} onClick={() => setCreditOpen(true)}>
                   Gutschrift
@@ -1089,6 +1098,7 @@ function DocumentViewer({ doc, settings }: { doc: InvoiceDocument; settings: Set
         <p className="small muted">„Stornieren und korrigieren“ legt zusätzlich eine Kopie als neuen Entwurf an, den du anpassen kannst. Bereits abgerechnete Zeiten werden wieder freigegeben.</p>
       </Dialog>
 
+      <RecurringDialog rec={recurring} onClose={() => setRecurring(null)} />
       <EInvoiceDialog open={eOpen} onClose={() => setEOpen(false)} doc={doc} settings={settings} seller={seller} onPdf={() => pdf(true)} />
     </div>
   )
