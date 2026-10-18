@@ -1,6 +1,7 @@
 import { api, revive } from './api'
 import type * as catalog from './catalog'
 import type * as demo from './demo'
+import { checkAttachment } from './expenses'
 import type * as expenses from './expenses'
 import type * as projects from './projects'
 import type * as recurring from './recurring'
@@ -56,7 +57,6 @@ export const seedDemo = remote<typeof demo.seedDemo>('seedDemo')
 
 /** Uploads a receipt file; it is stored on the server, not in the browser. */
 export async function storeAttachment(file: File): Promise<Attachment> {
-  const { checkAttachment } = await import('./expenses')
   const error = checkAttachment(file)
   if (error) throw new Error(error)
   const meta = await api<Attachment>('/api/files', {
