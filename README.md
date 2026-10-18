@@ -83,7 +83,7 @@ Geldbetr채ge werden durchgehend als ganze Cent gespeichert und mit BigInt kaufm�
 
 ## E-Rechnung (experimentell)
 
-Kontor erzeugt Rechnungsdaten im UN/CEFACT-CII-Format nach EN 16931, entweder eingebettet in ein PDF (ZUGFeRD 2.x / Factur-X, Profil EN 16931) oder als XRechnung 3.0. Das PDF ist **kein validiertes PDF/A-3**, und der Export wurde nicht offiziell zertifiziert. Pr체fe die Dateien vor dem produktiven Einsatz, z. B. mit dem [KoSIT-Validator](https://github.com/itplr-kosit/validator).
+Kontor erzeugt Rechnungsdaten im UN/CEFACT-CII-Format nach EN 16931, entweder eingebettet in ein PDF (ZUGFeRD 2.x / Factur-X, Profil EN 16931) oder als XRechnung 3.0. Beispielrechnungen f체r Regelbesteuerung, Reverse Charge, Kleinunternehmer, Drittland und Storno wurden mit dem KoSIT-Validator (Konfiguration XRechnung 3.0.2) ohne Fehler gepr체ft. Das PDF ist allerdings **kein validiertes PDF/A-3**, und der Export ist nicht offiziell zertifiziert. Pr체fe die Dateien vor dem produktiven Einsatz, z. B. mit dem [KoSIT-Validator](https://github.com/itplr-kosit/validator).
 
 ## Datensicherung
 
