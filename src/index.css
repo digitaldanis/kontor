@@ -1782,3 +1782,17 @@ a.list-item:hover {
   border-top: 1px solid var(--border-strong);
   background: var(--surface-2);
 }
+
+.timer-card {
+  container-type: inline-size;
+}
+@container (max-width: 560px) {
+  .timer-card .form-grid > * {
+    grid-column: span 6;
+  }
+}
+@media (prefers-color-scheme: dark) {
+  .toast {
+    background: rgba(72, 72, 76, 0.92);
+  }
+}

@@ -684,7 +684,7 @@ function DocumentViewer({ doc, settings }: { doc: InvoiceDocument; settings: Set
                 {status === 'overdue' ? <AlertTriangle size={20} color="var(--red)" aria-hidden /> : <Clock size={20} color="var(--accent)" aria-hidden />}
                 <div className="grow" style={{ flex: 1 }}>
                   <strong>{status === 'overdue' ? `Seit ${daysBetween(doc.dueDate, today())} Tagen überfällig` : `Fällig am ${formatDate(doc.dueDate)}`}</strong>
-                  <p className="small muted">{status === 'overdue' ? 'Zeit für eine freundliche Zahlungserinnerung.' : `Noch ${Math.max(0, daysBetween(today(), doc.dueDate))} Tage bis zur Fälligkeit.`}</p>
+                  <p className="small muted">{status === 'overdue' ? 'Zeit für eine freundliche Zahlungserinnerung.' : daysBetween(today(), doc.dueDate) === 0 ? 'Heute fällig.' : `Noch ${daysBetween(today(), doc.dueDate)} Tage bis zur Fälligkeit.`}</p>
                 </div>
               </div>
               <Button variant="success" icon={CheckCircle2} block style={{ marginTop: 14 }} onClick={() => setPayOpen(true)}>

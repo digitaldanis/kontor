@@ -170,7 +170,7 @@ export function Dashboard() {
                       <div className="grow">
                         <div className="title">{recipientName(d.recipient)}</div>
                         <div className="sub">
-                          {d.kind === 'quote' ? 'Angebot' : 'Rechnung'} · {d.items.length} Positionen
+                          {d.kind === 'quote' ? 'Angebot' : 'Rechnung'} · {d.items.length} {d.items.length === 1 ? 'Position' : 'Positionen'}
                         </div>
                       </div>
                       <strong className="tabular">{formatMoney(grossOf(d), d.currency)}</strong>

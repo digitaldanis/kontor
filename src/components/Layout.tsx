@@ -9,7 +9,7 @@ import {
   Users,
   type LucideIcon,
 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { customerName } from '../lib/defaults'
 import { db } from '../lib/db'
@@ -35,15 +35,16 @@ const NAV: NavItem[] = [
 ]
 
 export function BrandMark() {
+  const id = useId()
   return (
     <svg className="brand-mark" viewBox="0 0 64 64" aria-hidden>
       <defs>
-        <linearGradient id="km" x1="0" y1="0" x2="1" y2="1">
+        <linearGradient id={id} x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" stopColor="#3a8bff" />
           <stop offset="1" stopColor="#0a5ad4" />
         </linearGradient>
       </defs>
-      <rect width="64" height="64" rx="15" fill="url(#km)" />
+      <rect width="64" height="64" rx="15" fill={`url(#${id})`} />
       <path d="M22 16v32M22 33l17-17M27 29l14 19" fill="none" stroke="#fff" strokeWidth="5.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
