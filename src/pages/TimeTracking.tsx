@@ -1,6 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { ChevronLeft, ChevronRight, Clock, Plus, ReceiptText } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { BarChart } from '../components/BarChart'
 import { BillTimeDialog, emptyEntry, TimeEntryDialog, TimeEntryList, TimerCard } from '../components/TimeComponents'
 import { Button, EmptyState, IconButton, PageHeader, Segmented } from '../components/ui'
 import { minutesToHours } from '../lib/calc'
@@ -73,7 +74,6 @@ export function TimeTracking() {
     const k = toISODate(new Date(e.start))
     byDay.set(k, (byDay.get(k) ?? 0) + durationMinutes(e.start, e.end))
   }
-  const maxDay = Math.max(60, ...byDay.values())
   const todayKey = toISODate(new Date())
   const customerById = new Map((customers ?? []).map((c) => [c.id, c]))
 
@@ -180,19 +180,22 @@ export function TimeTracking() {
                 <strong className="tabular">{filtered.length}</strong>
               </div>
             </div>
-            <div className={`bars ${period === 'month' ? 'bars-month' : ''}`} role="img" aria-label={`Stunden pro Tag, ${range.label}`}>
-              {range.days.map((d) => {
-                const key = toISODate(d)
-                const m = byDay.get(key) ?? 0
-                return (
-                  <div key={key} className={`bar-col ${key === todayKey ? 'current' : ''}`} title={`${d.toLocaleDateString('de-DE')}: ${formatDuration(m)}`}>
-                    <div className={`bar ${m ? '' : 'muted-bar'}`} style={{ height: `${(m / maxDay) * 100}%` }} />
-                    <span className="bar-label">
-                      {period === 'week' ? d.toLocaleDateString('de-DE', { weekday: 'short' }) : d.getDate() % 5 === 0 || d.getDate() === 1 ? d.getDate() : ''}
-                    </span>
-                  </div>
-                )
-              })}
+            <div className={period === 'month' ? 'bars-month' : ''}>
+              <BarChart
+                label={`Stunden pro Tag, ${range.label}`}
+                bars={range.days.map((d) => {
+                  const key = toISODate(d)
+                  const m = byDay.get(key) ?? 0
+                  return {
+                    key,
+                    value: m,
+                    display: formatDuration(m),
+                    hint: d.toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'short' }),
+                    label: period === 'week' ? d.toLocaleDateString('de-DE', { weekday: 'short' }) : d.getDate() % 5 === 0 || d.getDate() === 1 ? String(d.getDate()) : '',
+                    current: key === todayKey,
+                  }
+                })}
+              />
             </div>
           </div>
         </section>

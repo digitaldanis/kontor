@@ -47,7 +47,7 @@
   letter-spacing: -0.02em;
 }
 
-.bars-month {
+.bars-month .bars {
   gap: 3px;
 }
 .bars-month .bar {
