@@ -1,9 +1,10 @@
+import { updateSettings } from '../lib/actions'
 import { t, uiLocale } from '../lib/i18n'
 import {
   BellRing,
   Building2,
   Mail,
-  Server,
+  UserCog,
   Check,
   Database,
   Download,
@@ -14,11 +15,10 @@ import {
   Palette,
   Percent,
   ReceiptText,
-  Trash2,
   Upload,
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 import { useFeedback } from '../components/feedback'
 import {
   AccentPicker,
@@ -29,17 +29,21 @@ import {
   LogoField,
   TaxFields,
 } from '../components/SettingsFields'
-import { Field, MoneyInput, NumberInput, PageHeader, Segmented, SelectField, TextAreaField, TextField, Toggle } from '../components/ui'
+import { Button, Field, MoneyInput, NumberInput, PageHeader, Segmented, SelectField, TextAreaField, TextField, Toggle } from '../components/ui'
 import { LanguageSwitch } from '../components/LanguageSwitch'
-import { ServerSettings } from '../components/ServerSettings'
+import { AccountSettings, SmtpSettings, TeamSettings } from '../components/AccountSettings'
 import { MAIL_PLACEHOLDERS, MAIL_TEMPLATE_LABELS } from '../lib/mailTemplates'
-import { createBackup, downloadFile, invoicesToCsv, parseBackup, restoreBackup, wipeAll } from '../lib/backup'
+import { api } from '../lib/api'
+import { downloadFile, invoicesToCsv, parseBackup, type Backup } from '../lib/backup'
+import { deleteLegacyBrowserData, readLegacyBrowserData } from '../lib/legacyImport'
+import { invalidate } from '../lib/remote'
+import { useSession } from '../lib/session'
 import { today } from '../lib/dates'
 import { db } from '../lib/db'
 import { TAX_NOTES, TAX_RATES, UNITS } from '../lib/defaults'
 import { useDocumentTitle, useSettings } from '../lib/hooks'
 import { peekNextNumber, validatePattern } from '../lib/numbering'
-import { PLACEHOLDERS, updateSettings } from '../lib/repo'
+import { PLACEHOLDERS } from '../lib/repo'
 import type { MailTemplateKey, Settings } from '../lib/types'
 
 const SECTIONS = [
@@ -52,7 +56,7 @@ const SECTIONS = [
   { id: 'mahnwesen', label: t('Mahnwesen'), icon: BellRing },
   { id: 'layout', label: t('Layout & Farbe'), icon: Palette },
   { id: 'email', label: t('E-Mail-Vorlagen'), icon: Mail },
-  { id: 'server', label: t('Server & Sync'), icon: Server },
+  { id: 'konto', label: t('Konto & Team'), icon: UserCog },
   { id: 'daten', label: t('Daten'), icon: Database },
 ]
 
@@ -379,8 +383,10 @@ export function SettingsPage() {
             </div>
           </section>
 
-          <section id="server" className="card card-pad anchor-target">
-            <ServerSettings />
+          <section id="konto" className="card card-pad anchor-target">
+            <AccountSettings />
+            <TeamSettings />
+            <SmtpSettings />
           </section>
 
           <DataSection />
@@ -436,14 +442,24 @@ function StartNumber({ settings }: { settings: Settings }) {
 
 function DataSection() {
   const { confirm, run, toast } = useFeedback()
-  const navigate = useNavigate()
+  const { user } = useSession()
+  const owner = user?.role === 'owner'
   const file = useRef<HTMLInputElement>(null)
+  const [legacy, setLegacy] = useState<Backup | null>(null)
+  const [backups, setBackups] = useState<{ files: { name: string; size: number; at: string }[]; keepDays: number; intervalHours: number } | null>(null)
+  const [audit, setAudit] = useState<{ at: string; action: string; collection: string | null; summary: string; email: string | null }[] | null>(null)
 
-  const exportJson = () =>
-    run(async () => {
-      const b = await createBackup()
-      downloadFile(`kontor-sicherung-${today()}.json`, JSON.stringify(b, null, 2), 'application/json')
-    }, t('Sicherung heruntergeladen'))
+  useEffect(() => {
+    void readLegacyBrowserData()
+      .then(setLegacy)
+      .catch(() => undefined)
+    if (owner) void api<NonNullable<typeof backups>>('/api/backups').then(setBackups).catch(() => undefined)
+  }, [owner])
+
+  const restore = async (backup: Backup, mode: 'replace' | 'merge') => {
+    await api('/api/backup/restore', { body: { backup, mode } })
+    invalidate('all')
+  }
 
   const exportCsv = () =>
     run(async () => {
@@ -452,7 +468,7 @@ function DataSection() {
         toast(t('Noch keine abgeschlossenen Rechnungen vorhanden.'), 'error')
         return
       }
-      downloadFile(`kontor-rechnungen-${today()}.csv`, invoicesToCsv(docs, customers), 'text/csv;charset=utf-8')
+      downloadFile(`kontor-invoices-${today()}.csv`, invoicesToCsv(docs, customers), 'text/csv;charset=utf-8')
     })
 
   const importJson = async (f: File | undefined) => {
@@ -461,15 +477,32 @@ function DataSection() {
       const backup = parseBackup(await f.text())
       const ok = await confirm({
         title: t('Sicherung wiederherstellen?'),
-        message: t('Alle aktuellen Daten in diesem Browser werden durch die Sicherung vom {p0} ersetzt ({p1} Kunden, {p2} Dokumente, {p3} Zeiteinträge).', { p0: backup.exportedAt ? new Date(backup.exportedAt).toLocaleString(uiLocale()) : 'unbekannten Datum', p1: backup.customers.length, p2: backup.documents.length, p3: backup.timeEntries.length }),
+        message: t('Alle Daten im Arbeitsbereich werden durch die Sicherung vom {p0} ersetzt ({p1} Kunden, {p2} Dokumente, {p3} Zeiteinträge). Der Vorgang wird protokolliert.', { p0: backup.exportedAt ? new Date(backup.exportedAt).toLocaleString(uiLocale()) : '–', p1: backup.customers.length, p2: backup.documents.length, p3: backup.timeEntries.length }),
         confirmLabel: t('Wiederherstellen'),
         danger: true,
       })
       if (!ok) return
-      await restoreBackup(backup)
+      await restore(backup, 'replace')
       toast(t('Sicherung wiederhergestellt'))
-      window.location.reload()
     })
+  }
+
+  const importLegacy = async () => {
+    if (!legacy) return
+    const ok = await confirm({
+      title: t('Daten aus diesem Browser übernehmen?'),
+      message: t('{p1} Kunden, {p2} Dokumente und {p3} Zeiteinträge aus der früheren, rein lokalen Version werden auf den Server übertragen und mit den vorhandenen Daten zusammengeführt.', { p1: legacy.customers.length, p2: legacy.documents.length, p3: legacy.timeEntries.length }),
+      confirmLabel: t('Übernehmen'),
+    })
+    if (!ok) return
+    const done = await run(async () => {
+      await restore(legacy, 'merge')
+      return true
+    }, t('Daten übernommen'))
+    if (done && (await confirm({ title: t('Lokale Kopie löschen?'), message: t('Die Daten liegen jetzt auf dem Server. Die alte Kopie in diesem Browser wird nicht mehr gebraucht.'), confirmLabel: t('Löschen') }))) {
+      await deleteLegacyBrowserData()
+      setLegacy(null)
+    }
   }
 
   return (
@@ -477,45 +510,69 @@ function DataSection() {
       <div className="form-section">
         <h3>{t('Daten & Sicherung')}</h3>
         <p className="muted">
-          {t('Kontor speichert alles lokal in diesem Browser – ohne Server und ohne Konto. Lade regelmäßig eine Sicherung herunter, damit nichts verloren geht. Rechnungen musst du 8 Jahre aufbewahren (GoBD).')}
+          {t('Alle Daten liegen auf deinem Kontor-Server; der Browser speichert nichts. Der Server legt automatisch Sicherungen der Datenbank an. Zusätzlich kannst du jederzeit eine vollständige Sicherung als Datei herunterladen. Rechnungen musst du 8 Jahre aufbewahren (GoBD).')}
         </p>
         <div className="row wrap">
-          <button type="button" className="btn primary" onClick={exportJson}>
+          <a className="btn primary" href="/api/backup" download>
             <Download size={17} aria-hidden /> {t('Sicherung herunterladen')}
-          </button>
-          <button type="button" className="btn" onClick={() => file.current?.click()}>
-            <Upload size={17} aria-hidden /> {t('Sicherung einspielen')}
-          </button>
+          </a>
+          {owner && (
+            <button type="button" className="btn" onClick={() => file.current?.click()}>
+              <Upload size={17} aria-hidden /> {t('Sicherung einspielen')}
+            </button>
+          )}
           <button type="button" className="btn" onClick={exportCsv}>
             <FileSpreadsheet size={17} aria-hidden /> {t('Rechnungen als CSV')}
           </button>
           <input ref={file} type="file" accept="application/json,.json" hidden onChange={(e) => {
-            importJson(e.target.files?.[0])
+            void importJson(e.target.files?.[0])
             e.target.value = ''
           }} />
         </div>
+        {backups && (
+          <p className="small muted" style={{ marginTop: 12 }}>
+            {backups.files.length
+              ? t('Letzte automatische Sicherung: {p0} · {p1} Sicherungen, aufbewahrt {p2} Tage.', { p0: new Date(backups.files[0].at).toLocaleString(uiLocale()), p1: backups.files.length, p2: backups.keepDays })
+              : backups.intervalHours
+                ? t('Die erste automatische Sicherung entsteht beim nächsten Serverstart.')
+                : t('Automatische Sicherungen sind abgeschaltet (BACKUP_INTERVAL_HOURS=0).')}
+          </p>
+        )}
       </div>
+      {legacy && owner && (
+        <div className="form-section">
+          <h3>{t('Daten aus diesem Browser übernehmen')}</h3>
+          <p className="muted">{t('In diesem Browser liegen noch Daten der früheren, rein lokalen Version von Kontor. Übertrage sie einmalig auf den Server.')}</p>
+          <button type="button" className="btn primary" onClick={importLegacy}>
+            <Upload size={17} aria-hidden /> {t('Jetzt übernehmen')}
+          </button>
+        </div>
+      )}
       <div className="form-section">
-        <h3>{t('Alles löschen')}</h3>
-        <p className="muted">{t('Entfernt alle Kunden, Rechnungen, Zeiten und Einstellungen aus diesem Browser.')}</p>
-        <button
-          type="button"
-          className="btn danger"
-          onClick={async () => {
-            const ok = await confirm({
-              title: t('Wirklich alle Daten löschen?'),
-              message: t('Das lässt sich nicht rückgängig machen. Lade vorher eine Sicherung herunter, wenn du die Daten noch brauchst.'),
-              confirmLabel: t('Alles löschen'),
-              danger: true,
-            })
-            if (!ok) return
-            await run(wipeAll)
-            navigate('/willkommen')
-            window.location.reload()
-          }}
-        >
-          <Trash2 size={17} aria-hidden /> {t('Alle Daten löschen')}
-        </button>
+        <h3>{t('Protokoll')}</h3>
+        <p className="muted">{t('Abschlüsse, Zahlungen, Änderungen an Rechnungen und Einstellungen werden auf dem Server protokolliert.')}</p>
+        {audit ? (
+          <ul className="list audit-list">
+            {audit.map((a, i) => (
+              <li key={i} className="list-item">
+                <span className="grow">
+                  <span className="title" style={{ display: 'block' }}>
+                    {a.action}
+                    {a.collection ? ` · ${a.collection}` : ''} {a.summary}
+                  </span>
+                  <span className="sub">
+                    {new Date(a.at).toLocaleString(uiLocale())}
+                    {a.email ? ` · ${a.email}` : ''}
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <Button size="sm" onClick={() => run(async () => setAudit((await api<{ entries: NonNullable<typeof audit> }>('/api/audit?limit=100')).entries))}>
+            {t('Protokoll anzeigen')}
+          </Button>
+        )}
       </div>
     </section>
   )

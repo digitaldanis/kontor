@@ -12,8 +12,8 @@ function detect(): UiLanguage {
   } catch {
     // no storage
   }
-  if (typeof navigator !== 'undefined' && navigator.language && !navigator.language.toLowerCase().startsWith('de')) return 'en'
-  return 'de'
+  // English first; German is a choice the user makes in the interface
+  return 'en'
 }
 
 export function uiLanguage(): UiLanguage {

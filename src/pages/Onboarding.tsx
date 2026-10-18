@@ -1,3 +1,4 @@
+import { seedDemo, updateSettings } from '../lib/actions'
 import { t } from '../lib/i18n'
 import { ArrowLeft, ArrowRight, Clock, FileText, ShieldCheck, Sparkles } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -6,12 +7,9 @@ import { useFeedback } from '../components/feedback'
 import { BrandMark } from '../components/Layout'
 import { AccentPicker, BankFields, CompanyFields, LayoutPicker, LogoField, TaxFields } from '../components/SettingsFields'
 import { LanguageSwitch } from '../components/LanguageSwitch'
-import { ServerSettings } from '../components/ServerSettings'
-import { Button, Dialog, Toggle } from '../components/ui'
+import { Button, Toggle } from '../components/ui'
 import { db } from '../lib/db'
-import { seedDemo } from '../lib/demo'
 import { useDocumentTitle, useSettings } from '../lib/hooks'
-import { updateSettings } from '../lib/repo'
 import type { Settings } from '../lib/types'
 import './onboarding.css'
 
@@ -25,7 +23,6 @@ export function Onboarding() {
   const [draft, setDraft] = useState<Settings | null>(null)
   const [step, setStep] = useState(0)
   const [showErrors, setShowErrors] = useState(false)
-  const [serverOpen, setServerOpen] = useState(false)
 
   useEffect(() => {
     if (stored && !draft) setDraft(stored)
@@ -177,20 +174,7 @@ export function Onboarding() {
           </Button>
         </div>
       </div>
-      <p className="faint small onboarding-foot">
-        {step === 0 && (
-          <>
-            <button type="button" className="link-button" onClick={() => setServerOpen(true)}>
-              {t('Kontor schon auf einem anderen Gerät? Mit deinem Server verbinden')}
-            </button>
-            <br />
-          </>
-        )}
-        {t('Kontor ersetzt keine Steuerberatung. Alle Angaben ohne Gewähr.')}
-      </p>
-      <Dialog open={serverOpen} onClose={() => setServerOpen(false)} wide title={t('Mit Kontor-Server verbinden')}>
-        <ServerSettings />
-      </Dialog>
+      <p className="faint small onboarding-foot">{t('Kontor ersetzt keine Steuerberatung. Alle Angaben ohne Gewähr.')}</p>
     </div>
   )
 }
