@@ -1,5 +1,5 @@
 import { t } from '../lib/i18n'
-import { useLiveQuery } from 'dexie-react-hooks'
+import { useLiveQuery } from '../lib/live'
 import {
   BarChart3,
   BellRing,
@@ -18,10 +18,7 @@ import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-do
 import { customerName } from '../lib/defaults'
 import { db } from '../lib/db'
 import { useSettings, useTimer } from '../lib/hooks'
-import { today } from '../lib/dates'
-import { runRecurring } from '../lib/recurring'
 import { displayStatus } from '../lib/status'
-import { useFeedback } from './feedback'
 import { Avatar, Dialog } from './ui'
 import { TimerPill } from './TimerPill'
 
@@ -78,18 +75,6 @@ export function Layout() {
   useEffect(() => {
     setMoreOpen(false)
   }, [location.pathname])
-
-  // Recurring invoices become drafts on their due date, checked once per start
-  const { toast } = useFeedback()
-  useEffect(() => {
-    let cancelled = false
-    void runRecurring(today()).then((created) => {
-      if (!cancelled && created.length) toast(t('{p0} {p1} als Entwurf angelegt', { p0: created.length, p1: created.length === 1 ? 'Serienrechnung' : 'Serienrechnungen' }))
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [toast])
 
   useEffect(() => {
     if (settings && !settings.onboarded && location.pathname !== '/willkommen') navigate('/willkommen', { replace: true })

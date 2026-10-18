@@ -1,5 +1,5 @@
 import { t } from '../lib/i18n'
-import { useLiveQuery } from 'dexie-react-hooks'
+import { useLiveQuery } from '../lib/live'
 import { Plus, Search, Users } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'

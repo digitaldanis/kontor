@@ -1,7 +1,7 @@
+import { saveCustomer } from '../lib/actions'
 import { t } from '../lib/i18n'
 import { useEffect, useState } from 'react'
 import { COUNTRIES, isEU } from '../lib/countries'
-import { saveCustomer } from '../lib/repo'
 import { CURRENCIES } from '../lib/defaults'
 import { useSettings } from '../lib/hooks'
 import type { Customer, CustomerType, Language } from '../lib/types'

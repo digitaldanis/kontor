@@ -1,10 +1,10 @@
+import { markSent } from '../lib/actions'
 import { t } from '../lib/i18n'
 import { Mail, Paperclip, Send } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { db, now } from '../lib/db'
 import { buildAttachments, composeMail, sendViaMailto, sendViaServer, serverMailReady, type AttachmentChoice, type MailDraft } from '../lib/mail'
-import { markSent } from '../lib/repo'
 import type { InvoiceDocument, Reminder, Settings } from '../lib/types'
 import { useFeedback } from './feedback'
 import { Button, Dialog, Segmented, TextAreaField, TextField } from './ui'
@@ -45,7 +45,7 @@ export function SendDialog({ doc, reminder, settings, open, onClose }: { doc: In
     setBusy(true)
     const ok = await run(async () => {
       const files = await buildAttachments(doc, settings, choice, reminder)
-      if (server) await sendViaServer(draft, files, settings.company.email || undefined)
+      if (server) await sendViaServer(draft, files, settings.company.email || undefined, doc.id)
       else sendViaMailto(draft, files)
       return true
     }, server ? t('E-Mail versendet') : undefined)

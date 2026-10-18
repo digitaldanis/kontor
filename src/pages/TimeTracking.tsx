@@ -1,5 +1,5 @@
 import { t, uiLocale } from '../lib/i18n'
-import { useLiveQuery } from 'dexie-react-hooks'
+import { useLiveQuery } from '../lib/live'
 import { ChevronLeft, ChevronRight, Clock, Plus, ReceiptText } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { BarChart } from '../components/BarChart'

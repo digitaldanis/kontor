@@ -1,5 +1,6 @@
 import { t, uiLocale } from '../lib/i18n'
-import { useLiveQuery } from 'dexie-react-hooks'
+import { addPayment, cancelInvoice, createCreditNote, createDraft, deleteDraft, duplicateDocument, finalizeDocument, invoiceTimeEntries, releaseTimeEntries, removePayment, saveCatalogItem, saveCustomer, saveDocument, setQuoteStatus } from '../lib/actions'
+import { useLiveQuery } from '../lib/live'
 import {
   AlertCircle,
   AlertTriangle,
@@ -36,7 +37,7 @@ import { RecurringDialog } from '../components/Recurring'
 import { SendDialog } from '../components/SendDialog'
 import { addMonths, newRecurring, templateFromDocument } from '../lib/recurring'
 import { StatusBadge } from '../components/DocumentsTable'
-import { catalogToLine, lineToCatalog, saveCatalogItem } from '../lib/catalog'
+import { catalogToLine, lineToCatalog } from '../lib/catalog'
 import { useFeedback } from '../components/feedback'
 import { InvoicePreview, ScaledPage } from '../components/InvoicePreview'
 import { AccentPicker } from '../components/SettingsFields'
@@ -54,27 +55,7 @@ import { buildInvoiceView, docTitleLabel, sellerFor } from '../lib/invoiceView'
 import { DEFAULT_TEXTS, docText } from '../lib/docText'
 import { formatMoney, formatNumber } from '../lib/money'
 import { peekNextNumber } from '../lib/numbering'
-import {
-  addPayment,
-  cancelInvoice,
-  createCreditNote,
-  createDraft,
-  creditableAmount,
-  deductionFor,
-  deleteDraft,
-  duplicateDocument,
-  emptyCustomer,
-  finalizeDocument,
-  invoiceTimeEntries,
-  newLineItem,
-  openDownPayments,
-  releaseTimeEntries,
-  remindersFor,
-  removePayment,
-  saveCustomer,
-  saveDocument,
-  setQuoteStatus,
-} from '../lib/repo'
+import { creditableAmount, deductionFor, emptyCustomer, newLineItem, openDownPayments, remindersFor } from '../lib/repo'
 import { amountDue, creditedOf, documentLabel, displayStatus, paidOf } from '../lib/status'
 import type { BillingType, Deduction, InvoiceDiscount, InvoiceDocument, Language, LayoutId, LineItem, Payment, RecurringInvoice, Reminder, Settings, TaxMode } from '../lib/types'
 import { hasBlockingIssues, validateInvoice, type Issue } from '../lib/validation'

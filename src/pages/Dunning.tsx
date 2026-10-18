@@ -1,5 +1,6 @@
 import { t, uiLocale } from '../lib/i18n'
-import { useLiveQuery } from 'dexie-react-hooks'
+import { deleteReminder } from '../lib/actions'
+import { useLiveQuery } from '../lib/live'
 import { BellRing, CheckCircle2, Download, Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
@@ -13,7 +14,6 @@ import { lastReminder, LEVEL_LABELS, nextLevel, nextReminderDate, reminderTotal 
 import { downloadReminderPdf } from '../lib/exporters'
 import { useDocumentTitle, useSettings } from '../lib/hooks'
 import { formatMoney } from '../lib/money'
-import { deleteReminder } from '../lib/repo'
 import { amountDue, displayStatus } from '../lib/status'
 import type { InvoiceDocument, Reminder } from '../lib/types'
 

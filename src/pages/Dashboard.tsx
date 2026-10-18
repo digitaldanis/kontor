@@ -1,5 +1,5 @@
 import { t, uiLocale } from '../lib/i18n'
-import { useLiveQuery } from 'dexie-react-hooks'
+import { useLiveQuery } from '../lib/live'
 import { AlertTriangle, CheckCircle2, Circle, Clock, FilePlus, FileText, ReceiptText, Repeat, TrendingUp, UserPlus } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'

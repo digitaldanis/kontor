@@ -1,5 +1,5 @@
 import { t, uiLocale } from '../lib/i18n'
-import { useLiveQuery } from 'dexie-react-hooks'
+import { useLiveQuery } from '../lib/live'
 import { BarChart3, ChevronLeft, ChevronRight, Download, Info } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'

@@ -1,5 +1,5 @@
 import { t } from '../lib/i18n'
-import { useLiveQuery } from 'dexie-react-hooks'
+import { useLiveQuery } from '../lib/live'
 import { Package, Search } from 'lucide-react'
 import { useState } from 'react'
 import { searchCatalog } from '../lib/catalog'

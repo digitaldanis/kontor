@@ -1,5 +1,6 @@
 import { t } from '../lib/i18n'
-import { useLiveQuery } from 'dexie-react-hooks'
+import { deleteTimeEntry, discardTimer, invoiceTimeEntries, saveTimeEntry, startTimer, stopTimer, updateTimer } from '../lib/actions'
+import { useLiveQuery } from '../lib/live'
 import { AlertTriangle, Clock, Pencil, Play, ReceiptText, Square, Trash2, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -21,17 +22,7 @@ import { customerName } from '../lib/defaults'
 import { useCustomers, useNow, useSettings, useTimer } from '../lib/hooks'
 import { formatMoney } from '../lib/money'
 import { billableMinutes } from '../lib/projects'
-import {
-  deleteTimeEntry,
-  discardTimer,
-  entryRate,
-  invoiceTimeEntries,
-  saveTimeEntry,
-  startTimer,
-  stopTimer,
-  updateTimer,
-  type TimeGrouping,
-} from '../lib/repo'
+import { entryRate, type TimeGrouping } from '../lib/repo'
 import type { Customer, RunningTimer, TimeEntry } from '../lib/types'
 import { useFeedback } from './feedback'
 import { useBudgetWarnings } from './Projects'
