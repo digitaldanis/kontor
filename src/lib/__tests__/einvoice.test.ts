@@ -52,3 +52,41 @@ describe('buildCii', () => {
     expect(storno).toContain('<ram:IssuerAssignedID>RE-2026-0006</ram:IssuerAssignedID>')
   })
 })
+
+describe('buildCii extended', () => {
+  it('writes the invoice discount per VAT category', () => {
+    const xml = buildCii({ ...doc, discount: { type: 'percent', value: 10 } }, seller, 'xrechnung')
+    // 277,88 → 27,79 discount; 39,98 → 4,00 discount
+    expect(xml).toContain('<ram:ActualAmount>27.79</ram:ActualAmount>')
+    expect(xml).toContain('<ram:ActualAmount>4.00</ram:ActualAmount>')
+    expect(xml).toContain('<ram:LineTotalAmount>317.86</ram:LineTotalAmount><ram:AllowanceTotalAmount>31.79</ram:AllowanceTotalAmount><ram:TaxBasisTotalAmount>286.07</ram:TaxBasisTotalAmount>')
+    // (277,88 − 27,79) × 19 % = 47,52; (39,98 − 4,00) × 7 % = 2,52
+    expect(xml).toContain('<ram:TaxTotalAmount currencyID="EUR">50.04</ram:TaxTotalAmount>')
+    expect(xml).toContain('<ram:GrandTotalAmount>336.11</ram:GrandTotalAmount>')
+  })
+
+  it('exports a final invoice with prepaid amount', () => {
+    const xml = buildCii(
+      {
+        ...doc,
+        billingType: 'final',
+        deductions: [{ invoiceId: 'a', number: 'RE-2026-0003', issueDate: '2026-03-01', groups: [{ rate: 19, netCents: 10000, taxCents: 1900 }] }],
+      },
+      seller,
+      'xrechnung',
+    )
+    expect(xml).toContain('<ram:GrandTotalAmount>373.46</ram:GrandTotalAmount><ram:TotalPrepaidAmount>119.00</ram:TotalPrepaidAmount><ram:DuePayableAmount>254.46</ram:DuePayableAmount>')
+    expect(xml).toContain('verrechnete Abschläge: RE-2026-0003')
+  })
+
+  it('exports a credit note with a reference to the invoice', () => {
+    const xml = buildCii({ ...doc, kind: 'creditNote', number: 'GS-2026-0001', creditsNumber: 'RE-2026-0007' }, seller, 'xrechnung', { referenceDate: '2026-05-01' })
+    expect(xml).toContain('<ram:TypeCode>381</ram:TypeCode>')
+    expect(xml).toContain('<ram:GrandTotalAmount>373.46</ram:GrandTotalAmount>')
+    expect(xml).toContain('<ram:IssuerAssignedID>RE-2026-0007</ram:IssuerAssignedID><ram:FormattedIssueDateTime><qdt:DateTimeString format="102">20260501</qdt:DateTimeString></ram:FormattedIssueDateTime>')
+  })
+
+  it('marks down payment invoices', () => {
+    expect(buildCii({ ...doc, billingType: 'downPayment' }, seller, 'xrechnung')).toContain('<ram:TypeCode>326</ram:TypeCode>')
+  })
+})

@@ -1,13 +1,14 @@
-import { calculateTotals } from './calc'
+import { documentTotals } from './calc'
 import { db } from './db'
-import { defaultSettings, recipientName } from './defaults'
+import { recipientName } from './defaults'
+import { normalizeDocument, normalizeSettings } from './migrate'
 import { formatAmount } from './money'
 import { displayStatus, STATUS_LABELS, documentLabel } from './status'
 import type { Customer, InvoiceDocument, RunningTimer, Settings, TimeEntry } from './types'
 
 export interface Backup {
   app: 'kontor'
-  version: 1
+  version: 2
   exportedAt: string
   settings: Settings | null
   customers: Customer[]
@@ -26,7 +27,7 @@ export async function createBackup(): Promise<Backup> {
   ])
   return {
     app: 'kontor',
-    version: 1,
+    version: 2,
     exportedAt: new Date().toISOString(),
     settings: settings ?? null,
     customers,
@@ -47,14 +48,15 @@ export function parseBackup(text: string): Backup {
   if (!b || b.app !== 'kontor' || !Array.isArray(b.documents) || !Array.isArray(b.customers)) {
     throw new Error('Das ist keine Kontor-Sicherung.')
   }
-  if (b.version !== 1) throw new Error(`Sicherungsversion ${b.version} wird nicht unterstützt.`)
+  const version = Number(b.version)
+  if (version !== 1 && version !== 2) throw new Error(`Sicherungsversion ${b.version} wird nicht unterstützt.`)
   return {
     app: 'kontor',
-    version: 1,
+    version: 2,
     exportedAt: b.exportedAt ?? '',
-    settings: b.settings ? { ...defaultSettings(), ...b.settings, id: 'main' } : null,
+    settings: b.settings ? normalizeSettings(b.settings) : null,
     customers: b.customers,
-    documents: b.documents,
+    documents: b.documents.map(normalizeDocument),
     timeEntries: Array.isArray(b.timeEntries) ? b.timeEntries : [],
     timer: b.timer ?? null,
   }
@@ -86,12 +88,13 @@ function csvCell(value: string | number): string {
 /** Semicolon separated with decimal comma, which is what German Excel expects. */
 export function invoicesToCsv(docs: InvoiceDocument[], customers: Customer[]): string {
   const byId = new Map(customers.map((c) => [c.id, c]))
-  const header = ['Nummer', 'Art', 'Status', 'Rechnungsdatum', 'Leistung von', 'Leistung bis', 'Fällig', 'Bezahlt am', 'Kundennr.', 'Empfänger', 'USt-IdNr. Empfänger', 'Land', 'Steuerfall', 'Netto', 'USt', 'Brutto', 'Währung', 'Storno zu']
+  const header = ['Nummer', 'Art', 'Status', 'Rechnungsdatum', 'Leistung von', 'Leistung bis', 'Fällig', 'Bezahlt am', 'Kundennr.', 'Empfänger', 'USt-IdNr. Empfänger', 'Land', 'Steuerfall', 'Netto', 'USt', 'Brutto', 'Abschläge', 'Währung', 'Bezug']
   const rows = docs
     .filter((d) => d.status !== 'draft' && d.kind !== 'quote')
     .sort((a, b) => (a.number ?? '').localeCompare(b.number ?? '', 'de', { numeric: true }))
     .map((d) => {
-      const t = calculateTotals(d.items, d.taxMode)
+      const t = documentTotals(d)
+      const sign = d.kind === 'creditNote' ? -1 : 1
       return [
         d.number ?? '',
         documentLabel(d),
@@ -106,11 +109,12 @@ export function invoicesToCsv(docs: InvoiceDocument[], customers: Customer[]): s
         d.recipient.vatId,
         d.recipient.country,
         d.taxMode,
-        formatAmount(t.netCents),
-        formatAmount(t.taxCents),
-        formatAmount(t.grossCents),
+        formatAmount(sign * t.netCents),
+        formatAmount(sign * t.taxCents),
+        formatAmount(sign * t.grossCents),
+        formatAmount(sign * t.prepaidCents),
         d.currency,
-        d.cancelsNumber ?? '',
+        d.cancelsNumber ?? d.creditsNumber ?? '',
       ]
     })
   return '﻿' + [header, ...rows].map((r) => r.map(csvCell).join(';')).join('\r\n')

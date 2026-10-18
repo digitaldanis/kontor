@@ -101,13 +101,20 @@ export function eInvoiceIssues(doc: InvoiceDocument, seller: Company, profile: E
   return issues
 }
 
-export function buildCii(doc: InvoiceDocument, sellerInput: Company, profile: EInvoiceProfile): string {
+export interface CiiOptions {
+  /** Issue date of the invoice a cancellation or credit note refers to (BT-26). */
+  referenceDate?: string
+}
+
+export function buildCii(doc: InvoiceDocument, sellerInput: Company, profile: EInvoiceProfile, options: CiiOptions = {}): string {
   const seller = sellerInput
   const r = doc.recipient
-  const isCredit = doc.kind === 'cancellation'
-  const sign = isCredit ? -1 : 1
+  const isCredit = doc.kind === 'cancellation' || doc.kind === 'creditNote'
+  // cancellations store negative quantities, credit notes positive ones; both go out as positive credit notes
+  const sign = doc.kind === 'cancellation' ? -1 : 1
   const items = doc.items.map((i) => ({ ...i, quantity: i.quantity * sign }))
-  const totals = calculateTotals(items, doc.taxMode)
+  const deductions = (doc.deductions ?? []).map((d) => ({ ...d, groups: d.groups.map((g) => ({ ...g, netCents: g.netCents * sign, taxCents: g.taxCents * sign })) }))
+  const totals = calculateTotals(items, doc.taxMode, { discount: doc.discount, deductions })
   const currency = doc.currency || 'EUR'
   const chargeTax = doc.taxMode === 'standard'
 
@@ -168,11 +175,34 @@ export function buildCii(doc: InvoiceDocument, sellerInput: Company, profile: EI
     : `<ram:SpecifiedTradeSettlementPaymentMeans><ram:TypeCode>1</ram:TypeCode></ram:SpecifiedTradeSettlementPaymentMeans>`
 
   const terms =
-    doc.kind === 'invoice' && doc.dueDate
+    doc.kind === 'invoice' && doc.dueDate && totals.dueCents > 0
       ? `<ram:SpecifiedTradePaymentTerms><ram:Description>Zahlbar ohne Abzug bis ${formatDate(doc.dueDate)}</ram:Description><ram:DueDateDateTime>${date102(doc.dueDate)}</ram:DueDateDateTime></ram:SpecifiedTradePaymentTerms>`
       : `<ram:SpecifiedTradePaymentTerms><ram:Description>${isCredit ? 'Gutschrift' : 'Sofort fällig'}</ram:Description></ram:SpecifiedTradePaymentTerms>`
 
-  const notes = [doc.taxNote, doc.cancelsNumber ? `Stornorechnung zu ${doc.cancelsNumber}` : '', seller.registerInfo]
+  const allowances = totals.groups
+    .filter((g) => g.allowanceCents)
+    .map((g) => {
+      const cat = category(doc.taxMode, g.rate, doc.taxNote)
+      const percent = doc.discount?.type === 'percent' ? `<ram:CalculationPercent>${rateStr(doc.discount.value)}</ram:CalculationPercent><ram:BasisAmount>${amount(g.netCents + g.allowanceCents)}</ram:BasisAmount>` : ''
+      return `<ram:SpecifiedTradeAllowanceCharge><ram:ChargeIndicator><udt:Indicator>false</udt:Indicator></ram:ChargeIndicator>${percent}<ram:ActualAmount>${amount(g.allowanceCents)}</ram:ActualAmount><ram:Reason>Rabatt</ram:Reason><ram:CategoryTradeTax><ram:TypeCode>VAT</ram:TypeCode><ram:CategoryCode>${cat.code}</ram:CategoryCode>${cat.code === 'O' ? '' : `<ram:RateApplicablePercent>${rateStr(g.rate)}</ram:RateApplicablePercent>`}</ram:CategoryTradeTax></ram:SpecifiedTradeAllowanceCharge>`
+    })
+    .join('')
+
+  const referenceNumber = doc.cancelsNumber || doc.creditsNumber
+  const referenced = referenceNumber
+    ? `<ram:InvoiceReferencedDocument><ram:IssuerAssignedID>${esc(referenceNumber)}</ram:IssuerAssignedID>${options.referenceDate ? `<ram:FormattedIssueDateTime><qdt:DateTimeString format="102">${options.referenceDate.replace(/-/g, '')}</qdt:DateTimeString></ram:FormattedIssueDateTime>` : ''}</ram:InvoiceReferencedDocument>`
+    : ''
+
+  const typeCode = isCredit ? '381' : doc.billingType === 'downPayment' ? '326' : '380'
+
+  const notes = [
+    doc.taxNote,
+    doc.cancelsNumber ? `Stornorechnung zu ${doc.cancelsNumber}` : '',
+    doc.creditsNumber ? `Rechnungskorrektur zu ${doc.creditsNumber}` : '',
+    doc.billingType === 'downPayment' ? 'Abschlagsrechnung' : '',
+    deductions.length ? `Schlussrechnung, verrechnete Abschläge: ${deductions.map((d) => `${d.number} vom ${formatDate(d.issueDate)}`).join(', ')}` : '',
+    seller.registerInfo,
+  ]
     .filter(Boolean)
     .map((n) => `<ram:IncludedNote><ram:Content>${esc(n)}</ram:Content></ram:IncludedNote>`)
     .join('')
@@ -184,7 +214,7 @@ ${profile === 'xrechnung' ? '<ram:BusinessProcessSpecifiedDocumentContextParamet
 </rsm:ExchangedDocumentContext>
 <rsm:ExchangedDocument>
 <ram:ID>${esc(doc.number ?? 'ENTWURF')}</ram:ID>
-<ram:TypeCode>${isCredit ? '381' : '380'}</ram:TypeCode>
+<ram:TypeCode>${typeCode}</ram:TypeCode>
 <ram:IssueDateTime>${date102(doc.issueDate)}</ram:IssueDateTime>
 ${notes}
 </rsm:ExchangedDocument>
@@ -202,9 +232,10 @@ ${tag('ram:PaymentReference', esc(doc.number ?? ''))}
 ${paymentMeans}
 ${taxes}
 ${period}
+${allowances}
 ${terms}
-<ram:SpecifiedTradeSettlementHeaderMonetarySummation><ram:LineTotalAmount>${amount(totals.netCents)}</ram:LineTotalAmount><ram:TaxBasisTotalAmount>${amount(totals.netCents)}</ram:TaxBasisTotalAmount><ram:TaxTotalAmount currencyID="${currency}">${amount(totals.taxCents)}</ram:TaxTotalAmount><ram:GrandTotalAmount>${amount(totals.grossCents)}</ram:GrandTotalAmount><ram:DuePayableAmount>${amount(totals.grossCents)}</ram:DuePayableAmount></ram:SpecifiedTradeSettlementHeaderMonetarySummation>
-${doc.cancelsNumber ? `<ram:InvoiceReferencedDocument><ram:IssuerAssignedID>${esc(doc.cancelsNumber)}</ram:IssuerAssignedID></ram:InvoiceReferencedDocument>` : ''}
+<ram:SpecifiedTradeSettlementHeaderMonetarySummation><ram:LineTotalAmount>${amount(totals.lineNetCents)}</ram:LineTotalAmount>${totals.allowanceCents ? `<ram:AllowanceTotalAmount>${amount(totals.allowanceCents)}</ram:AllowanceTotalAmount>` : ''}<ram:TaxBasisTotalAmount>${amount(totals.netCents)}</ram:TaxBasisTotalAmount><ram:TaxTotalAmount currencyID="${currency}">${amount(totals.taxCents)}</ram:TaxTotalAmount><ram:GrandTotalAmount>${amount(totals.grossCents)}</ram:GrandTotalAmount>${totals.prepaidCents ? `<ram:TotalPrepaidAmount>${amount(totals.prepaidCents)}</ram:TotalPrepaidAmount>` : ''}<ram:DuePayableAmount>${amount(totals.dueCents)}</ram:DuePayableAmount></ram:SpecifiedTradeSettlementHeaderMonetarySummation>
+${referenced}
 </ram:ApplicableHeaderTradeSettlement>
 </rsm:SupplyChainTradeTransaction>
 </rsm:CrossIndustryInvoice>
