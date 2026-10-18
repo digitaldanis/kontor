@@ -6,6 +6,7 @@ import { extractXmlFromPdf, parseEInvoice } from '../einvoiceImport'
 import { buildInvoiceView } from '../invoiceView'
 import { defaultSettings } from '../defaults'
 import { renderInvoicePdf } from '../pdf'
+import { testAssets } from './pdfAssets'
 
 const seller = { ...emptyCompany(), name: 'Hosting Nord GmbH', street: 'A 1', zip: '10115', city: 'Berlin', vatId: 'DE111222333', email: 'r@example.de', iban: 'DE89370400440532013000' }
 const doc = blankDocument({
@@ -48,7 +49,7 @@ describe('e-invoice import', () => {
   it('extracts the XML from a ZUGFeRD PDF', async () => {
     const xml = buildCii(doc, seller, 'facturx')
     const settings = { ...defaultSettings(), company: seller }
-    const pdf = await renderInvoicePdf(buildInvoiceView(doc, settings), { xml })
+    const pdf = await renderInvoicePdf(buildInvoiceView(doc, settings), { xml, assets: testAssets })
     expect(await extractXmlFromPdf(pdf)).toBe(xml)
     expect(await extractXmlFromPdf(await renderInvoicePdf(buildInvoiceView(doc, settings)))).toBeNull()
   })

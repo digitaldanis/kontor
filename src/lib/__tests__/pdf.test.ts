@@ -1,5 +1,5 @@
 import 'fake-indexeddb/auto'
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { PDFDocument } from 'pdf-lib'
 import { describe, expect, it } from 'vitest'
@@ -7,7 +7,8 @@ import { blankDocument, defaultSettings, emptyRecipient } from '../defaults'
 import { buildCii } from '../einvoice'
 import { draftReminder } from '../dunning'
 import { buildInvoiceView, buildReminderView } from '../invoiceView'
-import { renderInvoicePdf, type PdfAssets } from '../pdf'
+import { renderInvoicePdf } from '../pdf'
+import { testAssets } from './pdfAssets'
 
 const settings = defaultSettings()
 settings.company = { ...settings.company, name: 'Studio Nordlicht', street: 'Kastanienallee 21', zip: '10435', city: 'Berlin', taxNumber: '30/245/67890', email: 'hallo@example.de' }
@@ -42,13 +43,7 @@ describe('renderInvoicePdf', () => {
   })
 })
 
-const read = (p: string) => new Uint8Array(readFileSync(join('public', p)))
-const assets: PdfAssets = {
-  regular: read('fonts/LiberationSans-Regular.ttf'),
-  bold: read('fonts/LiberationSans-Bold.ttf'),
-  serif: read('fonts/LiberationSerif-Regular.ttf'),
-  icc: read('color/sRGB.icc'),
-}
+const assets = testAssets
 
 // Set PDFA_OUT to a folder to keep the files, e.g. for veraPDF in CI.
 const out = process.env.PDFA_OUT
