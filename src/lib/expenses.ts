@@ -101,7 +101,7 @@ export function expensesToCsv(list: Expense[]): string {
   const header = ['Datum', 'Bezahlt am', 'Lieferant', 'Belegnummer', 'Beschreibung', 'Kategorie', 'Brutto', 'Steuersatz', 'Vorsteuer', 'Netto', 'Währung', 'Beleg']
   const rows = [...list]
     .sort((a, b) => a.date.localeCompare(b.date))
-    .map((e) => [e.date, e.paidAt ?? '', e.vendor, e.invoiceNumber, e.description, e.category, formatAmount(e.grossCents), String(e.taxRate).replace('.', ','), formatAmount(e.vatCents), formatAmount(expenseNet(e)), e.currency, e.attachmentId ? 'ja' : 'nein'])
+    .map((e) => [e.date, e.paidAt ?? '', e.vendor, e.invoiceNumber, e.description, e.category, formatAmount(e.grossCents, 'de-DE'), String(e.taxRate).replace('.', ','), formatAmount(e.vatCents, 'de-DE'), formatAmount(expenseNet(e), 'de-DE'), e.currency, e.attachmentId ? 'ja' : 'nein'])
   return '﻿' + [header, ...rows].map((r) => r.map(csvCell).join(';')).join('\r\n')
 }
 

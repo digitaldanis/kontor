@@ -1,4 +1,5 @@
 /** Dates are stored as local "YYYY-MM-DD" strings, timestamps as ISO strings. */
+import { uiLocale } from './i18n'
 
 export function toISODate(d: Date): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
@@ -23,11 +24,11 @@ export function daysBetween(fromIso: string, toIso: string): number {
   return Math.round((parseISODate(toIso).getTime() - parseISODate(fromIso).getTime()) / 86_400_000)
 }
 
-const dateFmt = new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
-const shortFmt = new Intl.DateTimeFormat('de-DE', { day: 'numeric', month: 'short' })
-const longFmt = new Intl.DateTimeFormat('de-DE', { weekday: 'long', day: 'numeric', month: 'long' })
-const monthFmt = new Intl.DateTimeFormat('de-DE', { month: 'long', year: 'numeric' })
-const timeFmt = new Intl.DateTimeFormat('de-DE', { hour: '2-digit', minute: '2-digit' })
+const dateFmt = new Intl.DateTimeFormat(uiLocale(), { day: '2-digit', month: '2-digit', year: 'numeric' })
+const shortFmt = new Intl.DateTimeFormat(uiLocale(), { day: 'numeric', month: 'short' })
+const longFmt = new Intl.DateTimeFormat(uiLocale(), { weekday: 'long', day: 'numeric', month: 'long' })
+const monthFmt = new Intl.DateTimeFormat(uiLocale(), { month: 'long', year: 'numeric' })
+const timeFmt = new Intl.DateTimeFormat(uiLocale(), { hour: '2-digit', minute: '2-digit' })
 
 export function formatDate(iso: string | null | undefined): string {
   if (!iso) return '–'

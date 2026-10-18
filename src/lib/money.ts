@@ -1,20 +1,23 @@
+import { uiLocale } from './i18n'
+
 const formatters = new Map<string, Intl.NumberFormat>()
 
 export function formatMoney(cents: number, currency = 'EUR'): string {
   let fmt = formatters.get(currency)
   if (!fmt) {
-    fmt = new Intl.NumberFormat('de-DE', { style: 'currency', currency })
+    fmt = new Intl.NumberFormat(uiLocale(), { style: 'currency', currency })
     formatters.set(currency, fmt)
   }
   return fmt.format(cents / 100)
 }
 
-export function formatAmount(cents: number): string {
-  return (cents / 100).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+/** Plain amount without currency; CSV exports pass "de-DE" for German Excel. */
+export function formatAmount(cents: number, locale = uiLocale()): string {
+  return (cents / 100).toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
 export function formatNumber(value: number, maxFraction = 2): string {
-  return value.toLocaleString('de-DE', { maximumFractionDigits: maxFraction })
+  return value.toLocaleString(uiLocale(), { maximumFractionDigits: maxFraction })
 }
 
 /** Parses user input like "1.234,56", "1234.5" or "12" into cents. */
