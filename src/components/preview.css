@@ -1,0 +1,439 @@
+.scaled-page {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+}
+.scaled-inner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+}
+
+.inv-page {
+  --inv-accent: #0a66d8;
+  --inv-text: #1d1d1f;
+  --inv-muted: #6b6b70;
+  --inv-line: #e3e3e6;
+  position: relative;
+  width: 210mm;
+  min-height: 297mm;
+  padding: 0 20mm 34mm 25mm;
+  background: #fff;
+  color: var(--inv-text);
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-size: 9.5pt;
+  line-height: 1.42;
+  letter-spacing: 0;
+  color-scheme: light;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 12px 40px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.inv-fold {
+  position: absolute;
+  left: 0;
+  width: 5mm;
+  height: 0;
+  border-top: 0.3pt solid #b5b5b9;
+}
+.inv-fold-1 {
+  top: 105mm;
+}
+.inv-fold-2 {
+  top: 210mm;
+}
+.inv-punch {
+  top: 148.5mm;
+  width: 7mm;
+}
+
+.inv-watermark {
+  position: absolute;
+  top: 135mm;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 88pt;
+  font-weight: 800;
+  color: rgba(0, 0, 0, 0.04);
+  transform: rotate(-24deg);
+  pointer-events: none;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.inv-head {
+  position: absolute;
+  top: 0;
+  left: 25mm;
+  right: 20mm;
+  height: 45mm;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding-top: 14mm;
+}
+.inv-logo {
+  max-width: 62mm;
+  max-height: 22mm;
+  object-fit: contain;
+  display: block;
+}
+.inv-company-name {
+  font-size: 15pt;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.inv-address {
+  position: absolute;
+  top: 45mm;
+  left: 20mm;
+  width: 85mm;
+  height: 45mm;
+  padding: 0 5mm;
+}
+.inv-sender {
+  height: 17.7mm;
+  display: flex;
+  align-items: flex-end;
+  padding-bottom: 1.5mm;
+  font-size: 6.5pt;
+  color: var(--inv-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.inv-recipient {
+  font-size: 10pt;
+  line-height: 1.38;
+}
+
+.inv-meta {
+  position: absolute;
+  top: 50mm;
+  left: 125mm;
+  right: 20mm;
+  font-size: 8.5pt;
+}
+.inv-meta-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 4mm;
+  padding: 0.4mm 0;
+}
+.inv-meta-row span:first-child {
+  color: var(--inv-muted);
+}
+.inv-meta-row span:last-child {
+  text-align: right;
+}
+.inv-meta-row .strong {
+  font-weight: 700;
+}
+
+.inv-body {
+  padding-top: 103mm;
+}
+.inv-title {
+  font-family: inherit;
+  font-size: 15pt;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0 0 5mm;
+  color: var(--inv-text);
+}
+.inv-text {
+  margin: 0 0 5mm;
+  white-space: pre-line;
+}
+.inv-placeholder {
+  color: #b0b0b5;
+}
+
+.inv-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 2mm 0 4mm;
+  font-size: 9pt;
+}
+.inv-table th {
+  text-align: left;
+  font-size: 7.5pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--inv-muted);
+  padding: 2mm 1.5mm;
+  border-bottom: 0.8pt solid var(--inv-text);
+}
+.inv-table td {
+  padding: 2.2mm 1.5mm;
+  border-bottom: 0.4pt solid var(--inv-line);
+  vertical-align: top;
+}
+.inv-table .num {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.inv-table .pos {
+  width: 9mm;
+  color: var(--inv-muted);
+}
+.inv-table th:first-child,
+.inv-table td:first-child {
+  padding-left: 0;
+}
+.inv-table th:last-child,
+.inv-table td:last-child {
+  padding-right: 0;
+}
+.inv-item-title {
+  font-weight: 600;
+}
+.inv-item-desc {
+  color: var(--inv-muted);
+  font-size: 8.3pt;
+  white-space: pre-line;
+  margin-top: 0.5mm;
+}
+
+.inv-totals {
+  margin-left: auto;
+  width: 78mm;
+  margin-bottom: 6mm;
+  font-variant-numeric: tabular-nums;
+}
+.inv-total-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 4mm;
+  padding: 1mm 0;
+}
+.inv-total-row span:first-child {
+  color: var(--inv-muted);
+}
+.inv-total-row.grand {
+  margin-top: 1.5mm;
+  padding-top: 2mm;
+  border-top: 0.8pt solid var(--inv-text);
+  font-weight: 700;
+  font-size: 10.5pt;
+}
+.inv-total-row.grand span:first-child {
+  color: var(--inv-text);
+}
+
+.inv-note {
+  margin: 0 0 5mm;
+  padding: 2.5mm 3.5mm;
+  border-left: 1.2pt solid var(--inv-accent);
+  background: #f6f6f8;
+  font-size: 8.8pt;
+}
+
+.inv-footer {
+  position: absolute;
+  left: 25mm;
+  right: 20mm;
+  bottom: 10mm;
+  font-size: 6.8pt;
+  line-height: 1.4;
+  color: var(--inv-muted);
+}
+.inv-footer-text {
+  margin-bottom: 2mm;
+  white-space: pre-line;
+}
+.inv-footer-cols {
+  display: flex;
+  gap: 6mm;
+  padding-top: 2.5mm;
+  border-top: 0.4pt solid var(--inv-line);
+}
+.inv-footer-cols > div {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Klassisch */
+.inv-classic .inv-head {
+  flex-direction: row-reverse;
+}
+.inv-classic .inv-head-contact {
+  font-size: 8pt;
+  color: var(--inv-muted);
+  line-height: 1.45;
+}
+.inv-classic .inv-title {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-weight: 400;
+  font-size: 18pt;
+}
+.inv-classic .inv-table th {
+  color: var(--inv-text);
+  border-bottom-color: var(--inv-accent);
+}
+.inv-classic .inv-total-row.grand {
+  border-top: 0.8pt solid var(--inv-text);
+  border-bottom: 2.4pt double var(--inv-text);
+  padding-bottom: 1.5mm;
+}
+
+/* Modern */
+.inv-modern .inv-band {
+  position: absolute;
+  top: 0;
+  left: -25mm;
+  right: -20mm;
+  height: 4mm;
+  background: var(--inv-accent);
+}
+.inv-modern .inv-title {
+  color: var(--inv-accent);
+  font-size: 20pt;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.inv-modern .inv-meta {
+  padding: 3mm 4mm;
+  border-radius: 2.5mm;
+  background: #f5f6f8;
+  top: 47mm;
+}
+.inv-modern .inv-table th {
+  background: var(--inv-accent);
+  color: #fff;
+  border: 0;
+  padding: 2mm 2mm;
+}
+.inv-modern .inv-table th:first-child {
+  padding-left: 2mm;
+  border-radius: 1.5mm 0 0 1.5mm;
+}
+.inv-modern .inv-table th:last-child {
+  padding-right: 2mm;
+  border-radius: 0 1.5mm 1.5mm 0;
+}
+.inv-modern .inv-table td:first-child {
+  padding-left: 2mm;
+}
+.inv-modern .inv-table td:last-child {
+  padding-right: 2mm;
+}
+.inv-modern .inv-total-row.grand {
+  border: 0;
+  margin-top: 2mm;
+  padding: 2.5mm 3mm;
+  border-radius: 2mm;
+  background: var(--inv-accent);
+  color: #fff;
+}
+.inv-modern .inv-total-row.grand span:first-child {
+  color: #fff;
+}
+.inv-modern .inv-footer-cols {
+  border-top: 1.2pt solid var(--inv-accent);
+}
+
+/* Minimal */
+.inv-minimal {
+  font-size: 9pt;
+}
+.inv-minimal .inv-logo {
+  max-height: 14mm;
+  max-width: 45mm;
+}
+.inv-minimal .inv-company-name {
+  font-size: 11pt;
+  font-weight: 600;
+}
+.inv-minimal .inv-title {
+  font-size: 11pt;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  margin-bottom: 6mm;
+}
+.inv-minimal .inv-meta-row span:first-child {
+  text-transform: uppercase;
+  font-size: 6.8pt;
+  letter-spacing: 0.08em;
+}
+.inv-minimal .inv-table th {
+  border-bottom: 0.4pt solid var(--inv-line);
+  font-weight: 500;
+}
+.inv-minimal .inv-table td {
+  border-bottom: 0;
+  padding-top: 2.6mm;
+  padding-bottom: 2.6mm;
+}
+.inv-minimal .inv-item-title {
+  font-weight: 500;
+}
+.inv-minimal .inv-total-row.grand {
+  border-top: 0.4pt solid var(--inv-line);
+  font-weight: 600;
+  font-size: 12pt;
+}
+.inv-minimal .inv-total-row.grand span:last-child {
+  color: var(--inv-accent);
+}
+.inv-minimal .inv-note {
+  background: none;
+  border-left-width: 0.6pt;
+}
+.inv-minimal .inv-footer-cols {
+  border-top: 0;
+}
+
+/* Thumbnail in layout picker */
+.choice .thumb .scaled-page,
+.thumb-preview .scaled-page {
+  pointer-events: none;
+}
+.choice .thumb .inv-page {
+  box-shadow: none;
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 0;
+  }
+  body * {
+    visibility: hidden;
+  }
+  .print-area,
+  .print-area * {
+    visibility: visible;
+  }
+  .print-area {
+    position: absolute;
+    inset: 0 auto auto 0;
+  }
+  .print-area .scaled-page {
+    height: auto !important;
+    overflow: visible;
+  }
+  .print-area .scaled-inner {
+    position: static;
+    transform: none !important;
+  }
+  .print-area .inv-page {
+    box-shadow: none;
+  }
+  .print-area .inv-watermark {
+    color: rgba(0, 0, 0, 0.06);
+  }
+  .inv-table tr {
+    break-inside: avoid;
+  }
+  .inv-totals,
+  .inv-note {
+    break-inside: avoid;
+  }
+}
