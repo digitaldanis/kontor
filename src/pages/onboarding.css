@@ -1,0 +1,113 @@
+.onboarding {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 16px;
+  background:
+    radial-gradient(1200px 600px at 10% -10%, rgba(10, 102, 216, 0.12), transparent 60%),
+    radial-gradient(900px 500px at 110% 110%, rgba(142, 68, 173, 0.1), transparent 60%),
+    var(--bg);
+}
+.onboarding-card {
+  width: min(720px, 100%);
+  padding: 34px 40px 28px;
+  animation: dialog-in 0.5s var(--ease-out);
+}
+.onboarding-progress {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 30px;
+}
+.onboarding-progress span {
+  flex: 1;
+  height: 4px;
+  border-radius: 99px;
+  background: var(--gray-soft);
+  transition: background 0.3s var(--ease);
+}
+.onboarding-progress span.done {
+  background: var(--accent);
+}
+.onboarding-hero {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.onboarding-hero .brand-mark {
+  width: 72px;
+  height: 72px;
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  margin-bottom: 8px;
+}
+.onboarding-hero h1 {
+  font-size: 36px;
+}
+.onboarding-hero .lead {
+  font-size: 18px;
+  color: var(--text-2);
+  max-width: 480px;
+}
+.onboarding-features {
+  list-style: none;
+  padding: 0;
+  margin: 18px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  text-align: left;
+  width: min(440px, 100%);
+}
+.onboarding-features li {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+.onboarding-features svg {
+  color: var(--accent);
+  flex: none;
+  margin-top: 2px;
+}
+.onboarding-features strong {
+  display: block;
+}
+.onboarding-features span {
+  color: var(--text-2);
+  font-size: 14px;
+}
+.onboarding-features strong {
+  color: var(--text);
+  font-size: 15px;
+}
+.onboarding-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 30px;
+  flex-wrap: wrap-reverse;
+}
+.onboarding-foot {
+  margin-top: 18px;
+  text-align: center;
+}
+@media (max-width: 640px) {
+  .onboarding {
+    justify-content: flex-start;
+    padding: 16px 12px;
+  }
+  .onboarding-card {
+    padding: 24px 18px 20px;
+  }
+  .onboarding-hero h1 {
+    font-size: 28px;
+  }
+  .onboarding-actions .btn {
+    flex: 1;
+  }
+}
