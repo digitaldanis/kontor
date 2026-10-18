@@ -1,4 +1,4 @@
-import { useLiveQuery } from 'dexie-react-hooks'
+import { useLiveQuery } from './live'
 import { useEffect, useState } from 'react'
 import { db } from './db'
 import { normalizeSettings } from './migrate'

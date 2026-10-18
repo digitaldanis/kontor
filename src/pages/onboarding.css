@@ -117,3 +117,6 @@
   top: 16px;
   right: 16px;
 }
+.auth-card {
+  max-width: 460px;
+}

@@ -5,7 +5,7 @@ import { reminderTotal } from './dunning'
 import { buildXml, renderPdf, renderReminderPdf } from './exporters'
 import { docTitleLabel, sellerFor } from './invoiceView'
 import { fillTemplate, templateFor } from './mailTemplates'
-import { api, getConnection } from './server'
+import { api } from './api'
 import type { InvoiceDocument, MailTemplateKey, Reminder, Settings } from './types'
 
 export interface MailAttachment {
@@ -60,7 +60,6 @@ export async function buildAttachments(doc: InvoiceDocument, settings: Settings,
 }
 
 export async function serverMailReady(): Promise<boolean> {
-  if (!getConnection()?.token) return false
   try {
     const s = await api<{ configured: boolean; serverDefault: boolean }>('/api/mail/settings')
     return s.configured || s.serverDefault
@@ -74,9 +73,10 @@ async function toBase64(bytes: Uint8Array | string, type: string): Promise<strin
   return (await blobToDataUrl(blob, type)).split(',')[1] ?? ''
 }
 
-export async function sendViaServer(draft: MailDraft, attachments: MailAttachment[], replyTo?: string): Promise<void> {
+export async function sendViaServer(draft: MailDraft, attachments: MailAttachment[], replyTo?: string, documentId?: string): Promise<void> {
   await api('/api/mail/send', {
     body: {
+      documentId,
       to: draft.to,
       cc: draft.cc,
       replyTo,
