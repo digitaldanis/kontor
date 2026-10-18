@@ -280,3 +280,87 @@ export interface RunningTimer {
   billable: boolean
   startedAt: string
 }
+
+export interface CatalogItem {
+  id: string
+  name: string
+  description: string
+  unit: string
+  priceCents: number
+  taxRate: number
+  archived: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export type RecurringInterval = 'weekly' | 'monthly' | 'quarterly' | 'yearly'
+
+export interface RecurringTemplate {
+  title: string
+  items: LineItem[]
+  introText: string
+  closingText: string
+  footerText: string
+  currency: string
+  language: Language
+  layout: LayoutId
+  accentColor: string
+  buyerReference: string
+  discount: InvoiceDiscount | null
+}
+
+export interface RecurringInvoice {
+  id: string
+  name: string
+  customerId: string
+  interval: RecurringInterval
+  every: number
+  /** Date of the next draft. */
+  nextRun: string
+  endDate: string
+  active: boolean
+  template: RecurringTemplate
+  lastRun: string | null
+  lastDocumentId: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface Expense {
+  id: string
+  date: string
+  vendor: string
+  description: string
+  category: string
+  grossCents: number
+  taxRate: number
+  /** Input VAT (Vorsteuer), usually derived from gross and rate but editable. */
+  vatCents: number
+  currency: string
+  paidAt: string | null
+  invoiceNumber: string
+  attachmentId: string | null
+  notes: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface Attachment {
+  id: string
+  name: string
+  mime: string
+  size: number
+  data: Blob
+  createdAt: string
+}
+
+export interface Project {
+  id: string
+  customerId: string
+  name: string
+  budgetMinutes: number | null
+  budgetCents: number | null
+  archived: boolean
+  createdAt: string
+  updatedAt: string
+}

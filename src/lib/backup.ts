@@ -4,38 +4,79 @@ import { recipientName } from './defaults'
 import { normalizeDocument, normalizeSettings } from './migrate'
 import { formatAmount } from './money'
 import { displayStatus, STATUS_LABELS, documentLabel } from './status'
-import type { Customer, InvoiceDocument, RunningTimer, Settings, TimeEntry } from './types'
+import type { Attachment, CatalogItem, Customer, Expense, InvoiceDocument, Project, RecurringInvoice, Reminder, RunningTimer, Settings, TimeEntry } from './types'
+
+/** Attachments are stored as data URLs in the JSON file. */
+export interface SerializedAttachment extends Omit<Attachment, 'data'> {
+  dataUrl: string
+}
 
 export interface Backup {
   app: 'kontor'
-  version: 2
+  version: 3
   exportedAt: string
   settings: Settings | null
   customers: Customer[]
   documents: InvoiceDocument[]
   timeEntries: TimeEntry[]
   timer: RunningTimer | null
+  reminders: Reminder[]
+  catalog: CatalogItem[]
+  recurring: RecurringInvoice[]
+  expenses: Expense[]
+  projects: Project[]
+  attachments: SerializedAttachment[]
+}
+
+export async function blobToDataUrl(blob: Blob, mime = blob.type): Promise<string> {
+  const bytes = new Uint8Array(await blob.arrayBuffer())
+  let bin = ''
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000))
+  return `data:${mime || 'application/octet-stream'};base64,${btoa(bin)}`
+}
+
+export function dataUrlToBlob(dataUrl: string): Blob {
+  const [head, base64 = ''] = dataUrl.split(',')
+  const mime = /data:([^;]+)/.exec(head)?.[1] ?? 'application/octet-stream'
+  const bin = atob(base64)
+  const bytes = new Uint8Array(bin.length)
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
+  return new Blob([bytes], { type: mime })
 }
 
 export async function createBackup(): Promise<Backup> {
-  const [settings, customers, documents, timeEntries, timer] = await Promise.all([
+  const [settings, customers, documents, timeEntries, timer, reminders, catalog, recurring, expenses, projects, attachments] = await Promise.all([
     db.settings.get('main'),
     db.customers.toArray(),
     db.documents.toArray(),
     db.timeEntries.toArray(),
     db.timer.get('timer'),
+    db.reminders.toArray(),
+    db.catalog.toArray(),
+    db.recurring.toArray(),
+    db.expenses.toArray(),
+    db.projects.toArray(),
+    db.attachments.toArray(),
   ])
   return {
     app: 'kontor',
-    version: 2,
+    version: 3,
     exportedAt: new Date().toISOString(),
     settings: settings ?? null,
     customers,
     documents,
     timeEntries,
     timer: timer ?? null,
+    reminders,
+    catalog,
+    recurring,
+    expenses,
+    projects,
+    attachments: await Promise.all(attachments.map(async ({ data, ...a }) => ({ ...a, dataUrl: await blobToDataUrl(data, a.mime) }))),
   }
 }
+
+const list = <T,>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : [])
 
 export function parseBackup(text: string): Backup {
   let data: unknown
@@ -44,39 +85,56 @@ export function parseBackup(text: string): Backup {
   } catch {
     throw new Error('Die Datei ist kein gültiges JSON.')
   }
-  const b = data as Partial<Backup>
+  const b = data as Partial<Backup> & { version?: number }
   if (!b || b.app !== 'kontor' || !Array.isArray(b.documents) || !Array.isArray(b.customers)) {
     throw new Error('Das ist keine Kontor-Sicherung.')
   }
   const version = Number(b.version)
-  if (version !== 1 && version !== 2) throw new Error(`Sicherungsversion ${b.version} wird nicht unterstützt.`)
+  if (![1, 2, 3].includes(version)) throw new Error(`Sicherungsversion ${b.version} wird nicht unterstützt.`)
   return {
     app: 'kontor',
-    version: 2,
+    version: 3,
     exportedAt: b.exportedAt ?? '',
     settings: b.settings ? normalizeSettings(b.settings) : null,
     customers: b.customers,
     documents: b.documents.map(normalizeDocument),
-    timeEntries: Array.isArray(b.timeEntries) ? b.timeEntries : [],
+    timeEntries: list<TimeEntry>(b.timeEntries),
     timer: b.timer ?? null,
+    reminders: list<Reminder>(b.reminders),
+    catalog: list<CatalogItem>(b.catalog),
+    recurring: list<RecurringInvoice>(b.recurring),
+    expenses: list<Expense>(b.expenses),
+    projects: list<Project>(b.projects),
+    attachments: list<SerializedAttachment>(b.attachments),
   }
+}
+
+function allTables() {
+  return [db.settings, db.customers, db.documents, db.timeEntries, db.timer, db.reminders, db.catalog, db.recurring, db.expenses, db.projects, db.attachments]
 }
 
 /** Replaces all local data with the backup. */
 export async function restoreBackup(b: Backup): Promise<void> {
-  await db.transaction('rw', [db.settings, db.customers, db.documents, db.timeEntries, db.timer], async () => {
-    await Promise.all([db.settings.clear(), db.customers.clear(), db.documents.clear(), db.timeEntries.clear(), db.timer.clear()])
+  const attachments: Attachment[] = b.attachments.map(({ dataUrl, ...a }) => ({ ...a, data: dataUrlToBlob(dataUrl) }))
+  await db.transaction('rw', allTables(), async () => {
+    await Promise.all(allTables().map((t) => t.clear()))
     if (b.settings) await db.settings.put(b.settings)
     await db.customers.bulkPut(b.customers)
     await db.documents.bulkPut(b.documents)
     await db.timeEntries.bulkPut(b.timeEntries)
     if (b.timer) await db.timer.put(b.timer)
+    await db.reminders.bulkPut(b.reminders)
+    await db.catalog.bulkPut(b.catalog)
+    await db.recurring.bulkPut(b.recurring)
+    await db.expenses.bulkPut(b.expenses)
+    await db.projects.bulkPut(b.projects)
+    await db.attachments.bulkPut(attachments)
   })
 }
 
 export async function wipeAll(): Promise<void> {
-  await db.transaction('rw', [db.settings, db.customers, db.documents, db.timeEntries, db.timer], async () => {
-    await Promise.all([db.settings.clear(), db.customers.clear(), db.documents.clear(), db.timeEntries.clear(), db.timer.clear()])
+  await db.transaction('rw', allTables(), async () => {
+    await Promise.all(allTables().map((t) => t.clear()))
   })
 }
 

@@ -74,5 +74,8 @@ describe('database migration', () => {
     expect(settings?.creditNoteNumbers.pattern).toBe('GS-{YYYY}-{0001}')
 
     expect(await db.timeEntries.count()).toBe(3)
+    const projects = await db.projects.toArray()
+    expect(projects.map((p) => [p.customerId, p.name, p.budgetMinutes])).toEqual([['c1', 'Website', null]])
+    expect(await db.catalog.count()).toBe(0)
   })
 })

@@ -1,6 +1,6 @@
 import Dexie, { type EntityTable } from 'dexie'
 import { normalizeDocument, normalizeSettings } from './migrate'
-import type { Customer, InvoiceDocument, Reminder, RunningTimer, Settings, TimeEntry } from './types'
+import type { Attachment, CatalogItem, Customer, Expense, InvoiceDocument, Project, RecurringInvoice, Reminder, RunningTimer, Settings, TimeEntry } from './types'
 
 export class KontorDB extends Dexie {
   settings!: EntityTable<Settings, 'id'>
@@ -9,6 +9,11 @@ export class KontorDB extends Dexie {
   timeEntries!: EntityTable<TimeEntry, 'id'>
   timer!: EntityTable<RunningTimer, 'id'>
   reminders!: EntityTable<Reminder, 'id'>
+  catalog!: EntityTable<CatalogItem, 'id'>
+  recurring!: EntityTable<RecurringInvoice, 'id'>
+  expenses!: EntityTable<Expense, 'id'>
+  attachments!: EntityTable<Attachment, 'id'>
+  projects!: EntityTable<Project, 'id'>
 
   constructor(name = 'kontor') {
     super(name)
@@ -37,6 +42,29 @@ export class KontorDB extends Dexie {
     this.version(3).stores({
       reminders: 'id, invoiceId, customerId, issueDate',
     })
+    // Catalog, recurring invoices, expenses and projects
+    this.version(4)
+      .stores({
+        catalog: 'id, name',
+        recurring: 'id, customerId, nextRun',
+        expenses: 'id, date, category',
+        attachments: 'id',
+        projects: 'id, customerId, [customerId+name]',
+      })
+      .upgrade(async (tx) => {
+        // existing project names in time entries become projects without budget
+        const entries = (await tx.table('timeEntries').toArray()) as TimeEntry[]
+        const seen = new Set<string>()
+        const projects: Project[] = []
+        for (const e of entries) {
+          const name = e.project?.trim()
+          if (!name || seen.has(`${e.customerId}|${name}`)) continue
+          seen.add(`${e.customerId}|${name}`)
+          const stamp = new Date().toISOString()
+          projects.push({ id: crypto.randomUUID(), customerId: e.customerId, name, budgetMinutes: null, budgetCents: null, archived: false, createdAt: stamp, updatedAt: stamp })
+        }
+        await tx.table('projects').bulkPut(projects)
+      })
   }
 }
 
