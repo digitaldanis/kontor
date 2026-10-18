@@ -1,9 +1,11 @@
+import { t } from '../lib/i18n'
 import { ArrowLeft, ArrowRight, Clock, FileText, ShieldCheck, Sparkles } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useFeedback } from '../components/feedback'
 import { BrandMark } from '../components/Layout'
 import { AccentPicker, BankFields, CompanyFields, LayoutPicker, LogoField, TaxFields } from '../components/SettingsFields'
+import { LanguageSwitch } from '../components/LanguageSwitch'
 import { ServerSettings } from '../components/ServerSettings'
 import { Button, Dialog, Toggle } from '../components/ui'
 import { db } from '../lib/db'
@@ -16,7 +18,7 @@ import './onboarding.css'
 const STEPS = ['Willkommen', 'Firma', 'Steuern', 'Bank', 'Aussehen']
 
 export function Onboarding() {
-  useDocumentTitle('Willkommen')
+  useDocumentTitle(t('Willkommen'))
   const stored = useSettings()
   const navigate = useNavigate()
   const { run } = useFeedback()
@@ -51,7 +53,7 @@ export function Onboarding() {
     await run(async () => {
       await updateSettings({ ...draft, onboarded: true })
       navigate('/', { replace: true })
-    }, 'Alles eingerichtet')
+    }, t('Alles eingerichtet'))
   }
 
   const demo = () =>
@@ -60,12 +62,15 @@ export function Onboarding() {
       if (!hasData) await seedDemo()
       else await updateSettings({ onboarded: true })
       navigate('/', { replace: true })
-    }, 'Beispieldaten geladen')
+    }, t('Beispieldaten geladen'))
 
   return (
     <div className="onboarding">
+      <div className="onboarding-language">
+        <LanguageSwitch />
+      </div>
       <div className="onboarding-card card">
-        <div className="onboarding-progress" aria-label={`Schritt ${step + 1} von ${STEPS.length}`}>
+        <div className="onboarding-progress" aria-label={t('Schritt {p0} von {p1}', { p0: step + 1, p1: STEPS.length })}>
           {STEPS.map((s, i) => (
             <span key={s} className={i <= step ? 'done' : ''} />
           ))}
@@ -74,28 +79,28 @@ export function Onboarding() {
         {step === 0 && (
           <div className="onboarding-hero">
             <BrandMark />
-            <h1>Willkommen bei Kontor</h1>
-            <p className="lead">Rechnungen schreiben und Zeiten erfassen – an einem Ort. In zwei Minuten bist du startklar.</p>
+            <h1>{t('Willkommen bei Kontor')}</h1>
+            <p className="lead">{t('Rechnungen schreiben und Zeiten erfassen – an einem Ort. In zwei Minuten bist du startklar.')}</p>
             <ul className="onboarding-features">
               <li>
                 <FileText size={20} aria-hidden />
                 <span>
-                  <strong>Rechnungen nach § 14 UStG</strong>
-                  Pflichtangaben werden geprüft, Nummern fortlaufend vergeben.
+                  <strong>{t('Rechnungen nach § 14 UStG')}</strong>
+                  {t('Pflichtangaben werden geprüft, Nummern fortlaufend vergeben.')}
                 </span>
               </li>
               <li>
                 <Clock size={20} aria-hidden />
                 <span>
-                  <strong>Zeiterfassung pro Kunde</strong>
-                  Stoppuhr starten, später mit einem Klick abrechnen.
+                  <strong>{t('Zeiterfassung pro Kunde')}</strong>
+                  {t('Stoppuhr starten, später mit einem Klick abrechnen.')}
                 </span>
               </li>
               <li>
                 <ShieldCheck size={20} aria-hidden />
                 <span>
-                  <strong>Deine Daten bleiben bei dir</strong>
-                  Alles wird lokal in diesem Browser gespeichert.
+                  <strong>{t('Deine Daten bleiben bei dir')}</strong>
+                  {t('Alles wird lokal in diesem Browser gespeichert.')}
                 </span>
               </li>
             </ul>
@@ -105,8 +110,8 @@ export function Onboarding() {
         {step === 1 && (
           <div className="stack">
             <div>
-              <h2>Wer stellt die Rechnungen?</h2>
-              <p className="muted">Name und Anschrift sind Pflichtangaben auf jeder Rechnung.</p>
+              <h2>{t('Wer stellt die Rechnungen?')}</h2>
+              <p className="muted">{t('Name und Anschrift sind Pflichtangaben auf jeder Rechnung.')}</p>
             </div>
             <CompanyFields value={c} onChange={(company) => setDraft({ ...draft, company })} showErrors={showErrors} />
           </div>
@@ -115,15 +120,15 @@ export function Onboarding() {
         {step === 2 && (
           <div className="stack">
             <div>
-              <h2>Steuerliche Angaben</h2>
-              <p className="muted">Mindestens Steuernummer oder USt-IdNr. muss auf der Rechnung stehen.</p>
+              <h2>{t('Steuerliche Angaben')}</h2>
+              <p className="muted">{t('Mindestens Steuernummer oder USt-IdNr. muss auf der Rechnung stehen.')}</p>
             </div>
             <TaxFields value={c} onChange={(company) => setDraft({ ...draft, company })} showErrors={showErrors} />
             <Toggle
               checked={draft.smallBusiness}
               onChange={(smallBusiness) => setDraft({ ...draft, smallBusiness, defaults: { ...draft.defaults, taxRate: smallBusiness ? 0 : 19 } })}
-              label="Ich bin Kleinunternehmer (§ 19 UStG)"
-              description="Dann weist Kontor keine Umsatzsteuer aus und ergänzt den passenden Hinweis."
+              label={t('Ich bin Kleinunternehmer (§ 19 UStG)')}
+              description={t('Dann weist Kontor keine Umsatzsteuer aus und ergänzt den passenden Hinweis.')}
             />
           </div>
         )}
@@ -131,8 +136,8 @@ export function Onboarding() {
         {step === 3 && (
           <div className="stack">
             <div>
-              <h2>Wohin soll das Geld?</h2>
-              <p className="muted">Optional – erscheint in der Fußzeile jeder Rechnung. Du kannst das auch später ergänzen.</p>
+              <h2>{t('Wohin soll das Geld?')}</h2>
+              <p className="muted">{t('Optional – erscheint in der Fußzeile jeder Rechnung. Du kannst das auch später ergänzen.')}</p>
             </div>
             <BankFields value={c} onChange={(company) => setDraft({ ...draft, company })} />
           </div>
@@ -141,8 +146,8 @@ export function Onboarding() {
         {step === 4 && (
           <div className="stack">
             <div>
-              <h2>Wie sollen deine Rechnungen aussehen?</h2>
-              <p className="muted">Lade dein Logo hoch und wähle Layout und Farbe.</p>
+              <h2>{t('Wie sollen deine Rechnungen aussehen?')}</h2>
+              <p className="muted">{t('Lade dein Logo hoch und wähle Layout und Farbe.')}</p>
             </div>
             <LogoField logo={draft.logo} onChange={(logo) => setDraft({ ...draft, logo })} />
             <LayoutPicker settings={draft} value={draft.defaults.layout} onChange={(layout) => setDraft({ ...draft, defaults: { ...draft.defaults, layout } })} accent={draft.defaults.accentColor} />
@@ -152,22 +157,22 @@ export function Onboarding() {
 
         {showErrors && !stepValid() && (
           <p className="error-text small" role="alert" style={{ color: 'var(--red)', marginTop: 12 }}>
-            Bitte fülle die markierten Felder aus.
+            {t('Bitte fülle die markierten Felder aus.')}
           </p>
         )}
 
         <div className="onboarding-actions">
           {step > 0 ? (
             <Button icon={ArrowLeft} onClick={() => setStep(step - 1)}>
-              Zurück
+              {t('Zurück')}
             </Button>
           ) : (
             <Button variant="ghost" icon={Sparkles} onClick={demo}>
-              Erst mal mit Beispieldaten ausprobieren
+              {t('Erst mal mit Beispieldaten ausprobieren')}
             </Button>
           )}
           <Button variant="primary" size="lg" onClick={next}>
-            {step === 0 ? "Los geht's" : step === STEPS.length - 1 ? 'Fertig' : 'Weiter'}
+            {step === 0 ? t('Los geht\'s') : step === STEPS.length - 1 ? t('Fertig') : t('Weiter')}
             {step < STEPS.length - 1 && <ArrowRight size={17} aria-hidden />}
           </Button>
         </div>
@@ -176,14 +181,14 @@ export function Onboarding() {
         {step === 0 && (
           <>
             <button type="button" className="link-button" onClick={() => setServerOpen(true)}>
-              Kontor schon auf einem anderen Gerät? Mit deinem Server verbinden
+              {t('Kontor schon auf einem anderen Gerät? Mit deinem Server verbinden')}
             </button>
             <br />
           </>
         )}
-        Kontor ersetzt keine Steuerberatung. Alle Angaben ohne Gewähr.
+        {t('Kontor ersetzt keine Steuerberatung. Alle Angaben ohne Gewähr.')}
       </p>
-      <Dialog open={serverOpen} onClose={() => setServerOpen(false)} wide title="Mit Kontor-Server verbinden">
+      <Dialog open={serverOpen} onClose={() => setServerOpen(false)} wide title={t('Mit Kontor-Server verbinden')}>
         <ServerSettings />
       </Dialog>
     </div>

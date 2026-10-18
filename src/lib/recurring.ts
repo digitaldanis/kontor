@@ -1,5 +1,6 @@
 import { addDays, formatDate, parseISODate, toISODate } from './dates'
 import { db, now, uid } from './db'
+import { t } from './i18n'
 import { createDraft } from './repo'
 import type { InvoiceDocument, RecurringInterval, RecurringInvoice, RecurringTemplate } from './types'
 
@@ -11,9 +12,9 @@ export const INTERVAL_LABELS: Record<RecurringInterval, string> = {
 }
 
 export function intervalText(interval: RecurringInterval, every: number): string {
-  if (every <= 1) return INTERVAL_LABELS[interval]
+  if (every <= 1) return t(INTERVAL_LABELS[interval])
   const unit = { weekly: 'Wochen', monthly: 'Monate', quarterly: 'Quartale', yearly: 'Jahre' }[interval]
-  return `Alle ${every} ${unit}`
+  return t(`Alle {n} ${unit}`, { n: every })
 }
 
 /** Adds months and clamps to the last day, so the 31st becomes the 30th or 28th instead of spilling over. */

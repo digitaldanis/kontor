@@ -1,3 +1,4 @@
+import { t, uiLocale } from '../lib/i18n'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { BarChart3, ChevronLeft, ChevronRight, Download, Info } from 'lucide-react'
 import { useState } from 'react'
@@ -16,10 +17,10 @@ import { euer, vatReturn } from '../lib/expenses'
 import { sumBuckets, vatEntries, type Taxation } from '../lib/tax'
 import type { Expense, InvoiceDocument } from '../lib/types'
 
-const MONTHS = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez']
+const MONTHS = Array.from({ length: 12 }, (_, i) => new Date(2026, i, 1).toLocaleDateString(uiLocale(), { month: 'short' }).replace('.', ''))
 
 export function Reports() {
-  useDocumentTitle('Berichte')
+  useDocumentTitle(t('Berichte'))
   const { run } = useFeedback()
   const [year, setYear] = useState(new Date().getFullYear())
   const [taxPeriod, setTaxPeriod] = useState<'month' | 'quarter'>('quarter')
@@ -94,26 +95,26 @@ export function Reports() {
   return (
     <div className="page">
       <PageHeader
-        title="Berichte"
-        subtitle="Umsatz, Umsatzsteuer und Stunden auf einen Blick."
+        title={t('Berichte')}
+        subtitle={t('Umsatz, Umsatzsteuer und Stunden auf einen Blick.')}
         actions={
           <>
             <div className="row" style={{ gap: 2 }}>
-              <IconButton icon={ChevronLeft} label="Vorheriges Jahr" onClick={() => setYear(year - 1)} />
+              <IconButton icon={ChevronLeft} label={t('Vorheriges Jahr')} onClick={() => setYear(year - 1)} />
               <strong className="tabular" style={{ minWidth: 48, textAlign: 'center', fontSize: 17 }}>
                 {year}
               </strong>
-              <IconButton icon={ChevronRight} label="Nächstes Jahr" onClick={() => setYear(year + 1)} />
+              <IconButton icon={ChevronRight} label={t('Nächstes Jahr')} onClick={() => setYear(year + 1)} />
             </div>
             <Button
               icon={Download}
               onClick={() =>
                 run(async () => {
                   downloadFile(`kontor-rechnungen-${year}.csv`, invoicesToCsv(data.docs.filter((d) => d.issueDate.startsWith(y)), data.customers), 'text/csv;charset=utf-8')
-                }, 'CSV exportiert')
+                }, t('CSV exportiert'))
               }
             >
-              CSV {year}
+              {t('CSV')} {year}
             </Button>
           </>
         }
@@ -121,26 +122,26 @@ export function Reports() {
 
       {!hasData ? (
         <div className="card">
-          <EmptyState icon={BarChart3} title={`Keine Daten für ${year}`}>
-            Sobald du Rechnungen abschließt oder Zeiten erfasst, erscheinen hier deine Auswertungen.
+          <EmptyState icon={BarChart3} title={t('Keine Daten für {p0}', { p0: year })}>
+            {t('Sobald du Rechnungen abschließt oder Zeiten erfasst, erscheinen hier deine Auswertungen.')}
           </EmptyState>
         </div>
       ) : (
         <div className="stack">
           <div className="grid grid-4">
-            <Stat label="Umsatz netto" value={formatMoney(total.net)} sub={`${monthly.reduce((s, m) => s + m.count, 0)} Rechnungen`} tone="green" />
-            <Stat label="Umsatzsteuer" value={formatMoney(total.tax)} sub="ausgewiesen" tone="orange" />
-            <Stat label="Zahlungseingänge" value={formatMoney(total.paid)} sub="brutto, nach Zahldatum" tone="blue" />
-            <Stat label="Erfasste Stunden" value={formatDuration(total.minutes)} sub={`${total.minutes ? Math.round((billableMinutes / total.minutes) * 100) : 0} % abrechenbar`} tone="purple" />
+            <Stat label={t('Umsatz netto')} value={formatMoney(total.net)} sub={t('{p0} Rechnungen', { p0: monthly.reduce((s, m) => s + m.count, 0) })} tone="green" />
+            <Stat label={t('Umsatzsteuer')} value={formatMoney(total.tax)} sub={t('ausgewiesen')} tone="orange" />
+            <Stat label={t('Zahlungseingänge')} value={formatMoney(total.paid)} sub={t('brutto, nach Zahldatum')} tone="blue" />
+            <Stat label={t('Erfasste Stunden')} value={formatDuration(total.minutes)} sub={t('{p0} % abrechenbar', { p0: total.minutes ? Math.round((billableMinutes / total.minutes) * 100) : 0 })} tone="purple" />
           </div>
 
           <section className="card">
             <div className="card-header">
-              <h2>Umsatz pro Monat</h2>
+              <h2>{t('Umsatz pro Monat')}</h2>
             </div>
             <div className="card-body">
               <BarChart
-                label={`Nettoumsatz pro Monat ${year}`}
+                label={t('Nettoumsatz pro Monat {p0}', { p0: year })}
                 bars={monthly.map((m) => ({ key: m.key, label: m.label, hint: `${m.label} ${year}`, value: Math.max(0, m.net), display: formatMoney(m.net), current: m.key === toISODate(new Date()).slice(0, 7) }))}
               />
             </div>
@@ -148,12 +149,12 @@ export function Reports() {
               <table className="table">
                 <thead>
                   <tr>
-                    <th>Monat</th>
-                    <th className="num">Netto</th>
-                    <th className="num">USt</th>
-                    <th className="num">Brutto</th>
-                    <th className="num">Eingänge</th>
-                    <th className="num">Stunden</th>
+                    <th>{t('Monat')}</th>
+                    <th className="num">{t('Netto')}</th>
+                    <th className="num">{t('USt')}</th>
+                    <th className="num">{t('Brutto')}</th>
+                    <th className="num">{t('Eingänge')}</th>
+                    <th className="num">{t('Stunden')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -169,7 +170,7 @@ export function Reports() {
                   ))}
                   <tr className="total-row">
                     <td>
-                      <strong>Summe</strong>
+                      <strong>{t('Summe')}</strong>
                     </td>
                     <td className="num">
                       <strong>{formatMoney(total.net)}</strong>
@@ -186,24 +187,24 @@ export function Reports() {
 
           <section className="card">
             <div className="card-header">
-              <h2>Umsatzsteuer-Übersicht</h2>
+              <h2>{t('Umsatzsteuer-Übersicht')}</h2>
               <div className="row wrap">
               <Segmented
-                label="Versteuerung"
+                label={t('Versteuerung')}
                 value={taxation}
                 onChange={setTaxation}
                 options={[
-                  { value: 'accrual', label: 'Soll' },
-                  { value: 'cash', label: 'Ist' },
+                  { value: 'accrual', label: t('Soll') },
+                  { value: 'cash', label: t('Ist') },
                 ]}
               />
               <Segmented
-                label="Zeitraum"
+                label={t('Zeitraum')}
                 value={taxPeriod}
                 onChange={setTaxPeriod}
                 options={[
-                  { value: 'quarter', label: 'Quartal' },
-                  { value: 'month', label: 'Monat' },
+                  { value: 'quarter', label: t('Quartal') },
+                  { value: 'month', label: t('Monat') },
                 ]}
               />
               </div>
@@ -213,19 +214,19 @@ export function Reports() {
                 <Info size={16} aria-hidden />
                 <span>
                   {taxation === 'accrual'
-                    ? 'Soll-Versteuerung: Umsätze zählen nach Rechnungsdatum.'
-                    : 'Ist-Versteuerung: Umsätze zählen, wenn das Geld eingeht – Teilzahlungen anteilig nach Netto und Steuer.'}{' '}
-                  Als Orientierung für die Voranmeldung gedacht – keine Steuerberatung.
+                    ? t('Soll-Versteuerung: Umsätze zählen nach Rechnungsdatum.')
+                    : t('Ist-Versteuerung: Umsätze zählen, wenn das Geld eingeht – Teilzahlungen anteilig nach Netto und Steuer.')}{' '}
+                  {t('Als Orientierung für die Voranmeldung gedacht – keine Steuerberatung.')}
                 </span>
               </div>
               <div className="table-wrap">
                 <table className="table">
                   <thead>
                     <tr>
-                      <th>Zeitraum</th>
-                      <th>Art</th>
-                      <th className="num">Bemessungsgrundlage</th>
-                      <th className="num">Steuer</th>
+                      <th>{t('Zeitraum')}</th>
+                      <th>{t('Art')}</th>
+                      <th className="num">{t('Bemessungsgrundlage')}</th>
+                      <th className="num">{t('Steuer')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -244,7 +245,7 @@ export function Reports() {
                     {taxRows.every((r) => !r.buckets.length) && (
                       <tr>
                         <td colSpan={4} className="muted">
-                          Keine abgeschlossenen Rechnungen in {year}.
+                          {t('Keine abgeschlossenen Rechnungen in')} {year}.
                         </td>
                       </tr>
                     )}
@@ -261,7 +262,7 @@ export function Reports() {
           <div className="grid grid-2">
             <section className="card">
               <div className="card-header">
-                <h2>Nach Kunde</h2>
+                <h2>{t('Nach Kunde')}</h2>
               </div>
               <ul className="list" style={{ marginTop: 8 }}>
                 {customers.slice(0, 10).map((c) => (
@@ -273,17 +274,17 @@ export function Reports() {
                     <div className="progress" aria-hidden>
                       <span style={{ width: `${(Math.max(0, c.net) / maxCustomer) * 100}%` }} />
                     </div>
-                    <span className="sub">{c.minutes ? `${formatDuration(c.minutes)} erfasst` : 'keine Zeiten'}</span>
+                    <span className="sub">{c.minutes ? t('{p0} erfasst', { p0: formatDuration(c.minutes) }) : t('keine Zeiten')}</span>
                   </li>
                 ))}
               </ul>
             </section>
             <section className="card">
               <div className="card-header">
-                <h2>Stunden nach Projekt</h2>
+                <h2>{t('Stunden nach Projekt')}</h2>
               </div>
               {projects.length === 0 ? (
-                <p className="card-body muted small">Keine Zeiten in {year}.</p>
+                <p className="card-body muted small">{t('Keine Zeiten in')} {year}.</p>
               ) : (
                 <ul className="list" style={{ marginTop: 8 }}>
                   {projects.map(([name, minutes]) => (
@@ -307,8 +308,8 @@ export function Reports() {
   )
 }
 
-const QUARTERS = ['1. Quartal', '2. Quartal', '3. Quartal', '4. Quartal']
-const MONTH_NAMES = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember']
+const QUARTERS = [1, 2, 3, 4].map((q) => t('{q}. Quartal', { q }))
+const MONTH_NAMES = Array.from({ length: 12 }, (_, i) => new Date(2026, i, 1).toLocaleDateString(uiLocale(), { month: 'long' }))
 
 function periodRange(year: number, period: string): [string, string] {
   if (period === 'year') return [`${year}-01-01`, `${year}-12-31`]
@@ -324,24 +325,24 @@ function VatReturnCard({ docs, expenses, year, taxation, smallBusiness }: { docs
   const [period, setPeriod] = useState(year === current.getFullYear() ? `q${Math.floor(current.getMonth() / 3)}` : 'q0')
   const [from, to] = periodRange(year, period)
   const r = vatReturn(docs, expenses, from, to, taxation)
-  const euro = (n: number) => `${n.toLocaleString('de-DE')} €`
+  const euro = (n: number) => `${n.toLocaleString(uiLocale())} €`
   const rows: [string, string, string][] = [
-    ['81', 'Steuerpflichtige Umsätze 19 %', euro(r.kz81)],
-    ['', 'darauf Steuer', formatMoney(r.kz81Tax)],
-    ['86', 'Steuerpflichtige Umsätze 7 %', euro(r.kz86)],
-    ['', 'darauf Steuer', formatMoney(r.kz86Tax)],
-    ...r.otherRates.map((o): [string, string, string] => ['35/36', `Umsätze zu ${formatNumber(o.rate)} %`, `${formatMoney(o.baseCents)} / ${formatMoney(o.taxCents)}`]),
-    ['41', 'Innergemeinschaftliche Lieferungen an Abnehmer mit USt-IdNr.', euro(r.kz41)],
-    ['21', 'Nicht steuerbare sonstige Leistungen (EU, Reverse Charge)', euro(r.kz21)],
-    ['45', 'Übrige nicht steuerbare Umsätze (Leistungsort nicht im Inland)', euro(r.kz45)],
-    ['66', 'Vorsteuerbeträge aus Rechnungen anderer Unternehmer', formatMoney(r.kz66)],
-    ['83', r.kz83 >= 0 ? 'Verbleibende Umsatzsteuer-Vorauszahlung' : 'Verbleibender Überschuss (Erstattung)', formatMoney(r.kz83)],
+    ['81', t('Steuerpflichtige Umsätze 19 %'), euro(r.kz81)],
+    ['', t('darauf Steuer'), formatMoney(r.kz81Tax)],
+    ['86', t('Steuerpflichtige Umsätze 7 %'), euro(r.kz86)],
+    ['', t('darauf Steuer'), formatMoney(r.kz86Tax)],
+    ...r.otherRates.map((o): [string, string, string] => ['35/36', t('Umsätze zu {p0} %', { p0: formatNumber(o.rate) }), `${formatMoney(o.baseCents)} / ${formatMoney(o.taxCents)}`]),
+    ['41', t('Innergemeinschaftliche Lieferungen an Abnehmer mit USt-IdNr.'), euro(r.kz41)],
+    ['21', t('Nicht steuerbare sonstige Leistungen (EU, Reverse Charge)'), euro(r.kz21)],
+    ['45', t('Übrige nicht steuerbare Umsätze (Leistungsort nicht im Inland)'), euro(r.kz45)],
+    ['66', t('Vorsteuerbeträge aus Rechnungen anderer Unternehmer'), formatMoney(r.kz66)],
+    ['83', r.kz83 >= 0 ? t('Verbleibende Umsatzsteuer-Vorauszahlung') : t('Verbleibender Überschuss (Erstattung)'), formatMoney(r.kz83)],
   ]
   return (
     <section className="card">
       <div className="card-header">
-        <h2>USt-Voranmeldung</h2>
-        <select className="select" style={{ width: 'auto' }} value={period} onChange={(e) => setPeriod(e.target.value)} aria-label="Voranmeldungszeitraum">
+        <h2>{t('USt-Voranmeldung')}</h2>
+        <select className="select" style={{ width: 'auto' }} value={period} onChange={(e) => setPeriod(e.target.value)} aria-label={t('Voranmeldungszeitraum')}>
           {QUARTERS.map((q, i) => (
             <option key={q} value={`q${i}`}>
               {q} {year}
@@ -352,26 +353,26 @@ function VatReturnCard({ docs, expenses, year, taxation, smallBusiness }: { docs
               {m} {year}
             </option>
           ))}
-          <option value="year">Gesamtes Jahr {year}</option>
+          <option value="year">{t('Gesamtes Jahr')} {year}</option>
         </select>
       </div>
       <div className="card-body stack-sm">
         <div className="callout warning small">
           <Info size={16} aria-hidden />
           <span>
-            Kennzahlen als Hilfe zum Ausfüllen in ELSTER, {taxation === 'cash' ? 'nach Zahlungseingang (Ist)' : 'nach Rechnungsdatum (Soll)'} – <strong>keine Steuerberatung</strong> und ohne Gewähr. Sonderfälle wie § 13b-Leistungen, die du bezogen hast, sind nicht enthalten.
+            {t('Kennzahlen als Hilfe zum Ausfüllen in ELSTER,')} {taxation === 'cash' ? t('nach Zahlungseingang (Ist)') : t('nach Rechnungsdatum (Soll)')} – <strong>{t('keine Steuerberatung')}</strong> {t('und ohne Gewähr. Sonderfälle wie § 13b-Leistungen, die du bezogen hast, sind nicht enthalten.')}
           </span>
         </div>
         {smallBusiness ? (
-          <p className="muted small">Als Kleinunternehmer gibst du in der Regel keine Umsatzsteuer-Voranmeldung ab.</p>
+          <p className="muted small">{t('Als Kleinunternehmer gibst du in der Regel keine Umsatzsteuer-Voranmeldung ab.')}</p>
         ) : (
           <div className="table-wrap">
             <table className="table">
               <thead>
                 <tr>
-                  <th style={{ width: 70 }}>Kz.</th>
-                  <th>Bezeichnung</th>
-                  <th className="num">Betrag</th>
+                  <th style={{ width: 70 }}>{t('Kz.')}</th>
+                  <th>{t('Bezeichnung')}</th>
+                  <th className="num">{t('Betrag')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -396,27 +397,27 @@ function EuerCard({ docs, expenses, year, smallBusiness }: { docs: InvoiceDocume
   return (
     <section className="card">
       <div className="card-header">
-        <h2>Einnahmen-Überschuss {year}</h2>
+        <h2>{t('Einnahmen-Überschuss')} {year}</h2>
         <Link to="/ausgaben" className="small">
-          Ausgaben
+          {t('Ausgaben')}
         </Link>
       </div>
       <div className="card-body stack-sm">
         <div className="callout small">
           <Info size={16} aria-hidden />
-          <span>Vereinfachte Übersicht nach Zu- und Abfluss (Zahlungsdatum). Abschreibungen, Privatanteile und Zahlungen ans Finanzamt fehlen – zur Orientierung, keine Steuerberatung.</span>
+          <span>{t('Vereinfachte Übersicht nach Zu- und Abfluss (Zahlungsdatum). Abschreibungen, Privatanteile und Zahlungen ans Finanzamt fehlen – zur Orientierung, keine Steuerberatung.')}</span>
         </div>
         <div className="grid grid-3">
-          <Stat label="Betriebseinnahmen" value={formatMoney(r.incomeNetCents)} sub={smallBusiness ? 'brutto' : `netto · USt ${formatMoney(r.incomeVatCents)}`} tone="green" />
-          <Stat label="Betriebsausgaben" value={formatMoney(r.expenseNetCents)} sub={smallBusiness ? 'brutto' : `netto · Vorsteuer ${formatMoney(r.inputVatCents)}`} tone="orange" />
-          <Stat label={r.resultCents >= 0 ? 'Überschuss' : 'Verlust'} value={formatMoney(r.resultCents)} sub="Einnahmen − Ausgaben" tone={r.resultCents >= 0 ? 'blue' : 'red'} />
+          <Stat label={t('Betriebseinnahmen')} value={formatMoney(r.incomeNetCents)} sub={smallBusiness ? t('brutto') : t('netto · USt {p0}', { p0: formatMoney(r.incomeVatCents) })} tone="green" />
+          <Stat label={t('Betriebsausgaben')} value={formatMoney(r.expenseNetCents)} sub={smallBusiness ? t('brutto') : t('netto · Vorsteuer {p0}', { p0: formatMoney(r.inputVatCents) })} tone="orange" />
+          <Stat label={r.resultCents >= 0 ? t('Überschuss') : t('Verlust')} value={formatMoney(r.resultCents)} sub={t('Einnahmen − Ausgaben')} tone={r.resultCents >= 0 ? 'blue' : 'red'} />
         </div>
         {r.byCategory.length > 0 && (
           <ul className="list">
             {r.byCategory.map((c) => (
               <li key={c.category} className="list-item" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 6 }}>
                 <div className="row between">
-                  <span className="title">{c.category}</span>
+                  <span className="title">{t(c.category)}</span>
                   <strong className="tabular">{formatMoney(c.netCents)}</strong>
                 </div>
                 <div className="progress" aria-hidden>

@@ -1,3 +1,4 @@
+import { t } from '../lib/i18n'
 import { Mail, Paperclip, Send } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -38,7 +39,7 @@ export function SendDialog({ doc, reminder, settings, open, onClose }: { doc: In
 
   const send = async () => {
     if (!draft.to.trim()) {
-      toast('Bitte eine Empfängeradresse angeben.', 'error')
+      toast(t('Bitte eine Empfängeradresse angeben.'), 'error')
       return
     }
     setBusy(true)
@@ -47,10 +48,10 @@ export function SendDialog({ doc, reminder, settings, open, onClose }: { doc: In
       if (server) await sendViaServer(draft, files, settings.company.email || undefined)
       else sendViaMailto(draft, files)
       return true
-    }, server ? 'E-Mail versendet' : undefined)
+    }, server ? t('E-Mail versendet') : undefined)
     setBusy(false)
     if (ok) {
-      if (!server) toast('Die Datei wurde heruntergeladen – bitte im Mailprogramm anhängen.')
+      if (!server) toast(t('Die Datei wurde heruntergeladen – bitte im Mailprogramm anhängen.'))
       await finish()
     }
   }
@@ -65,13 +66,13 @@ export function SendDialog({ doc, reminder, settings, open, onClose }: { doc: In
         reset()
       }}
       wide
-      title={reminder ? `${reminder.title} senden` : 'Per E-Mail senden'}
-      description={server === false ? undefined : server ? 'Versand über den verbundenen Kontor-Server (SMTP).' : 'Prüfe den Versandweg …'}
+      title={reminder ? t('{p0} senden', { p0: reminder.title }) : t('Per E-Mail senden')}
+      description={server === false ? undefined : server ? t('Versand über den verbundenen Kontor-Server (SMTP).') : t('Prüfe den Versandweg …')}
       footer={
         <>
-          <Button onClick={onClose}>Abbrechen</Button>
+          <Button onClick={onClose}>{t('Abbrechen')}</Button>
           <Button variant="primary" icon={server ? Send : Mail} onClick={send} disabled={busy || server === null}>
-            {server ? 'Senden' : 'Im Mailprogramm öffnen'}
+            {server ? t('Senden') : t('Im Mailprogramm öffnen')}
           </Button>
         </>
       }
@@ -81,31 +82,31 @@ export function SendDialog({ doc, reminder, settings, open, onClose }: { doc: In
           <div className="callout info small">
             <Paperclip size={16} aria-hidden />
             <span>
-              Ohne Server kann der Browser keine E-Mails verschicken. Kontor lädt die Datei herunter und öffnet dein Mailprogramm mit Betreff und Text – <strong>hänge die heruntergeladene Datei dort bitte an.</strong>{' '}
-              <Link to="/einstellungen#server">Server verbinden</Link>
+              {t('Ohne Server kann der Browser keine E-Mails verschicken. Kontor lädt die Datei herunter und öffnet dein Mailprogramm mit Betreff und Text –')} <strong>{t('hänge die heruntergeladene Datei dort bitte an.')}</strong>{' '}
+              <Link to="/einstellungen#server">{t('Server verbinden')}</Link>
             </span>
           </div>
         )}
         <div className="form-grid">
-          <TextField className="span-3" label="An" type="email" value={draft.to} onChange={(to) => setDraft({ ...draft, to })} placeholder="kunde@example.de" />
-          <TextField className="span-3" label="Kopie (CC)" value={draft.cc} onChange={(cc) => setDraft({ ...draft, cc })} placeholder="optional" />
-          <TextField className="span-6" label="Betreff" value={draft.subject} onChange={(subject) => setDraft({ ...draft, subject })} />
-          <TextAreaField className="span-6" label="Nachricht" value={draft.body} onChange={(body) => setDraft({ ...draft, body })} rows={9} />
+          <TextField className="span-3" label={t('An')} type="email" value={draft.to} onChange={(to) => setDraft({ ...draft, to })} placeholder={t('kunde@example.de')} />
+          <TextField className="span-3" label={t('Kopie (CC)')} value={draft.cc} onChange={(cc) => setDraft({ ...draft, cc })} placeholder={t('optional')} />
+          <TextField className="span-6" label={t('Betreff')} value={draft.subject} onChange={(subject) => setDraft({ ...draft, subject })} />
+          <TextAreaField className="span-6" label={t('Nachricht')} value={draft.body} onChange={(body) => setDraft({ ...draft, body })} rows={9} />
         </div>
         {withEInvoice && (
           <div className="stack-sm" style={{ gap: 6 }}>
-            <strong className="small">Anhang</strong>
+            <strong className="small">{t('Anhang')}</strong>
             <Segmented
-              label="Anhang"
+              label={t('Anhang')}
               value={choice}
               onChange={setChoice}
               options={[
-                { value: 'zugferd', label: 'ZUGFeRD-PDF' },
-                { value: 'pdf', label: 'PDF' },
-                { value: 'xrechnung', label: 'PDF + XRechnung' },
+                { value: 'zugferd', label: t('ZUGFeRD-PDF') },
+                { value: 'pdf', label: t('PDF') },
+                { value: 'xrechnung', label: t('PDF + XRechnung') },
               ]}
             />
-            <span className="hint small faint">ZUGFeRD ist ein normales PDF mit eingebetteten Rechnungsdaten – lesbar für Menschen und Buchhaltungssoftware.</span>
+            <span className="hint small faint">{t('ZUGFeRD ist ein normales PDF mit eingebetteten Rechnungsdaten – lesbar für Menschen und Buchhaltungssoftware.')}</span>
           </div>
         )}
       </div>

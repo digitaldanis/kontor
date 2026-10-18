@@ -1,3 +1,4 @@
+import { t } from '../lib/i18n'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Plus, Search, Users } from 'lucide-react'
 import { useMemo, useState } from 'react'
@@ -15,7 +16,7 @@ import { amountDue, isOutstanding } from '../lib/status'
 import type { Customer } from '../lib/types'
 
 export function Customers() {
-  useDocumentTitle('Kunden')
+  useDocumentTitle(t('Kunden'))
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<'active' | 'archived'>('active')
@@ -51,11 +52,11 @@ export function Customers() {
   return (
     <div className="page">
       <PageHeader
-        title="Kunden"
-        subtitle={customers ? `${customers.filter((c) => !c.archived).length} aktive Kunden` : undefined}
+        title={t('Kunden')}
+        subtitle={customers ? t('{p0} aktive Kunden', { p0: customers.filter((c) => !c.archived).length }) : undefined}
         actions={
           <Button variant="primary" icon={Plus} onClick={() => setEditing(emptyCustomer())}>
-            Neuer Kunde
+            {t('Neuer Kunde')}
           </Button>
         }
       />
@@ -63,18 +64,18 @@ export function Customers() {
       {customers && customers.length > 0 && (
         <div className="toolbar">
           <label className="search">
-            <span className="sr-only">Kunden durchsuchen</span>
+            <span className="sr-only">{t('Kunden durchsuchen')}</span>
             <Search size={16} aria-hidden />
-            <input className="input" type="search" placeholder="Name, Ort, E-Mail, Kundennummer …" value={query} onChange={(e) => setQuery(e.target.value)} />
+            <input className="input" type="search" placeholder={t('Name, Ort, E-Mail, Kundennummer …')} value={query} onChange={(e) => setQuery(e.target.value)} />
           </label>
           {hasArchived && (
             <Segmented
-              label="Filter"
+              label={t('Filter')}
               value={filter}
               onChange={setFilter}
               options={[
-                { value: 'active', label: 'Aktiv' },
-                { value: 'archived', label: 'Archiviert' },
+                { value: 'active', label: t('Aktiv') },
+                { value: 'archived', label: t('Archiviert') },
               ]}
             />
           )}
@@ -85,28 +86,28 @@ export function Customers() {
         {customers && customers.length === 0 ? (
           <EmptyState
             icon={Users}
-            title="Noch keine Kunden"
+            title={t('Noch keine Kunden')}
             action={
               <Button variant="primary" icon={Plus} onClick={() => setEditing(emptyCustomer())}>
-                Ersten Kunden anlegen
+                {t('Ersten Kunden anlegen')}
               </Button>
             }
           >
-            Lege deine Kunden einmal an – Anschrift, Stundensatz und Zahlungsziel werden dann automatisch in Rechnungen und Zeiterfassung übernommen.
+            {t('Lege deine Kunden einmal an – Anschrift, Stundensatz und Zahlungsziel werden dann automatisch in Rechnungen und Zeiterfassung übernommen.')}
           </EmptyState>
         ) : list.length === 0 && customers ? (
-          <EmptyState icon={Search} title="Keine Treffer" compact>
-            Für „{query}“ wurde kein Kunde gefunden.
+          <EmptyState icon={Search} title={t('Keine Treffer')} compact>
+            {t('Für „{q}“ wurde kein Kunde gefunden.', { q: query })}
           </EmptyState>
         ) : (
           <div className="table-wrap">
             <table className="table responsive">
               <thead>
                 <tr>
-                  <th>Kunde</th>
-                  <th>Ort</th>
-                  <th className="num">Offene Zeit</th>
-                  <th className="num">Offene Rechnungen</th>
+                  <th>{t('Kunde')}</th>
+                  <th>{t('Ort')}</th>
+                  <th className="num">{t('Offene Zeit')}</th>
+                  <th className="num">{t('Offene Rechnungen')}</th>
                 </tr>
               </thead>
               <tbody>

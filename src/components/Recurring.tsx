@@ -1,3 +1,4 @@
+import { t } from '../lib/i18n'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Pause, Play, Plus, Repeat, Trash2 } from 'lucide-react'
 import { useState } from 'react'
@@ -46,7 +47,7 @@ export function RecurringList() {
 
   const remove = async (r: RecurringInvoice) => {
     await run(() => db.recurring.delete(r.id))
-    undoable(`Serie „${r.name}“ gelöscht`, () => db.recurring.put(r))
+    undoable(t('Serie „{p0}“ gelöscht', { p0: r.name }), () => db.recurring.put(r))
   }
 
   const sorted = [...(list ?? [])].sort((a, b) => Number(b.active) - Number(a.active) || a.nextRun.localeCompare(b.nextRun))
@@ -57,18 +58,18 @@ export function RecurringList() {
         {list && list.length === 0 ? (
           <EmptyState
             icon={Repeat}
-            title="Keine Serienrechnungen"
+            title={t('Keine Serienrechnungen')}
             action={
               active.length ? (
                 <Button variant="primary" icon={Plus} onClick={create}>
-                  Serie anlegen
+                  {t('Serie anlegen')}
                 </Button>
               ) : (
-                <Link to="/kunden" className="btn primary">Zuerst einen Kunden anlegen</Link>
+                <Link to="/kunden" className="btn primary">{t('Zuerst einen Kunden anlegen')}</Link>
               )
             }
           >
-            Für Wartungsverträge, Hosting oder Retainer: Kontor legt zum Stichtag automatisch einen Entwurf an, den du nur noch prüfst und abschließt.
+            {t('Für Wartungsverträge, Hosting oder Retainer: Kontor legt zum Stichtag automatisch einen Entwurf an, den du nur noch prüfst und abschließt.')}
           </EmptyState>
         ) : (
           <>
@@ -81,33 +82,33 @@ export function RecurringList() {
                     <button type="button" className="grow plain-button" onClick={() => setEditing(r)}>
                       <span className="title" style={{ display: 'block' }}>{r.name}</span>
                       <span className="sub" style={{ display: 'block' }}>
-                        {[c ? customerName(c) : 'Kunde fehlt', intervalText(r.interval, r.every), r.active ? `nächster Entwurf ${formatDate(r.nextRun)}` : 'pausiert'].join(' · ')}
+                        {[c ? customerName(c) : t('Kunde fehlt'), intervalText(r.interval, r.every), r.active ? t('nächster Entwurf {p0}', { p0: formatDate(r.nextRun) }) : t('pausiert')].join(' · ')}
                       </span>
                     </button>
                     <strong className="tabular">{formatMoney(net, r.template.currency)}</strong>
-                    <span className="small faint hide-sm">netto</span>
+                    <span className="small faint hide-sm">{t('netto')}</span>
                     <IconButton
                       icon={r.active ? Pause : Play}
-                      label={r.active ? 'Pausieren' : 'Fortsetzen'}
-                      onClick={() => run(() => db.recurring.update(r.id, { active: !r.active, updatedAt: now() }), r.active ? 'Serie pausiert' : 'Serie läuft wieder')}
+                      label={r.active ? t('Pausieren') : t('Fortsetzen')}
+                      onClick={() => run(() => db.recurring.update(r.id, { active: !r.active, updatedAt: now() }), r.active ? t('Serie pausiert') : t('Serie läuft wieder'))}
                     />
-                    <IconButton icon={Trash2} label="Löschen" danger onClick={() => remove(r)} />
+                    <IconButton icon={Trash2} label={t('Löschen')} danger onClick={() => remove(r)} />
                   </li>
                 )
               })}
             </ul>
             <div className="card-body row wrap">
               <Button icon={Plus} onClick={create} disabled={!active.length}>
-                Serie anlegen
+                {t('Serie anlegen')}
               </Button>
               <Button
                 variant="ghost"
                 onClick={async () => {
                   const created = await run(() => runRecurring(today()))
-                  if (created) toast(created.length ? `${created.length} Entwürfe erstellt` : 'Keine Serie ist heute fällig')
+                  if (created) toast(created.length ? t('{p0} Entwürfe erstellt', { p0: created.length }) : t('Keine Serie ist heute fällig'))
                 }}
               >
-                Jetzt prüfen
+                {t('Jetzt prüfen')}
               </Button>
             </div>
           </>
@@ -136,11 +137,11 @@ export function RecurringDialog({ rec, onClose }: { rec: RecurringInvoice | null
   const started = draft.runs > 0
 
   const save = async () => {
-    const saved = await run(() => saveRecurring(draft), 'Serie gespeichert')
+    const saved = await run(() => saveRecurring(draft), t('Serie gespeichert'))
     if (saved) {
       onClose()
       const created = await runRecurring(today())
-      if (created.length) toast(`${created.length} Entwurf${created.length > 1 ? 'e' : ''} erstellt`)
+      if (created.length) toast(t('{p0} Entwurf{p1} erstellt', { p0: created.length, p1: created.length > 1 ? 'e' : '' }))
     }
   }
 
@@ -149,79 +150,79 @@ export function RecurringDialog({ rec, onClose }: { rec: RecurringInvoice | null
       open={!!rec}
       onClose={onClose}
       wide
-      title={rec?.createdAt === rec?.updatedAt && !started ? 'Neue Serienrechnung' : 'Serienrechnung'}
-      description="Zum Stichtag entsteht ein Entwurf mit dem jeweiligen Leistungszeitraum. Platzhalter {Monat}, {Jahr}, {Quartal} und {Zeitraum} werden ersetzt."
+      title={rec?.createdAt === rec?.updatedAt && !started ? t('Neue Serienrechnung') : t('Serienrechnung')}
+      description={t('Zum Stichtag entsteht ein Entwurf mit dem jeweiligen Leistungszeitraum. Platzhalter {Monat}, {Jahr}, {Quartal} und {Zeitraum} werden ersetzt.')}
       footer={
         <>
-          <Button onClick={onClose}>Abbrechen</Button>
+          <Button onClick={onClose}>{t('Abbrechen')}</Button>
           <Button variant="primary" onClick={save}>
-            Speichern
+            {t('Speichern')}
           </Button>
         </>
       }
     >
       <div className="stack">
         <div className="form-grid">
-          <TextField className="span-3" label="Bezeichnung" value={draft.name} onChange={(name) => set({ name })} />
-          <SelectField className="span-3" label="Kunde" value={draft.customerId} onChange={(customerId) => set({ customerId })}>
+          <TextField className="span-3" label={t('Bezeichnung')} value={draft.name} onChange={(name) => set({ name })} />
+          <SelectField className="span-3" label={t('Kunde')} value={draft.customerId} onChange={(customerId) => set({ customerId })}>
             {customers?.map((c) => (
               <option key={c.id} value={c.id}>
                 {customerName(c)}
               </option>
             ))}
           </SelectField>
-          <SelectField className="span-2" label="Intervall" value={draft.interval} onChange={(v) => set({ interval: v as RecurringInterval })} disabled={started}>
+          <SelectField className="span-2" label={t('Intervall')} value={draft.interval} onChange={(v) => set({ interval: v as RecurringInterval })} disabled={started}>
             {(Object.keys(INTERVAL_LABELS) as RecurringInterval[]).map((k) => (
               <option key={k} value={k}>
-                {INTERVAL_LABELS[k]}
+                {t(INTERVAL_LABELS[k])}
               </option>
             ))}
           </SelectField>
-          <Field className="span-1" label="Alle">
-            <NumberInput value={draft.every} onChange={(n) => set({ every: Math.max(1, Math.round(n)) })} maxFraction={0} aria-label="Intervall-Faktor" disabled={started} />
+          <Field className="span-1" label={t('Alle')}>
+            <NumberInput value={draft.every} onChange={(n) => set({ every: Math.max(1, Math.round(n)) })} maxFraction={0} aria-label={t('Intervall-Faktor')} disabled={started} />
           </Field>
-          <TextField className="span-3" label={started ? 'Gestartet am' : 'Erster Entwurf am'} type="date" value={draft.startDate} onChange={(startDate) => set({ startDate })} disabled={started} hint={started ? `Nächster Entwurf: ${formatDate(draft.nextRun)}` : undefined} />
-          <TextField className="span-3" label="Endet am" type="date" value={draft.endDate} onChange={(endDate) => set({ endDate })} hint="optional" />
+          <TextField className="span-3" label={started ? t('Gestartet am') : t('Erster Entwurf am')} type="date" value={draft.startDate} onChange={(startDate) => set({ startDate })} disabled={started} hint={started ? t('Nächster Entwurf: {p0}', { p0: formatDate(draft.nextRun) }) : undefined} />
+          <TextField className="span-3" label={t('Endet am')} type="date" value={draft.endDate} onChange={(endDate) => set({ endDate })} hint={t('optional')} />
           <div className="span-3" style={{ alignSelf: 'center' }}>
-            <Toggle checked={draft.active} onChange={(active) => set({ active })} label="Aktiv" />
+            <Toggle checked={draft.active} onChange={(active) => set({ active })} label={t('Aktiv')} />
           </div>
         </div>
 
         <div className="stack-sm">
-          <strong>Positionen</strong>
+          <strong>{t('Positionen')}</strong>
           {draft.template.items.map((i) => (
             <div key={i.id} className="form-grid recurring-item">
-              <TextField className="span-3" label="Bezeichnung" value={i.title} onChange={(title) => patchItem(i.id, { title })} />
-              <Field className="span-1" label="Menge">
-                <NumberInput value={i.quantity} onChange={(quantity) => patchItem(i.id, { quantity })} aria-label="Menge" />
+              <TextField className="span-3" label={t('Bezeichnung')} value={i.title} onChange={(title) => patchItem(i.id, { title })} />
+              <Field className="span-1" label={t('Menge')}>
+                <NumberInput value={i.quantity} onChange={(quantity) => patchItem(i.id, { quantity })} aria-label={t('Menge')} />
               </Field>
-              <Field className="span-1" label="Preis">
-                <MoneyInput value={i.unitPriceCents} onChange={(v) => patchItem(i.id, { unitPriceCents: v ?? 0 })} aria-label="Einzelpreis" />
+              <Field className="span-1" label={t('Preis')}>
+                <MoneyInput value={i.unitPriceCents} onChange={(v) => patchItem(i.id, { unitPriceCents: v ?? 0 })} aria-label={t('Einzelpreis')} />
               </Field>
-              <SelectField className="span-1" label="USt" value={String(i.taxRate)} onChange={(v) => patchItem(i.id, { taxRate: Number(v) })} disabled={settings.smallBusiness}>
+              <SelectField className="span-1" label={t('USt')} value={String(i.taxRate)} onChange={(v) => patchItem(i.id, { taxRate: Number(v) })} disabled={settings.smallBusiness}>
                 {[...new Set([...TAX_RATES, i.taxRate])].map((r) => (
                   <option key={r} value={r}>
                     {r} %
                   </option>
                 ))}
               </SelectField>
-              <TextAreaField className="span-6" label="Beschreibung" value={i.description} onChange={(description) => patchItem(i.id, { description })} rows={1} />
+              <TextAreaField className="span-6" label={t('Beschreibung')} value={i.description} onChange={(description) => patchItem(i.id, { description })} rows={1} />
               <div className="span-6 row" style={{ justifyContent: 'flex-end' }}>
                 <Button size="sm" variant="ghost" icon={Trash2} onClick={() => setItems(draft.template.items.filter((x) => x.id !== i.id))}>
-                  Entfernen
+                  {t('Entfernen')}
                 </Button>
               </div>
             </div>
           ))}
           <div className="row wrap">
             <Button size="sm" icon={Plus} onClick={() => setItems([...draft.template.items, newLineItem(settings)])}>
-              Position
+              {t('Position')}
             </Button>
             <Button size="sm" variant="ghost" onClick={() => setPicking(true)}>
-              Aus Leistungen
+              {t('Aus Leistungen')}
             </Button>
             <span className="spacer" />
-            <span className="small muted">{formatMoney(calculateTotals(draft.template.items).netCents, draft.template.currency)} netto je Rechnung</span>
+            <span className="small muted">{formatMoney(calculateTotals(draft.template.items).netCents, draft.template.currency)} {t('netto je Rechnung')}</span>
           </div>
         </div>
       </div>

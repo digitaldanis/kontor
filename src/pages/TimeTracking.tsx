@@ -1,3 +1,4 @@
+import { t, uiLocale } from '../lib/i18n'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { ChevronLeft, ChevronRight, Clock, Plus, ReceiptText } from 'lucide-react'
 import { useMemo, useState } from 'react'
@@ -36,13 +37,13 @@ function periodRange(period: Period, offset: number): { from: Date; to: Date; la
   const last = new Date(to.getTime() - 86_400_000)
   const label =
     period === 'week'
-      ? `KW ${isoWeek(from)} · ${from.toLocaleDateString('de-DE', { day: 'numeric', month: 'short' })} – ${last.toLocaleDateString('de-DE', { day: 'numeric', month: 'short', year: 'numeric' })}`
+      ? `KW ${isoWeek(from)} · ${from.toLocaleDateString(uiLocale(), { day: 'numeric', month: 'short' })} – ${last.toLocaleDateString(uiLocale(), { day: 'numeric', month: 'short', year: 'numeric' })}`
       : formatMonth(from)
   return { from, to, label, days }
 }
 
 export function TimeTracking() {
-  useDocumentTitle('Zeiterfassung')
+  useDocumentTitle(t('Zeiterfassung'))
   const settings = useSettings()
   const customers = useCustomers(true)
   const [period, setPeriod] = useState<Period>('week')
@@ -94,12 +95,12 @@ export function TimeTracking() {
   return (
     <div className="page">
       <PageHeader
-        title="Zeiterfassung"
-        subtitle="Stoppuhr starten oder Zeiten nachtragen – abgerechnet wird später mit einem Klick."
+        title={t('Zeiterfassung')}
+        subtitle={t('Stoppuhr starten oder Zeiten nachtragen – abgerechnet wird später mit einem Klick.')}
         actions={
           activeCustomers.length > 0 && (
             <Button icon={Plus} onClick={() => setEditing(emptyEntry(customerFilter || activeCustomers[0].id))}>
-              Zeit nachtragen
+              {t('Zeit nachtragen')}
             </Button>
           )
         }
@@ -111,7 +112,7 @@ export function TimeTracking() {
         {unbilledRows.length > 0 && (
           <section className="card">
             <div className="card-header">
-              <h2>Bereit zur Abrechnung</h2>
+              <h2>{t('Bereit zur Abrechnung')}</h2>
             </div>
             <ul className="list" style={{ marginTop: 8 }}>
               {unbilledRows.map((r) => (
@@ -119,11 +120,11 @@ export function TimeTracking() {
                   <div className="grow">
                     <div className="title">{customerName(r.customer!)}</div>
                     <div className="sub">
-                      {formatDuration(r.minutes)} offen · {formatMoney(r.amount)} netto
+                      {formatDuration(r.minutes)} {t('offen ·')} {formatMoney(r.amount)} {t('netto')}
                     </div>
                   </div>
                   <Button size="sm" icon={ReceiptText} onClick={() => setBilling(r.id)}>
-                    Abrechnen
+                    {t('Abrechnen')}
                   </Button>
                 </li>
               ))}
@@ -134,19 +135,19 @@ export function TimeTracking() {
         <section className="card">
           <div className="card-header time-toolbar">
             <div className="row" style={{ gap: 4 }}>
-              <IconButton icon={ChevronLeft} label="Vorheriger Zeitraum" onClick={() => setOffset(offset - 1)} />
-              <IconButton icon={ChevronRight} label="Nächster Zeitraum" onClick={() => setOffset(offset + 1)} />
+              <IconButton icon={ChevronLeft} label={t('Vorheriger Zeitraum')} onClick={() => setOffset(offset - 1)} />
+              <IconButton icon={ChevronRight} label={t('Nächster Zeitraum')} onClick={() => setOffset(offset + 1)} />
               <h2 style={{ marginLeft: 6 }}>{range.label}</h2>
               {offset !== 0 && (
                 <Button size="sm" variant="ghost" onClick={() => setOffset(0)}>
-                  Heute
+                  {t('Heute')}
                 </Button>
               )}
             </div>
             <div className="row wrap">
               {activeCustomers.length > 1 && (
-                <select className="select" style={{ width: 'auto', minHeight: 32, paddingTop: 4, paddingBottom: 4 }} value={customerFilter} onChange={(e) => setCustomerFilter(e.target.value)} aria-label="Nach Kunde filtern">
-                  <option value="">Alle Kunden</option>
+                <select className="select" style={{ width: 'auto', minHeight: 32, paddingTop: 4, paddingBottom: 4 }} value={customerFilter} onChange={(e) => setCustomerFilter(e.target.value)} aria-label={t('Nach Kunde filtern')}>
+                  <option value="">{t('Alle Kunden')}</option>
                   {activeCustomers.map((c) => (
                     <option key={c.id} value={c.id}>
                       {customerName(c)}
@@ -155,15 +156,15 @@ export function TimeTracking() {
                 </select>
               )}
               <Segmented
-                label="Zeitraum"
+                label={t('Zeitraum')}
                 value={period}
                 onChange={(p) => {
                   setPeriod(p)
                   setOffset(0)
                 }}
                 options={[
-                  { value: 'week', label: 'Woche' },
-                  { value: 'month', label: 'Monat' },
+                  { value: 'week', label: t('Woche') },
+                  { value: 'month', label: t('Monat') },
                 ]}
               />
             </div>
@@ -171,21 +172,21 @@ export function TimeTracking() {
           <div className="card-body">
             <div className="time-summary">
               <div>
-                <span className="faint small">Gesamt</span>
+                <span className="faint small">{t('Gesamt')}</span>
                 <strong className="tabular">{formatDuration(total)}</strong>
               </div>
               <div>
-                <span className="faint small">Abrechenbar</span>
+                <span className="faint small">{t('Abrechenbar')}</span>
                 <strong className="tabular">{formatDuration(billable)}</strong>
               </div>
               <div>
-                <span className="faint small">Einträge</span>
+                <span className="faint small">{t('Einträge')}</span>
                 <strong className="tabular">{filtered.length}</strong>
               </div>
             </div>
             <div className={period === 'month' ? 'bars-month' : ''}>
               <BarChart
-                label={`Stunden pro Tag, ${range.label}`}
+                label={t('Stunden pro Tag, {p0}', { p0: range.label })}
                 bars={range.days.map((d) => {
                   const key = toISODate(d)
                   const m = byDay.get(key) ?? 0
@@ -193,8 +194,8 @@ export function TimeTracking() {
                     key,
                     value: m,
                     display: formatDuration(m),
-                    hint: d.toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'short' }),
-                    label: period === 'week' ? d.toLocaleDateString('de-DE', { weekday: 'short' }) : d.getDate() % 5 === 0 || d.getDate() === 1 ? String(d.getDate()) : '',
+                    hint: d.toLocaleDateString(uiLocale(), { weekday: 'short', day: 'numeric', month: 'short' }),
+                    label: period === 'week' ? d.toLocaleDateString(uiLocale(), { weekday: 'short' }) : d.getDate() % 5 === 0 || d.getDate() === 1 ? String(d.getDate()) : '',
                     current: key === todayKey,
                   }
                 })}
@@ -206,8 +207,8 @@ export function TimeTracking() {
         {activeCustomers.length > 0 && (
           <details className="card projects-card">
             <summary className="card-header">
-              <h2>Projekte & Budgets</h2>
-              {!!warnings?.length && <span className="badge orange">{warnings.length} Warnung{warnings.length > 1 ? 'en' : ''}</span>}
+              <h2>{t('Projekte & Budgets')}</h2>
+              {!!warnings?.length && <span className="badge orange">{warnings.length > 1 ? t('{n} Warnungen', { n: warnings.length }) : t('1 Warnung')}</span>}
             </summary>
             <ProjectsPanel customers={activeCustomers} showCustomer />
           </details>
@@ -215,8 +216,8 @@ export function TimeTracking() {
 
         {filtered.length === 0 ? (
           <div className="card">
-            <EmptyState icon={Clock} title="Keine Zeiten in diesem Zeitraum" compact>
-              Starte oben die Stoppuhr oder trage eine Zeit nach. Jeder Eintrag bekommt eine kurze Beschreibung, damit später klar ist, was gemacht wurde.
+            <EmptyState icon={Clock} title={t('Keine Zeiten in diesem Zeitraum')} compact>
+              {t('Starte oben die Stoppuhr oder trage eine Zeit nach. Jeder Eintrag bekommt eine kurze Beschreibung, damit später klar ist, was gemacht wurde.')}
             </EmptyState>
           </div>
         ) : (

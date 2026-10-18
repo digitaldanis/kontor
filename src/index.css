@@ -1908,3 +1908,15 @@ a.list-item:hover {
 .link-button:hover {
   text-decoration: underline;
 }
+.language-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-2);
+}
+.language-switch .select {
+  width: auto;
+  min-height: 32px;
+  padding-top: 4px;
+  padding-bottom: 4px;
+}

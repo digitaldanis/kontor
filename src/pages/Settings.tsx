@@ -1,3 +1,4 @@
+import { t, uiLocale } from '../lib/i18n'
 import {
   BellRing,
   Building2,
@@ -29,6 +30,7 @@ import {
   TaxFields,
 } from '../components/SettingsFields'
 import { Field, MoneyInput, NumberInput, PageHeader, Segmented, SelectField, TextAreaField, TextField, Toggle } from '../components/ui'
+import { LanguageSwitch } from '../components/LanguageSwitch'
 import { ServerSettings } from '../components/ServerSettings'
 import { MAIL_PLACEHOLDERS, MAIL_TEMPLATE_LABELS } from '../lib/mailTemplates'
 import { createBackup, downloadFile, invoicesToCsv, parseBackup, restoreBackup, wipeAll } from '../lib/backup'
@@ -41,17 +43,17 @@ import { PLACEHOLDERS, updateSettings } from '../lib/repo'
 import type { MailTemplateKey, Settings } from '../lib/types'
 
 const SECTIONS = [
-  { id: 'firma', label: 'Firma', icon: Building2 },
-  { id: 'logo', label: 'Logo', icon: Image },
-  { id: 'bank', label: 'Bank & Kontakt', icon: Landmark },
-  { id: 'steuern', label: 'Steuern', icon: Percent },
-  { id: 'rechnung', label: 'Rechnungsvorgaben', icon: ReceiptText },
-  { id: 'nummern', label: 'Nummernkreise', icon: Hash },
-  { id: 'mahnwesen', label: 'Mahnwesen', icon: BellRing },
-  { id: 'layout', label: 'Layout & Farbe', icon: Palette },
-  { id: 'email', label: 'E-Mail-Vorlagen', icon: Mail },
-  { id: 'server', label: 'Server & Sync', icon: Server },
-  { id: 'daten', label: 'Daten', icon: Database },
+  { id: 'firma', label: t('Firma'), icon: Building2 },
+  { id: 'logo', label: t('Logo'), icon: Image },
+  { id: 'bank', label: t('Bank & Kontakt'), icon: Landmark },
+  { id: 'steuern', label: t('Steuern'), icon: Percent },
+  { id: 'rechnung', label: t('Rechnungsvorgaben'), icon: ReceiptText },
+  { id: 'nummern', label: t('Nummernkreise'), icon: Hash },
+  { id: 'mahnwesen', label: t('Mahnwesen'), icon: BellRing },
+  { id: 'layout', label: t('Layout & Farbe'), icon: Palette },
+  { id: 'email', label: t('E-Mail-Vorlagen'), icon: Mail },
+  { id: 'server', label: t('Server & Sync'), icon: Server },
+  { id: 'daten', label: t('Daten'), icon: Database },
 ]
 
 async function persist(next: Settings) {
@@ -69,7 +71,7 @@ async function persist(next: Settings) {
 }
 
 export function SettingsPage() {
-  useDocumentTitle('Einstellungen')
+  useDocumentTitle(t('Einstellungen'))
   const stored = useSettings()
   const [draft, setDraft] = useState<Settings | null>(null)
   const [saved, setSaved] = useState(true)
@@ -111,23 +113,26 @@ export function SettingsPage() {
   return (
     <div className="page">
       <PageHeader
-        title="Einstellungen"
-        subtitle="Deine Firmendaten und Vorgaben für jede neue Rechnung."
+        title={t('Einstellungen')}
+        subtitle={t('Deine Firmendaten und Vorgaben für jede neue Rechnung.')}
         actions={
+          <div className="row wrap">
+          <LanguageSwitch />
           <span className="row small muted" aria-live="polite" style={{ height: 36 }}>
             {saved ? (
               <>
-                <Check size={16} color="var(--green)" aria-hidden /> Automatisch gespeichert
+                <Check size={16} color="var(--green)" aria-hidden /> {t('Automatisch gespeichert')}
               </>
             ) : (
-              'Speichert …'
+              t('Speichert …')
             )}
           </span>
+          </div>
         }
       />
 
       <div className="settings-layout">
-        <nav className="settings-nav" aria-label="Abschnitte">
+        <nav className="settings-nav" aria-label={t('Abschnitte')}>
           {SECTIONS.map((s) => (
             <a key={s.id} href={`#/einstellungen`} onClick={(e) => {
               e.preventDefault()
@@ -142,66 +147,66 @@ export function SettingsPage() {
         <div className="stack">
           <section id="firma" className="card card-pad anchor-target">
             <div className="form-section">
-              <h3>Firma</h3>
-              <p className="muted">Name und Anschrift erscheinen als Absender auf jeder Rechnung.</p>
+              <h3>{t('Firma')}</h3>
+              <p className="muted">{t('Name und Anschrift erscheinen als Absender auf jeder Rechnung.')}</p>
               <CompanyFields value={draft.company} onChange={(company) => update({ company })} />
             </div>
           </section>
 
           <section id="logo" className="card card-pad anchor-target">
             <div className="form-section">
-              <h3>Logo</h3>
-              <p className="muted">Wird oben auf deinen Rechnungen und in der Seitenleiste angezeigt.</p>
+              <h3>{t('Logo')}</h3>
+              <p className="muted">{t('Wird oben auf deinen Rechnungen und in der Seitenleiste angezeigt.')}</p>
               <LogoField logo={draft.logo} onChange={(logo) => update({ logo })} />
             </div>
           </section>
 
           <section id="bank" className="card card-pad anchor-target">
             <div className="form-section">
-              <h3>Bankverbindung</h3>
-              <p className="muted">Steht in der Fußzeile, damit deine Kunden wissen, wohin sie überweisen.</p>
+              <h3>{t('Bankverbindung')}</h3>
+              <p className="muted">{t('Steht in der Fußzeile, damit deine Kunden wissen, wohin sie überweisen.')}</p>
               <BankFields value={draft.company} onChange={(company) => update({ company })} />
             </div>
             <div className="form-section">
-              <h3>Kontakt</h3>
-              <p className="muted">Optional, erscheint ebenfalls in der Fußzeile.</p>
+              <h3>{t('Kontakt')}</h3>
+              <p className="muted">{t('Optional, erscheint ebenfalls in der Fußzeile.')}</p>
               <ContactFields value={draft.company} onChange={(company) => update({ company })} />
             </div>
           </section>
 
           <section id="steuern" className="card card-pad anchor-target">
             <div className="form-section">
-              <h3>Steuerliche Angaben</h3>
-              <p className="muted">Auf jeder Rechnung muss deine Steuernummer oder USt-IdNr. stehen (§ 14 Abs. 4 Nr. 2 UStG).</p>
+              <h3>{t('Steuerliche Angaben')}</h3>
+              <p className="muted">{t('Auf jeder Rechnung muss deine Steuernummer oder USt-IdNr. stehen (§ 14 Abs. 4 Nr. 2 UStG).')}</p>
               <TaxFields value={draft.company} onChange={(company) => update({ company })} />
             </div>
             <div className="form-section stack-sm">
               <Toggle
                 checked={draft.smallBusiness}
                 onChange={(smallBusiness) => update({ smallBusiness, defaults: { ...d, taxRate: smallBusiness ? 0 : d.taxRate || 19 } })}
-                label="Kleinunternehmerregelung (§ 19 UStG)"
-                description="Rechnungen ohne Umsatzsteuer, mit Hinweis auf die Steuerbefreiung."
+                label={t('Kleinunternehmerregelung (§ 19 UStG)')}
+                description={t('Rechnungen ohne Umsatzsteuer, mit Hinweis auf die Steuerbefreiung.')}
               />
               {draft.smallBusiness && (
                 <TextAreaField
-                  label="Hinweistext auf der Rechnung"
+                  label={t('Hinweistext auf der Rechnung')}
                   value={draft.smallBusinessNote}
                   onChange={(smallBusinessNote) => update({ smallBusinessNote })}
                   rows={2}
-                  hint={`Standard: „${TAX_NOTES.smallBusiness}“`}
+                  hint={t('Standard: „{p0}“', { p0: TAX_NOTES.smallBusiness })}
                 />
               )}
             </div>
             <div className="form-section stack-sm">
-              <h3>Versteuerung</h3>
-              <p className="muted">Bestimmt, wann Umsätze in der USt-Übersicht zählen. Die Ist-Versteuerung muss beim Finanzamt beantragt sein (§ 20 UStG).</p>
+              <h3>{t('Versteuerung')}</h3>
+              <p className="muted">{t('Bestimmt, wann Umsätze in der USt-Übersicht zählen. Die Ist-Versteuerung muss beim Finanzamt beantragt sein (§ 20 UStG).')}</p>
               <Segmented
-                label="Versteuerung"
+                label={t('Versteuerung')}
                 value={draft.taxation}
                 onChange={(taxation) => update({ taxation })}
                 options={[
-                  { value: 'accrual', label: 'Soll – nach Rechnungsdatum' },
-                  { value: 'cash', label: 'Ist – nach Zahlungseingang' },
+                  { value: 'accrual', label: t('Soll – nach Rechnungsdatum') },
+                  { value: 'cash', label: t('Ist – nach Zahlungseingang') },
                 ]}
               />
             </div>
@@ -209,88 +214,88 @@ export function SettingsPage() {
 
           <section id="rechnung" className="card card-pad anchor-target">
             <div className="form-section">
-              <h3>Vorgaben für neue Rechnungen</h3>
-              <p className="muted">Diese Werte stehen automatisch in jeder neuen Rechnung und lassen sich dort anpassen.</p>
+              <h3>{t('Vorgaben für neue Rechnungen')}</h3>
+              <p className="muted">{t('Diese Werte stehen automatisch in jeder neuen Rechnung und lassen sich dort anpassen.')}</p>
               <div className="form-grid">
-                <Field className="span-2" label="Zahlungsziel">
-                  <NumberInput value={d.paymentTermDays} onChange={(n) => setDefaults({ paymentTermDays: Math.max(0, Math.round(n)) })} suffix="Tage" maxFraction={0} aria-label="Zahlungsziel in Tagen" />
+                <Field className="span-2" label={t('Zahlungsziel')}>
+                  <NumberInput value={d.paymentTermDays} onChange={(n) => setDefaults({ paymentTermDays: Math.max(0, Math.round(n)) })} suffix="Tage" maxFraction={0} aria-label={t('Zahlungsziel in Tagen')} />
                 </Field>
-                <SelectField className="span-2" label="Standard-Steuersatz" value={String(d.taxRate)} onChange={(v) => setDefaults({ taxRate: Number(v) })} disabled={draft.smallBusiness}>
+                <SelectField className="span-2" label={t('Standard-Steuersatz')} value={String(d.taxRate)} onChange={(v) => setDefaults({ taxRate: Number(v) })} disabled={draft.smallBusiness}>
                   {TAX_RATES.map((r) => (
                     <option key={r} value={r}>
                       {r} %
                     </option>
                   ))}
                 </SelectField>
-                <SelectField className="span-2" label="Währung" value={d.currency} onChange={(currency) => setDefaults({ currency })}>
+                <SelectField className="span-2" label={t('Währung')} value={d.currency} onChange={(currency) => setDefaults({ currency })}>
                   {['EUR', 'CHF', 'USD', 'GBP'].map((c) => (
                     <option key={c}>{c}</option>
                   ))}
                 </SelectField>
-                <Field className="span-2" label="Standard-Stundensatz">
-                  <MoneyInput value={d.hourlyRateCents} onChange={(v) => setDefaults({ hourlyRateCents: v ?? 0 })} aria-label="Standard-Stundensatz" />
+                <Field className="span-2" label={t('Standard-Stundensatz')}>
+                  <MoneyInput value={d.hourlyRateCents} onChange={(v) => setDefaults({ hourlyRateCents: v ?? 0 })} aria-label={t('Standard-Stundensatz')} />
                 </Field>
-                <SelectField className="span-2" label="Standard-Einheit" value={d.unit} onChange={(unit) => setDefaults({ unit })}>
+                <SelectField className="span-2" label={t('Standard-Einheit')} value={d.unit} onChange={(unit) => setDefaults({ unit })}>
                   {UNITS.map((u) => (
                     <option key={u}>{u}</option>
                   ))}
                 </SelectField>
                 <SelectField
                   className="span-3"
-                  label="Zeitrundung beim Abrechnen"
+                  label={t('Zeitrundung beim Abrechnen')}
                   value={String(draft.timeRounding.minutes)}
                   onChange={(v) => update({ timeRounding: { ...draft.timeRounding, minutes: Number(v) } })}
-                  hint="Gilt je Zeiteintrag, wenn Zeiten in eine Rechnung übernommen werden."
+                  hint={t('Gilt je Zeiteintrag, wenn Zeiten in eine Rechnung übernommen werden.')}
                 >
-                  <option value="0">Minutengenau</option>
+                  <option value="0">{t('Minutengenau')}</option>
                   {[5, 6, 10, 15, 30, 60].map((m) => (
                     <option key={m} value={m}>
-                      {m === 60 ? 'Volle Stunde' : `${m} Minuten`}
+                      {m === 60 ? t('Volle Stunde') : t('{p0} Minuten', { p0: m })}
                     </option>
                   ))}
                 </SelectField>
-                <SelectField className="span-3" label="Rundungsart" value={draft.timeRounding.mode} onChange={(mode) => update({ timeRounding: { ...draft.timeRounding, mode: mode as 'up' | 'nearest' } })} disabled={!draft.timeRounding.minutes}>
-                  <option value="up">Aufrunden</option>
-                  <option value="nearest">Kaufmännisch runden</option>
+                <SelectField className="span-3" label={t('Rundungsart')} value={draft.timeRounding.mode} onChange={(mode) => update({ timeRounding: { ...draft.timeRounding, mode: mode as 'up' | 'nearest' } })} disabled={!draft.timeRounding.minutes}>
+                  <option value="up">{t('Aufrunden')}</option>
+                  <option value="nearest">{t('Kaufmännisch runden')}</option>
                 </SelectField>
-                <TextAreaField className="span-6" label="Einleitungstext" value={d.introText} onChange={(introText) => setDefaults({ introText })} rows={3} />
+                <TextAreaField className="span-6" label={t('Einleitungstext')} value={d.introText} onChange={(introText) => setDefaults({ introText })} rows={3} />
                 <TextAreaField
                   className="span-6"
-                  label="Schlusstext"
+                  label={t('Schlusstext')}
                   value={d.closingText}
                   onChange={(closingText) => setDefaults({ closingText })}
                   rows={4}
-                  hint={<>Platzhalter: {PLACEHOLDERS.map((p) => <code key={p} className="kbd" style={{ marginRight: 4 }}>{`{${p}}`}</code>)}</>}
+                  hint={<>{t('Platzhalter:')} {PLACEHOLDERS.map((p) => <code key={p} className="kbd" style={{ marginRight: 4 }}>{`{${p}}`}</code>)}</>}
                 />
-                <TextAreaField className="span-6" label="Zusätzliche Fußzeile" value={d.footerText} onChange={(footerText) => setDefaults({ footerText })} rows={2} hint="Optional, z. B. Geschäftsführung oder Hinweise. Firmen- und Bankdaten werden automatisch ergänzt." />
+                <TextAreaField className="span-6" label={t('Zusätzliche Fußzeile')} value={d.footerText} onChange={(footerText) => setDefaults({ footerText })} rows={2} hint={t('Optional, z. B. Geschäftsführung oder Hinweise. Firmen- und Bankdaten werden automatisch ergänzt.')} />
               </div>
             </div>
           </section>
 
           <section id="nummern" className="card card-pad anchor-target">
             <div className="form-section">
-              <h3>Nummernkreise</h3>
+              <h3>{t('Nummernkreise')}</h3>
               <p className="muted">
-                Rechnungsnummern werden erst beim Abschließen vergeben – fortlaufend und lückenlos. Platzhalter: <code className="kbd">{'{YYYY}'}</code> Jahr, <code className="kbd">{'{YY}'}</code>,{' '}
-                <code className="kbd">{'{MM}'}</code> Monat, <code className="kbd">{'{0001}'}</code> Zähler mit Stellen.
+                {t('Rechnungsnummern werden erst beim Abschließen vergeben – fortlaufend und lückenlos. Platzhalter:')} <code className="kbd">{t('{YYYY}')}</code> {t('Jahr,')} <code className="kbd">{t('{YY}')}</code>,{' '}
+                <code className="kbd">{t('{MM}')}</code> {t('Monat,')} <code className="kbd">{'{0001}'}</code> {t('Zähler mit Stellen.')}
               </p>
               <div className="form-grid">
                 <TextField
                   className="span-3"
-                  label="Rechnungen"
+                  label={t('Rechnungen')}
                   value={draft.invoiceNumbers.pattern}
                   onChange={(pattern) => update({ invoiceNumbers: { ...draft.invoiceNumbers, pattern } })}
                   error={patternErrors.invoice}
-                  hint={!patternErrors.invoice && `Nächste Nummer: ${peekNextNumber(draft.invoiceNumbers, new Date(today()))}`}
+                  hint={!patternErrors.invoice && t('Nächste Nummer: {p0}', { p0: peekNextNumber(draft.invoiceNumbers, new Date(today())) })}
                   spellCheck={false}
                 />
                 <TextField
                   className="span-3"
-                  label="Angebote"
+                  label={t('Angebote')}
                   value={draft.quoteNumbers.pattern}
                   onChange={(pattern) => update({ quoteNumbers: { ...draft.quoteNumbers, pattern } })}
                   error={patternErrors.quote}
-                  hint={!patternErrors.quote && `Nächste Nummer: ${peekNextNumber(draft.quoteNumbers, new Date(today()))}`}
+                  hint={!patternErrors.quote && t('Nächste Nummer: {p0}', { p0: peekNextNumber(draft.quoteNumbers, new Date(today())) })}
                   spellCheck={false}
                 />
               </div>
@@ -300,8 +305,8 @@ export function SettingsPage() {
 
           <section id="mahnwesen" className="card card-pad anchor-target">
             <div className="form-section">
-              <h3>Mahnwesen</h3>
-              <p className="muted">Fristen, Gebühren und Texte für Zahlungserinnerung und Mahnungen. Die Tage zählen ab Fälligkeit bzw. ab Ablauf der vorherigen Frist.</p>
+              <h3>{t('Mahnwesen')}</h3>
+              <p className="muted">{t('Fristen, Gebühren und Texte für Zahlungserinnerung und Mahnungen. Die Tage zählen ab Fälligkeit bzw. ab Ablauf der vorherigen Frist.')}</p>
               <div className="stack">
                 {draft.dunning.steps.map((step, i) => {
                   const setStep = (patch: Partial<typeof step>) => {
@@ -310,64 +315,64 @@ export function SettingsPage() {
                   }
                   return (
                     <div key={i} className="form-grid dunning-step">
-                      <TextField className="span-2" label={`Stufe ${i + 1}`} value={step.title} onChange={(title) => setStep({ title })} />
-                      <Field className="span-2" label={i === 0 ? 'Tage nach Fälligkeit' : 'Tage nach letzter Frist'}>
-                        <NumberInput value={step.afterDays} onChange={(n) => setStep({ afterDays: Math.max(0, Math.round(n)) })} suffix="Tage" maxFraction={0} aria-label={`Abstand Stufe ${i + 1}`} />
+                      <TextField className="span-2" label={t('Stufe {p0}', { p0: i + 1 })} value={step.title} onChange={(title) => setStep({ title })} />
+                      <Field className="span-2" label={i === 0 ? t('Tage nach Fälligkeit') : t('Tage nach letzter Frist')}>
+                        <NumberInput value={step.afterDays} onChange={(n) => setStep({ afterDays: Math.max(0, Math.round(n)) })} suffix="Tage" maxFraction={0} aria-label={t('Abstand Stufe {p0}', { p0: i + 1 })} />
                       </Field>
-                      <Field className="span-2" label="Gebühr">
-                        <MoneyInput value={step.feeCents} onChange={(v) => setStep({ feeCents: v ?? 0 })} aria-label={`Gebühr Stufe ${i + 1}`} />
+                      <Field className="span-2" label={t('Gebühr')}>
+                        <MoneyInput value={step.feeCents} onChange={(v) => setStep({ feeCents: v ?? 0 })} aria-label={t('Gebühr Stufe {p0}', { p0: i + 1 })} />
                       </Field>
-                      <TextAreaField className="span-6" label="Text" value={step.text} onChange={(text) => setStep({ text })} rows={3} />
+                      <TextAreaField className="span-6" label={t('Text')} value={step.text} onChange={(text) => setStep({ text })} rows={3} />
                     </div>
                   )
                 })}
               </div>
             </div>
             <div className="form-section">
-              <h3>Verzugszinsen</h3>
+              <h3>{t('Verzugszinsen')}</h3>
               <p className="muted">
-                Basiszinssatz nach § 247 BGB – die Bundesbank passt ihn zum 1. Januar und 1. Juli an. Verzugszins: Basiszins + 9 Prozentpunkte gegenüber Unternehmen, + 5 gegenüber Verbrauchern.
+                {t('Basiszinssatz nach § 247 BGB – die Bundesbank passt ihn zum 1. Januar und 1. Juli an. Verzugszins: Basiszins + 9 Prozentpunkte gegenüber Unternehmen, + 5 gegenüber Verbrauchern.')}
               </p>
               <div className="form-grid">
-                <Field className="span-2" label="Basiszinssatz">
-                  <NumberInput value={draft.dunning.baseRatePercent} onChange={(baseRatePercent) => update({ dunning: { ...draft.dunning, baseRatePercent } })} suffix="%" maxFraction={2} aria-label="Basiszinssatz" />
+                <Field className="span-2" label={t('Basiszinssatz')}>
+                  <NumberInput value={draft.dunning.baseRatePercent} onChange={(baseRatePercent) => update({ dunning: { ...draft.dunning, baseRatePercent } })} suffix="%" maxFraction={2} aria-label={t('Basiszinssatz')} />
                 </Field>
-                <TextField className="span-2" label="Gültig seit" type="date" value={draft.dunning.baseRateSince} onChange={(baseRateSince) => update({ dunning: { ...draft.dunning, baseRateSince } })} />
-                <Field className="span-2" label="Neue Zahlungsfrist">
-                  <NumberInput value={draft.dunning.deadlineDays} onChange={(n) => update({ dunning: { ...draft.dunning, deadlineDays: Math.max(1, Math.round(n)) } })} suffix="Tage" maxFraction={0} aria-label="Neue Zahlungsfrist" />
+                <TextField className="span-2" label={t('Gültig seit')} type="date" value={draft.dunning.baseRateSince} onChange={(baseRateSince) => update({ dunning: { ...draft.dunning, baseRateSince } })} />
+                <Field className="span-2" label={t('Neue Zahlungsfrist')}>
+                  <NumberInput value={draft.dunning.deadlineDays} onChange={(n) => update({ dunning: { ...draft.dunning, deadlineDays: Math.max(1, Math.round(n)) } })} suffix="Tage" maxFraction={0} aria-label={t('Neue Zahlungsfrist')} />
                 </Field>
               </div>
               <div className="stack-sm" style={{ marginTop: 14 }}>
-                <Toggle checked={draft.dunning.chargeInterest} onChange={(chargeInterest) => update({ dunning: { ...draft.dunning, chargeInterest } })} label="Verzugszinsen ab der 1. Mahnung vorschlagen" />
-                <Toggle checked={draft.dunning.flatFeeB2B} onChange={(flatFeeB2B) => update({ dunning: { ...draft.dunning, flatFeeB2B } })} label="Verzugspauschale 40 € bei Unternehmen vorschlagen" description="§ 288 Abs. 5 BGB, einmal je Forderung." />
+                <Toggle checked={draft.dunning.chargeInterest} onChange={(chargeInterest) => update({ dunning: { ...draft.dunning, chargeInterest } })} label={t('Verzugszinsen ab der 1. Mahnung vorschlagen')} />
+                <Toggle checked={draft.dunning.flatFeeB2B} onChange={(flatFeeB2B) => update({ dunning: { ...draft.dunning, flatFeeB2B } })} label={t('Verzugspauschale 40 € bei Unternehmen vorschlagen')} description={t('§ 288 Abs. 5 BGB, einmal je Forderung.')} />
               </div>
             </div>
           </section>
 
           <section id="layout" className="card card-pad anchor-target">
             <div className="form-section">
-              <h3>Standard-Layout</h3>
-              <p className="muted">Gilt für neue Rechnungen. Jede Rechnung kann ein eigenes Layout bekommen.</p>
+              <h3>{t('Standard-Layout')}</h3>
+              <p className="muted">{t('Gilt für neue Rechnungen. Jede Rechnung kann ein eigenes Layout bekommen.')}</p>
               <LayoutPicker settings={draft} value={d.layout} onChange={(layout) => setDefaults({ layout })} accent={d.accentColor} />
             </div>
             <div className="form-section">
-              <h3>Akzentfarbe</h3>
-              <p className="muted">Für Überschriften, Linien und Hervorhebungen auf der Rechnung.</p>
+              <h3>{t('Akzentfarbe')}</h3>
+              <p className="muted">{t('Für Überschriften, Linien und Hervorhebungen auf der Rechnung.')}</p>
               <AccentPicker value={d.accentColor} onChange={(accentColor) => setDefaults({ accentColor })} />
             </div>
           </section>
 
           <section id="email" className="card card-pad anchor-target">
             <div className="form-section">
-              <h3>E-Mail-Vorlagen</h3>
+              <h3>{t('E-Mail-Vorlagen')}</h3>
               <p className="muted">
-                Betreff und Text beim Versand. Platzhalter: {MAIL_PLACEHOLDERS.map((p) => <code key={p} className="kbd" style={{ marginRight: 4 }}>{`{${p}}`}</code>)} Englische Dokumente bekommen englische Standardtexte.
+                {t('Betreff und Text beim Versand. Platzhalter:')} {MAIL_PLACEHOLDERS.map((p) => <code key={p} className="kbd" style={{ marginRight: 4 }}>{`{${p}}`}</code>)} {t('Englische Dokumente bekommen englische Standardtexte.')}
               </p>
               <div className="stack">
                 {(Object.keys(MAIL_TEMPLATE_LABELS) as MailTemplateKey[]).map((key) => (
                   <div key={key} className="form-grid dunning-step">
-                    <TextField className="span-6" label={`${MAIL_TEMPLATE_LABELS[key]}: Betreff`} value={draft.mailTemplates[key].subject} onChange={(subject) => update({ mailTemplates: { ...draft.mailTemplates, [key]: { ...draft.mailTemplates[key], subject } } })} />
-                    <TextAreaField className="span-6" label="Text" value={draft.mailTemplates[key].body} onChange={(body) => update({ mailTemplates: { ...draft.mailTemplates, [key]: { ...draft.mailTemplates[key], body } } })} rows={5} />
+                    <TextField className="span-6" label={t('{p0}: Betreff', { p0: MAIL_TEMPLATE_LABELS[key] })} value={draft.mailTemplates[key].subject} onChange={(subject) => update({ mailTemplates: { ...draft.mailTemplates, [key]: { ...draft.mailTemplates[key], subject } } })} />
+                    <TextAreaField className="span-6" label={t('Text')} value={draft.mailTemplates[key].body} onChange={(body) => update({ mailTemplates: { ...draft.mailTemplates, [key]: { ...draft.mailTemplates[key], body } } })} rows={5} />
                   </div>
                 ))}
               </div>
@@ -395,11 +400,11 @@ function StartNumber({ settings }: { settings: Settings }) {
   return (
     <details style={{ marginTop: 18 }}>
       <summary className="small" style={{ cursor: 'pointer', color: 'var(--accent)' }}>
-        Von einem anderen Programm gewechselt? Startnummer festlegen
+        {t('Von einem anderen Programm gewechselt? Startnummer festlegen')}
       </summary>
       <div className="row wrap" style={{ marginTop: 12, alignItems: 'flex-end' }}>
-        <Field label="Nächste Rechnung erhält Zähler">
-          <NumberInput value={Math.max(value, current + 1)} onChange={(n) => setValue(Math.round(n))} maxFraction={0} style={{ width: 120 }} aria-label="Nächster Zähler" />
+        <Field label={t('Nächste Rechnung erhält Zähler')}>
+          <NumberInput value={Math.max(value, current + 1)} onChange={(n) => setValue(Math.round(n))} maxFraction={0} style={{ width: 120 }} aria-label={t('Nächster Zähler')} />
         </Field>
         <button
           type="button"
@@ -407,23 +412,23 @@ function StartNumber({ settings }: { settings: Settings }) {
           onClick={async () => {
             const next = Math.max(value, current + 1)
             const ok = await confirm({
-              title: 'Startnummer übernehmen?',
-              message: `Die nächste Rechnung erhält den Zähler ${next}. Der Zähler kann danach nur weiter steigen, damit keine Nummer doppelt vergeben wird.`,
-              confirmLabel: 'Übernehmen',
+              title: t('Startnummer übernehmen?'),
+              message: t('Die nächste Rechnung erhält den Zähler {p0}. Der Zähler kann danach nur weiter steigen, damit keine Nummer doppelt vergeben wird.', { p0: next }),
+              confirmLabel: t('Übernehmen'),
             })
             if (!ok) return
             run(async () => {
               const s = await db.settings.get('main')
               if (!s) return
               await updateSettings({ invoiceNumbers: { ...s.invoiceNumbers, counters: { ...s.invoiceNumbers.counters, [key]: next - 1 } } })
-            }, 'Startnummer gespeichert')
+            }, t('Startnummer gespeichert'))
           }}
         >
-          Übernehmen
+          {t('Übernehmen')}
         </button>
       </div>
       <p className="hint small faint" style={{ marginTop: 8 }}>
-        Aktueller Zählerstand: {current}. Ein Zurücksetzen ist bewusst nicht möglich.
+        {t('Aktueller Zählerstand:')} {current}{t('. Ein Zurücksetzen ist bewusst nicht möglich.')}
       </p>
     </details>
   )
@@ -438,13 +443,13 @@ function DataSection() {
     run(async () => {
       const b = await createBackup()
       downloadFile(`kontor-sicherung-${today()}.json`, JSON.stringify(b, null, 2), 'application/json')
-    }, 'Sicherung heruntergeladen')
+    }, t('Sicherung heruntergeladen'))
 
   const exportCsv = () =>
     run(async () => {
       const [docs, customers] = await Promise.all([db.documents.toArray(), db.customers.toArray()])
       if (!docs.some((d) => d.status !== 'draft' && d.kind !== 'quote')) {
-        toast('Noch keine abgeschlossenen Rechnungen vorhanden.', 'error')
+        toast(t('Noch keine abgeschlossenen Rechnungen vorhanden.'), 'error')
         return
       }
       downloadFile(`kontor-rechnungen-${today()}.csv`, invoicesToCsv(docs, customers), 'text/csv;charset=utf-8')
@@ -455,14 +460,14 @@ function DataSection() {
     await run(async () => {
       const backup = parseBackup(await f.text())
       const ok = await confirm({
-        title: 'Sicherung wiederherstellen?',
-        message: `Alle aktuellen Daten in diesem Browser werden durch die Sicherung vom ${backup.exportedAt ? new Date(backup.exportedAt).toLocaleString('de-DE') : 'unbekannten Datum'} ersetzt (${backup.customers.length} Kunden, ${backup.documents.length} Dokumente, ${backup.timeEntries.length} Zeiteinträge).`,
-        confirmLabel: 'Wiederherstellen',
+        title: t('Sicherung wiederherstellen?'),
+        message: t('Alle aktuellen Daten in diesem Browser werden durch die Sicherung vom {p0} ersetzt ({p1} Kunden, {p2} Dokumente, {p3} Zeiteinträge).', { p0: backup.exportedAt ? new Date(backup.exportedAt).toLocaleString(uiLocale()) : 'unbekannten Datum', p1: backup.customers.length, p2: backup.documents.length, p3: backup.timeEntries.length }),
+        confirmLabel: t('Wiederherstellen'),
         danger: true,
       })
       if (!ok) return
       await restoreBackup(backup)
-      toast('Sicherung wiederhergestellt')
+      toast(t('Sicherung wiederhergestellt'))
       window.location.reload()
     })
   }
@@ -470,19 +475,19 @@ function DataSection() {
   return (
     <section id="daten" className="card card-pad anchor-target">
       <div className="form-section">
-        <h3>Daten & Sicherung</h3>
+        <h3>{t('Daten & Sicherung')}</h3>
         <p className="muted">
-          Kontor speichert alles lokal in diesem Browser – ohne Server und ohne Konto. Lade regelmäßig eine Sicherung herunter, damit nichts verloren geht. Rechnungen musst du 8 Jahre aufbewahren (GoBD).
+          {t('Kontor speichert alles lokal in diesem Browser – ohne Server und ohne Konto. Lade regelmäßig eine Sicherung herunter, damit nichts verloren geht. Rechnungen musst du 8 Jahre aufbewahren (GoBD).')}
         </p>
         <div className="row wrap">
           <button type="button" className="btn primary" onClick={exportJson}>
-            <Download size={17} aria-hidden /> Sicherung herunterladen
+            <Download size={17} aria-hidden /> {t('Sicherung herunterladen')}
           </button>
           <button type="button" className="btn" onClick={() => file.current?.click()}>
-            <Upload size={17} aria-hidden /> Sicherung einspielen
+            <Upload size={17} aria-hidden /> {t('Sicherung einspielen')}
           </button>
           <button type="button" className="btn" onClick={exportCsv}>
-            <FileSpreadsheet size={17} aria-hidden /> Rechnungen als CSV
+            <FileSpreadsheet size={17} aria-hidden /> {t('Rechnungen als CSV')}
           </button>
           <input ref={file} type="file" accept="application/json,.json" hidden onChange={(e) => {
             importJson(e.target.files?.[0])
@@ -491,16 +496,16 @@ function DataSection() {
         </div>
       </div>
       <div className="form-section">
-        <h3>Alles löschen</h3>
-        <p className="muted">Entfernt alle Kunden, Rechnungen, Zeiten und Einstellungen aus diesem Browser.</p>
+        <h3>{t('Alles löschen')}</h3>
+        <p className="muted">{t('Entfernt alle Kunden, Rechnungen, Zeiten und Einstellungen aus diesem Browser.')}</p>
         <button
           type="button"
           className="btn danger"
           onClick={async () => {
             const ok = await confirm({
-              title: 'Wirklich alle Daten löschen?',
-              message: 'Das lässt sich nicht rückgängig machen. Lade vorher eine Sicherung herunter, wenn du die Daten noch brauchst.',
-              confirmLabel: 'Alles löschen',
+              title: t('Wirklich alle Daten löschen?'),
+              message: t('Das lässt sich nicht rückgängig machen. Lade vorher eine Sicherung herunter, wenn du die Daten noch brauchst.'),
+              confirmLabel: t('Alles löschen'),
               danger: true,
             })
             if (!ok) return
@@ -509,7 +514,7 @@ function DataSection() {
             window.location.reload()
           }}
         >
-          <Trash2 size={17} aria-hidden /> Alle Daten löschen
+          <Trash2 size={17} aria-hidden /> {t('Alle Daten löschen')}
         </button>
       </div>
     </section>

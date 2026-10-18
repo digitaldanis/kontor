@@ -1,3 +1,4 @@
+import { t } from '../lib/i18n'
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
   BarChart3,
@@ -32,15 +33,15 @@ interface NavItem {
 }
 
 const NAV: NavItem[] = [
-  { to: '/', label: 'Übersicht', icon: LayoutGrid, end: true },
-  { to: '/rechnungen', label: 'Rechnungen', icon: FileText },
-  { to: '/kunden', label: 'Kunden', icon: Users },
-  { to: '/zeit', label: 'Zeiterfassung', icon: Clock },
-  { to: '/mahnwesen', label: 'Mahnwesen', icon: BellRing },
-  { to: '/ausgaben', label: 'Ausgaben', icon: Receipt },
-  { to: '/leistungen', label: 'Leistungen', icon: Package },
-  { to: '/berichte', label: 'Berichte', icon: BarChart3 },
-  { to: '/einstellungen', label: 'Einstellungen', icon: SettingsIcon },
+  { to: '/', label: t('Übersicht'), icon: LayoutGrid, end: true },
+  { to: '/rechnungen', label: t('Rechnungen'), icon: FileText },
+  { to: '/kunden', label: t('Kunden'), icon: Users },
+  { to: '/zeit', label: t('Zeiterfassung'), icon: Clock },
+  { to: '/mahnwesen', label: t('Mahnwesen'), icon: BellRing },
+  { to: '/ausgaben', label: t('Ausgaben'), icon: Receipt },
+  { to: '/leistungen', label: t('Leistungen'), icon: Package },
+  { to: '/berichte', label: t('Berichte'), icon: BarChart3 },
+  { to: '/einstellungen', label: t('Einstellungen'), icon: SettingsIcon },
 ]
 
 export function BrandMark() {
@@ -83,7 +84,7 @@ export function Layout() {
   useEffect(() => {
     let cancelled = false
     void runRecurring(today()).then((created) => {
-      if (!cancelled && created.length) toast(`${created.length} ${created.length === 1 ? 'Serienrechnung' : 'Serienrechnungen'} als Entwurf angelegt`)
+      if (!cancelled && created.length) toast(t('{p0} {p1} als Entwurf angelegt', { p0: created.length, p1: created.length === 1 ? 'Serienrechnung' : 'Serienrechnungen' }))
     })
     return () => {
       cancelled = true
@@ -120,19 +121,19 @@ export function Layout() {
   const company = settings?.company
   const logo = settings?.logo
   const badge = (to: string) => {
-    if (to === '/mahnwesen' && counts?.overdue) return <span className="nav-count" title="Überfällig">{counts.overdue}</span>
+    if (to === '/mahnwesen' && counts?.overdue) return <span className="nav-count" title={t('Überfällig')}>{counts.overdue}</span>
     return null
   }
 
   return (
     <div className="app">
       <a href="#main" className="skip-link">
-        Zum Inhalt springen
+        {t('Zum Inhalt springen')}
       </a>
-      <aside className="sidebar" aria-label="Hauptnavigation">
+      <aside className="sidebar" aria-label={t('Hauptnavigation')}>
         <Link to="/" className="brand">
           <BrandMark />
-          Kontor
+          {t('Kontor')}
         </Link>
         <nav className="nav">
           {NAV.map((item) => (
@@ -149,9 +150,9 @@ export function Layout() {
             <Avatar name={company?.name || 'Kontor'} src={logo?.dataUrl} />
             <span style={{ minWidth: 0 }}>
               <strong style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {company?.name || 'Deine Firma'}
+                {company?.name || t('Deine Firma')}
               </strong>
-              <small>{settings?.smallBusiness ? 'Kleinunternehmer' : 'Firmendaten'}</small>
+              <small>{settings?.smallBusiness ? t('Kleinunternehmer') : t('Firmendaten')}</small>
             </span>
           </Link>
         </div>
@@ -160,7 +161,7 @@ export function Layout() {
       <header className="mobile-header">
         <Link to="/" className="brand">
           <BrandMark />
-          Kontor
+          {t('Kontor')}
         </Link>
         {timer && <TimerPill timer={timer} customerName={timerCustomer ? customerName(timerCustomer) : ''} compact />}
       </header>
@@ -169,11 +170,11 @@ export function Layout() {
         <Outlet />
       </main>
 
-      <nav className="tabbar" aria-label="Navigation">
+      <nav className="tabbar" aria-label={t('Navigation')}>
         {NAV.slice(0, 4).map((item) => (
           <NavLink key={item.to} to={item.to} end={item.end} className={({ isActive }) => `tab ${isActive ? 'active' : ''}`}>
             <item.icon size={23} strokeWidth={1.9} aria-hidden />
-            {item.to === '/zeit' ? 'Zeit' : item.label}
+            {item.to === '/zeit' ? t('Zeit') : item.label}
           </NavLink>
         ))}
         <button
@@ -183,11 +184,11 @@ export function Layout() {
           aria-haspopup="dialog"
         >
           <MoreHorizontal size={23} strokeWidth={1.9} aria-hidden />
-          Mehr
+          {t('Mehr')}
         </button>
       </nav>
 
-      <Dialog open={moreOpen} onClose={() => setMoreOpen(false)} title="Mehr">
+      <Dialog open={moreOpen} onClose={() => setMoreOpen(false)} title={t('Mehr')}>
         <ul className="list" style={{ margin: '0 -24px' }}>
           {NAV.slice(4).map((item) => (
             <li key={item.to}>

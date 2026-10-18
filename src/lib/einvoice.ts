@@ -1,5 +1,6 @@
 import { calculateTotals, lineTotal } from './calc'
 import { formatDate } from './dates'
+import { t } from './i18n'
 import type { Company, InvoiceDocument, TaxMode } from './types'
 
 /**
@@ -89,15 +90,15 @@ export interface EInvoiceIssue {
 /** Additional checks for the e-invoice on top of the § 14 UStG validation. */
 export function eInvoiceIssues(doc: InvoiceDocument, seller: Company, profile: EInvoiceProfile): EInvoiceIssue[] {
   const issues: EInvoiceIssue[] = []
-  if (doc.status === 'draft') issues.push({ message: 'Die Rechnung muss zuerst abgeschlossen werden (Rechnungsnummer).' })
-  if (!seller.email) issues.push({ message: 'Deine E-Mail-Adresse fehlt (elektronische Adresse des Verkäufers, BT-34).' })
+  if (doc.status === 'draft') issues.push({ message: t('Die Rechnung muss zuerst abgeschlossen werden (Rechnungsnummer).') })
+  if (!seller.email) issues.push({ message: t('Deine E-Mail-Adresse fehlt (elektronische Adresse des Verkäufers, BT-34).') })
   if (profile === 'xrechnung') {
-    if (!doc.recipient.email) issues.push({ message: 'E-Mail des Empfängers fehlt (elektronische Adresse des Käufers, BT-49).' })
-    if (!seller.phone) issues.push({ message: 'Deine Telefonnummer fehlt (Kontakt des Verkäufers, BT-42).' })
-    if (!doc.recipient.leitwegId && !doc.buyerReference) issues.push({ message: 'Keine Leitweg-ID oder Käuferreferenz angegeben (BT-10). Für öffentliche Auftraggeber ist die Leitweg-ID Pflicht; sonst wird „n/a“ eingetragen.' })
+    if (!doc.recipient.email) issues.push({ message: t('E-Mail des Empfängers fehlt (elektronische Adresse des Käufers, BT-49).') })
+    if (!seller.phone) issues.push({ message: t('Deine Telefonnummer fehlt (Kontakt des Verkäufers, BT-42).') })
+    if (!doc.recipient.leitwegId && !doc.buyerReference) issues.push({ message: t('Keine Leitweg-ID oder Käuferreferenz angegeben (BT-10). Für öffentliche Auftraggeber ist die Leitweg-ID Pflicht; sonst wird „n/a“ eingetragen.') })
   }
-  if (!seller.iban) issues.push({ message: 'Keine IBAN hinterlegt – die Zahlungsart wird ohne Kontoverbindung exportiert.' })
-  if (doc.kind === 'quote') issues.push({ message: 'Angebote können nicht als E-Rechnung exportiert werden.' })
+  if (!seller.iban) issues.push({ message: t('Keine IBAN hinterlegt – die Zahlungsart wird ohne Kontoverbindung exportiert.') })
+  if (doc.kind === 'quote') issues.push({ message: t('Angebote können nicht als E-Rechnung exportiert werden.') })
   return issues
 }
 

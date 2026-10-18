@@ -1,3 +1,4 @@
+import { t, uiLocale } from '../lib/i18n'
 import { X, type LucideIcon } from 'lucide-react'
 import {
   useEffect,
@@ -219,7 +220,7 @@ export function NumberInput({
   suffix?: string
   maxFraction?: number
 }) {
-  const fmt = (n: number) => n.toLocaleString('de-DE', { maximumFractionDigits: maxFraction, useGrouping: false })
+  const fmt = (n: number) => n.toLocaleString(uiLocale(), { maximumFractionDigits: maxFraction, useGrouping: false })
   const [text, setText] = useState(fmt(value))
   const [focused, setFocused] = useState(false)
   useEffect(() => {
@@ -414,7 +415,7 @@ export function Dialog({
             <h2 id={titleId}>{title}</h2>
             {description && <p>{description}</p>}
           </div>
-          <IconButton icon={X} label="Schließen" onClick={onClose} />
+          <IconButton icon={X} label={t('Schließen')} onClick={onClose} />
         </div>
         {children && <div className="dialog-body">{children}</div>}
         {footer && <div className="dialog-footer">{footer}</div>}

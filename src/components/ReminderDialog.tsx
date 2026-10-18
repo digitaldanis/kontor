@@ -1,3 +1,4 @@
+import { t, uiLocale } from '../lib/i18n'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { BellRing, Download } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
@@ -80,7 +81,7 @@ export function ReminderDialog({ invoice, onClose, onSaved }: { invoice: Invoice
       const r = await saveReminder({ ...rest, title: reminderTitle(level, lang, settings.dunning) })
       if (withPdf) await downloadReminderPdf(r, invoice, settings)
       return r
-    }, `${LEVEL_LABELS[level]} gespeichert`)
+    }, t('{p0} gespeichert', { p0: LEVEL_LABELS[level] }))
     if (saved) {
       onSaved?.(saved)
       onClose()
@@ -92,16 +93,16 @@ export function ReminderDialog({ invoice, onClose, onSaved }: { invoice: Invoice
       open={!!invoice}
       onClose={onClose}
       wide
-      title={`${LEVEL_LABELS[level]} zu ${invoice.number}`}
-      description={`${invoice.recipient.company || invoice.recipient.contactPerson} · fällig seit ${formatDate(invoice.dueDate)}`}
+      title={t('{p0} zu {p1}', { p0: LEVEL_LABELS[level], p1: invoice.number })}
+      description={t('{p0} · fällig seit {p1}', { p0: invoice.recipient.company || invoice.recipient.contactPerson, p1: formatDate(invoice.dueDate) })}
       footer={
         <>
           <span className="muted small" style={{ marginRight: 'auto', alignSelf: 'center' }}>
-            Gesamtforderung {formatMoney(reminderTotal(reminder), invoice.currency)}
+            {t('Gesamtforderung')} {formatMoney(reminderTotal(reminder), invoice.currency)}
           </span>
-          <Button onClick={() => save(false)}>Speichern</Button>
+          <Button onClick={() => save(false)}>{t('Speichern')}</Button>
           <Button variant="primary" icon={Download} onClick={() => save(true)}>
-            Speichern und PDF
+            {t('Speichern und PDF')}
           </Button>
         </>
       }
@@ -109,34 +110,34 @@ export function ReminderDialog({ invoice, onClose, onSaved }: { invoice: Invoice
       <div className="reminder-grid">
         <div className="stack-sm">
           <Segmented<string>
-            label="Mahnstufe"
+            label={t('Mahnstufe')}
             value={String(level)}
             onChange={(v) => changeLevel(Number(v) as DunningLevel)}
-            options={([0, 1, 2] as DunningLevel[]).map((l) => ({ value: String(l), label: `${LEVEL_LABELS[l]}${used.has(l) ? ' ✓' : ''}` }))}
+            options={([0, 1, 2] as DunningLevel[]).map((l) => ({ value: String(l), label: `${t(LEVEL_LABELS[l])}${used.has(l) ? ' ✓' : ''}` }))}
           />
           <div className="form-grid">
-            <TextField className="span-3" label="Datum" type="date" value={issueDate} onChange={(d) => { setIssueDate(d); setDeadline(addDays(d, settings.dunning.deadlineDays)) }} />
-            <TextField className="span-3" label="Neue Zahlungsfrist" type="date" value={deadline} onChange={setDeadline} />
-            <Field className="span-3" label="Mahngebühr">
-              <MoneyInput value={fee} onChange={(v) => setFee(v ?? 0)} aria-label="Mahngebühr" />
+            <TextField className="span-3" label={t('Datum')} type="date" value={issueDate} onChange={(d) => { setIssueDate(d); setDeadline(addDays(d, settings.dunning.deadlineDays)) }} />
+            <TextField className="span-3" label={t('Neue Zahlungsfrist')} type="date" value={deadline} onChange={setDeadline} />
+            <Field className="span-3" label={t('Mahngebühr')}>
+              <MoneyInput value={fee} onChange={(v) => setFee(v ?? 0)} aria-label={t('Mahngebühr')} />
             </Field>
             <div className="span-3 small muted" style={{ alignSelf: 'end' }}>
-              Offen: <strong>{formatMoney(reminder.openCents, invoice.currency)}</strong>
-              {reminder.previousFeesCents > 0 && <> · frühere Gebühren {formatMoney(reminder.previousFeesCents, invoice.currency)}</>}
+              {t('Offen:')} <strong>{formatMoney(reminder.openCents, invoice.currency)}</strong>
+              {reminder.previousFeesCents > 0 && <> {t('· frühere Gebühren')} {formatMoney(reminder.previousFeesCents, invoice.currency)}</>}
             </div>
           </div>
           <Toggle
             checked={interest}
             onChange={setInterest}
-            label="Verzugszinsen berechnen"
-            description={`${reminder.interestRatePercent.toLocaleString('de-DE')} % p. a. (Basiszins ${settings.dunning.baseRatePercent.toLocaleString('de-DE')} % + ${data.customer?.customerType === 'consumer' || !invoice.recipient.company ? '5' : '9'} Punkte) für ${draft.interestDays || 0} Tage = ${formatMoney(reminder.interestCents, invoice.currency)}`}
+            label={t('Verzugszinsen berechnen')}
+            description={t('{p0} % p. a. (Basiszins {p1} % + {p2} Punkte) für {p3} Tage = {p4}', { p0: reminder.interestRatePercent.toLocaleString(uiLocale()), p1: settings.dunning.baseRatePercent.toLocaleString(uiLocale()), p2: data.customer?.customerType === 'consumer' || !invoice.recipient.company ? '5' : '9', p3: draft.interestDays || 0, p4: formatMoney(reminder.interestCents, invoice.currency) })}
           />
           {!!invoice.recipient.company && (
-            <Toggle checked={flatFee} onChange={setFlatFee} label="Verzugspauschale 40 €" description="Nur gegenüber Unternehmen, einmal je Forderung (§ 288 Abs. 5 BGB)." />
+            <Toggle checked={flatFee} onChange={setFlatFee} label={t('Verzugspauschale 40 €')} description={t('Nur gegenüber Unternehmen, einmal je Forderung (§ 288 Abs. 5 BGB).')} />
           )}
-          <TextAreaField label="Text" value={text} onChange={setText} rows={6} hint="Platzhalter: {Rechnungsnummer}, {Rechnungsdatum}, {Fälligkeitsdatum}, {Offener Betrag}, {Gesamtforderung}, {Neue Frist}" />
+          <TextAreaField label={t('Text')} value={text} onChange={setText} rows={6} hint={t('Platzhalter: {Rechnungsnummer}, {Rechnungsdatum}, {Fälligkeitsdatum}, {Offener Betrag}, {Gesamtforderung}, {Neue Frist}')} />
           <p className="small faint">
-            <BellRing size={12} aria-hidden /> Verzugszinsen und Pauschale setzen voraus, dass der Kunde in Verzug ist – bei Verbrauchern z. B. erst 30 Tage nach Fälligkeit, wenn auf der Rechnung darauf hingewiesen wurde. Keine Rechtsberatung.
+            <BellRing size={12} aria-hidden /> {t('Verzugszinsen und Pauschale setzen voraus, dass der Kunde in Verzug ist – bei Verbrauchern z. B. erst 30 Tage nach Fälligkeit, wenn auf der Rechnung darauf hingewiesen wurde. Keine Rechtsberatung.')}
           </p>
         </div>
         <div className="reminder-preview">

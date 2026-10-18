@@ -1,3 +1,4 @@
+import { t } from '../lib/i18n'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { ChevronLeft, ChevronRight, Download, FileInput, Paperclip, Plus, Receipt, Search, Trash2, Upload, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -14,7 +15,7 @@ import { formatMoney, formatNumber } from '../lib/money'
 import type { Attachment, Expense } from '../lib/types'
 
 export function Expenses() {
-  useDocumentTitle('Ausgaben')
+  useDocumentTitle(t('Ausgaben'))
   const settings = useSettings()
   const { run, undoable, toast } = useFeedback()
   const [year, setYear] = useState(new Date().getFullYear())
@@ -41,7 +42,7 @@ export function Expenses() {
   const remove = async (e: Expense) => {
     const removed = await run(() => deleteExpense(e.id))
     if (!removed) return
-    undoable('Ausgabe gelöscht', async () => {
+    undoable(t('Ausgabe gelöscht'), async () => {
       if (removed.attachment) await db.attachments.put(removed.attachment)
       if (removed.expense) await db.expenses.put(removed.expense)
     })
@@ -57,22 +58,22 @@ export function Expenses() {
       const inv = parseEInvoice(xml)
       const att = await storeAttachment(file)
       setEditing(importedToExpense(inv, { ...fresh(), attachmentId: att.id }))
-      toast(`E-Rechnung ${inv.number} von ${inv.sellerName || 'unbekannt'} gelesen – bitte prüfen`)
+      toast(t('E-Rechnung {p0} von {p1} gelesen – bitte prüfen', { p0: inv.number, p1: inv.sellerName || 'unbekannt' }))
     })
   }
 
   return (
     <div className="page">
       <PageHeader
-        title="Ausgaben"
-        subtitle="Belege mit Vorsteuer erfassen – Grundlage für EÜR und Umsatzsteuer-Voranmeldung."
+        title={t('Ausgaben')}
+        subtitle={t('Belege mit Vorsteuer erfassen – Grundlage für EÜR und Umsatzsteuer-Voranmeldung.')}
         actions={
           <>
             <Button icon={FileInput} onClick={() => importInput.current?.click()}>
-              E-Rechnung importieren
+              {t('E-Rechnung importieren')}
             </Button>
             <Button variant="primary" icon={Plus} onClick={() => setEditing(fresh())}>
-              Neue Ausgabe
+              {t('Neue Ausgabe')}
             </Button>
             <input ref={importInput} type="file" accept=".xml,.pdf,application/xml,text/xml,application/pdf" hidden onChange={(e) => { void importFile(e.target.files?.[0]); e.target.value = '' }} />
           </>
@@ -80,55 +81,57 @@ export function Expenses() {
       />
 
       <div className="grid grid-3" style={{ marginBottom: 20 }}>
-        <Stat label={`Ausgaben ${year}`} value={formatMoney(total)} sub={`${list.length} Belege, brutto`} icon={Receipt} tone="orange" />
-        <Stat label="Vorsteuer" value={formatMoney(vat)} sub={settings?.smallBusiness ? 'als Kleinunternehmer nicht abziehbar' : 'abziehbar, siehe Berichte'} tone="green" />
-        <Stat label="Ohne Beleg" value={String(withoutReceipt)} sub={withoutReceipt ? 'Beleg-Datei fehlt noch' : 'alles belegt'} icon={Paperclip} tone={withoutReceipt ? 'red' : 'blue'} />
+        <Stat label={t('Ausgaben {p0}', { p0: year })} value={formatMoney(total)} sub={t('{p0} Belege, brutto', { p0: list.length })} icon={Receipt} tone="orange" />
+        <Stat label={t('Vorsteuer')} value={formatMoney(vat)} sub={settings?.smallBusiness ? t('als Kleinunternehmer nicht abziehbar') : t('abziehbar, siehe Berichte')} tone="green" />
+        <Stat label={t('Ohne Beleg')} value={String(withoutReceipt)} sub={withoutReceipt ? t('Beleg-Datei fehlt noch') : t('alles belegt')} icon={Paperclip} tone={withoutReceipt ? 'red' : 'blue'} />
       </div>
 
       <div className="toolbar">
         <div className="row" style={{ gap: 2 }}>
-          <IconButton icon={ChevronLeft} label="Vorheriges Jahr" onClick={() => setYear(year - 1)} />
+          <IconButton icon={ChevronLeft} label={t('Vorheriges Jahr')} onClick={() => setYear(year - 1)} />
           <strong className="tabular" style={{ minWidth: 48, textAlign: 'center', fontSize: 17 }}>
             {year}
           </strong>
-          <IconButton icon={ChevronRight} label="Nächstes Jahr" onClick={() => setYear(year + 1)} />
+          <IconButton icon={ChevronRight} label={t('Nächstes Jahr')} onClick={() => setYear(year + 1)} />
         </div>
         <label className="search">
-          <span className="sr-only">Ausgaben durchsuchen</span>
+          <span className="sr-only">{t('Ausgaben durchsuchen')}</span>
           <Search size={16} aria-hidden />
-          <input className="input" type="search" placeholder="Lieferant, Beschreibung …" value={q} onChange={(e) => setQ(e.target.value)} />
+          <input className="input" type="search" placeholder={t('Lieferant, Beschreibung …')} value={q} onChange={(e) => setQ(e.target.value)} />
         </label>
-        <select className="select" style={{ width: 'auto' }} value={category} onChange={(e) => setCategory(e.target.value)} aria-label="Kategorie">
-          <option value="">Alle Kategorien</option>
+        <select className="select" style={{ width: 'auto' }} value={category} onChange={(e) => setCategory(e.target.value)} aria-label={t('Kategorie')}>
+          <option value="">{t('Alle Kategorien')}</option>
           {EXPENSE_CATEGORIES.map((c) => (
-            <option key={c}>{c}</option>
+            <option key={c} value={c}>
+              {t(c)}
+            </option>
           ))}
         </select>
         <span className="spacer" />
         <Button size="sm" icon={Download} disabled={!list.length} onClick={() => downloadFile(`kontor-ausgaben-${year}.csv`, expensesToCsv(list), 'text/csv;charset=utf-8')}>
-          CSV
+          {t('CSV')}
         </Button>
       </div>
 
       <div className="card">
         {all && !all.length ? (
-          <EmptyState icon={Receipt} title="Noch keine Ausgaben" action={<Button variant="primary" icon={Plus} onClick={() => setEditing(fresh())}>Erste Ausgabe erfassen</Button>}>
-            Trage Belege mit Datum, Betrag und Vorsteuer ein und hänge ein Foto oder PDF an. Eingehende XRechnungen und ZUGFeRD-PDFs liest Kontor direkt ein.
+          <EmptyState icon={Receipt} title={t('Noch keine Ausgaben')} action={<Button variant="primary" icon={Plus} onClick={() => setEditing(fresh())}>{t('Erste Ausgabe erfassen')}</Button>}>
+            {t('Trage Belege mit Datum, Betrag und Vorsteuer ein und hänge ein Foto oder PDF an. Eingehende XRechnungen und ZUGFeRD-PDFs liest Kontor direkt ein.')}
           </EmptyState>
         ) : !list.length ? (
-          <EmptyState icon={Search} title="Keine Ausgaben gefunden" compact>
-            Für {year} und diese Filter gibt es keine Einträge.
+          <EmptyState icon={Search} title={t('Keine Ausgaben gefunden')} compact>
+            {t('Für')} {year} {t('und diese Filter gibt es keine Einträge.')}
           </EmptyState>
         ) : (
           <div className="table-wrap">
             <table className="table responsive">
               <thead>
                 <tr>
-                  <th>Ausgabe</th>
-                  <th className="hide-sm">Datum</th>
-                  <th className="hide-sm">Kategorie</th>
-                  <th className="num hide-sm">Vorsteuer</th>
-                  <th className="num">Brutto</th>
+                  <th>{t('Ausgabe')}</th>
+                  <th className="hide-sm">{t('Datum')}</th>
+                  <th className="hide-sm">{t('Kategorie')}</th>
+                  <th className="num hide-sm">{t('Vorsteuer')}</th>
+                  <th className="num">{t('Brutto')}</th>
                   <th />
                 </tr>
               </thead>
@@ -137,22 +140,22 @@ export function Expenses() {
                   <tr key={e.id} className="clickable" onClick={() => setEditing(e)}>
                     <td className="primary-cell">
                       <a href="#/ausgaben" style={{ color: 'inherit' }} onClick={(ev) => { ev.preventDefault(); ev.stopPropagation(); setEditing(e) }}>
-                        {e.vendor || e.description || 'Ohne Bezeichnung'}
+                        {e.vendor || e.description || t('Ohne Bezeichnung')}
                       </a>
                       <small>
                         {[e.vendor ? e.description : '', e.invoiceNumber].filter(Boolean).join(' · ')}
-                        {e.attachmentId ? '' : ' · ohne Beleg'}
+                        {e.attachmentId ? '' : t(' · ohne Beleg')}
                       </small>
                     </td>
                     <td className="muted nowrap hide-sm">{formatDate(e.date)}</td>
-                    <td className="muted hide-sm">{e.category}</td>
+                    <td className="muted hide-sm">{t(e.category)}</td>
                     <td className="num muted hide-sm">{formatMoney(e.vatCents, e.currency)}</td>
                     <td className="num">
                       <strong>{formatMoney(e.grossCents, e.currency)}</strong>
                     </td>
                     <td className="num" onClick={(ev) => ev.stopPropagation()}>
-                      {e.attachmentId && <IconButton icon={Paperclip} label="Beleg öffnen" onClick={() => run(() => openAttachment(e.attachmentId!))} />}
-                      <IconButton icon={Trash2} label="Löschen" danger onClick={() => remove(e)} />
+                      {e.attachmentId && <IconButton icon={Paperclip} label={t('Beleg öffnen')} onClick={() => run(() => openAttachment(e.attachmentId!))} />}
+                      <IconButton icon={Trash2} label={t('Löschen')} danger onClick={() => remove(e)} />
                     </td>
                   </tr>
                 ))}
@@ -200,10 +203,10 @@ function ExpenseDialog({ expense, onClose, smallBusiness }: { expense: Expense |
     void run(async () => {
       const att = await storeAttachment(file)
       setE((cur) => (cur ? { ...cur, attachmentId: att.id } : cur))
-    }, 'Beleg angehängt')
+    }, t('Beleg angehängt'))
   }
   const save = async () => {
-    const saved = await run(() => saveExpense(e), 'Ausgabe gespeichert')
+    const saved = await run(() => saveExpense(e), t('Ausgabe gespeichert'))
     if (saved) onClose()
   }
 
@@ -212,15 +215,15 @@ function ExpenseDialog({ expense, onClose, smallBusiness }: { expense: Expense |
       open={!!expense}
       onClose={onClose}
       wide
-      title={expense?.vendor || expense?.grossCents ? 'Ausgabe bearbeiten' : 'Neue Ausgabe'}
+      title={expense?.vendor || expense?.grossCents ? t('Ausgabe bearbeiten') : t('Neue Ausgabe')}
       footer={
         <>
           <span className="muted small" style={{ marginRight: 'auto', alignSelf: 'center' }}>
-            netto {formatMoney(expenseNet(e), e.currency)}
+            {t('netto')} {formatMoney(expenseNet(e), e.currency)}
           </span>
-          <Button onClick={onClose}>Abbrechen</Button>
+          <Button onClick={onClose}>{t('Abbrechen')}</Button>
           <Button variant="primary" onClick={save}>
-            Speichern
+            {t('Speichern')}
           </Button>
         </>
       }
@@ -232,36 +235,38 @@ function ExpenseDialog({ expense, onClose, smallBusiness }: { expense: Expense |
           void save()
         }}
       >
-        <TextField className="span-3" label="Lieferant" value={e.vendor} onChange={(vendor) => set({ vendor })} autoFocus placeholder="z. B. Hosting Nord GmbH" />
-        <TextField className="span-3" label="Belegnummer" value={e.invoiceNumber} onChange={(invoiceNumber) => set({ invoiceNumber })} placeholder="optional" />
-        <TextField className="span-6" label="Beschreibung" value={e.description} onChange={(description) => set({ description })} />
-        <TextField className="span-2" label="Belegdatum" type="date" value={e.date} onChange={(date) => set({ date })} />
-        <TextField className="span-2" label="Bezahlt am" type="date" value={e.paidAt ?? ''} onChange={(paidAt) => set({ paidAt: paidAt || null })} hint="leer = noch offen" />
-        <SelectField className="span-2" label="Kategorie" value={e.category} onChange={(category) => set({ category })}>
+        <TextField className="span-3" label={t('Lieferant')} value={e.vendor} onChange={(vendor) => set({ vendor })} autoFocus placeholder={t('z. B. Hosting Nord GmbH')} />
+        <TextField className="span-3" label={t('Belegnummer')} value={e.invoiceNumber} onChange={(invoiceNumber) => set({ invoiceNumber })} placeholder={t('optional')} />
+        <TextField className="span-6" label={t('Beschreibung')} value={e.description} onChange={(description) => set({ description })} />
+        <TextField className="span-2" label={t('Belegdatum')} type="date" value={e.date} onChange={(date) => set({ date })} />
+        <TextField className="span-2" label={t('Bezahlt am')} type="date" value={e.paidAt ?? ''} onChange={(paidAt) => set({ paidAt: paidAt || null })} hint={t('leer = noch offen')} />
+        <SelectField className="span-2" label={t('Kategorie')} value={e.category} onChange={(category) => set({ category })}>
           {[...new Set([...EXPENSE_CATEGORIES, e.category])].map((c) => (
-            <option key={c}>{c}</option>
+            <option key={c} value={c}>
+              {t(c)}
+            </option>
           ))}
         </SelectField>
-        <Field className="span-2" label="Betrag brutto">
-          <MoneyInput value={e.grossCents} onChange={(v) => set({ grossCents: v ?? 0 })} currencySymbol={e.currency === 'EUR' ? '€' : e.currency} aria-label="Betrag brutto" />
+        <Field className="span-2" label={t('Betrag brutto')}>
+          <MoneyInput value={e.grossCents} onChange={(v) => set({ grossCents: v ?? 0 })} currencySymbol={e.currency === 'EUR' ? '€' : e.currency} aria-label={t('Betrag brutto')} />
         </Field>
-        <SelectField className="span-1" label="USt" value={String(e.taxRate)} onChange={(v) => set({ taxRate: Number(v) })}>
+        <SelectField className="span-1" label={t('USt')} value={String(e.taxRate)} onChange={(v) => set({ taxRate: Number(v) })}>
           {[...new Set([...TAX_RATES, e.taxRate])].map((r) => (
             <option key={r} value={r}>
               {formatNumber(r)} %
             </option>
           ))}
         </SelectField>
-        <Field className="span-2" label="Vorsteuer" hint={manualVat ? <button type="button" className="link-button" onClick={() => { setManualVat(false); setE({ ...e, vatCents: vatFromGross(e.grossCents, e.taxRate) }) }}>automatisch berechnen</button> : 'aus Brutto berechnet'}>
-          <MoneyInput value={e.vatCents} onChange={(v) => { setManualVat(true); setE({ ...e, vatCents: v ?? 0 }) }} aria-label="Vorsteuer" />
+        <Field className="span-2" label={t('Vorsteuer')} hint={manualVat ? <button type="button" className="link-button" onClick={() => { setManualVat(false); setE({ ...e, vatCents: vatFromGross(e.grossCents, e.taxRate) }) }}>{t('automatisch berechnen')}</button> : t('aus Brutto berechnet')}>
+          <MoneyInput value={e.vatCents} onChange={(v) => { setManualVat(true); setE({ ...e, vatCents: v ?? 0 }) }} aria-label={t('Vorsteuer')} />
         </Field>
-        <SelectField className="span-1" label="Währung" value={e.currency} onChange={(currency) => set({ currency })}>
+        <SelectField className="span-1" label={t('Währung')} value={e.currency} onChange={(currency) => set({ currency })}>
           {CURRENCIES.map((c) => (
             <option key={c}>{c}</option>
           ))}
         </SelectField>
-        {smallBusiness && <p className="span-6 small muted">Als Kleinunternehmer ziehst du keine Vorsteuer ab – die Ausgabe zählt in der EÜR mit dem Bruttobetrag.</p>}
-        <TextAreaField className="span-6" label="Notiz" value={e.notes} onChange={(notes) => set({ notes })} rows={2} />
+        {smallBusiness && <p className="span-6 small muted">{t('Als Kleinunternehmer ziehst du keine Vorsteuer ab – die Ausgabe zählt in der EÜR mit dem Bruttobetrag.')}</p>}
+        <TextAreaField className="span-6" label={t('Notiz')} value={e.notes} onChange={(notes) => set({ notes })} rows={2} />
         <div
           className={`span-6 logo-drop ${dragging ? 'dragging' : ''}`}
           onDragOver={(ev) => {
@@ -280,20 +285,20 @@ function ExpenseDialog({ expense, onClose, smallBusiness }: { expense: Expense |
           </div>
           <div className="stack-sm" style={{ gap: 8 }}>
             <div>
-              <strong>{attachment ? attachment.name : 'Beleg anhängen'}</strong>
-              <p className="muted small">{attachment ? `${Math.round(attachment.size / 1024)} KB · bleibt auf diesem Gerät` : 'Foto oder PDF bis 10 MB, hierher ziehen oder auswählen.'}</p>
+              <strong>{attachment ? attachment.name : t('Beleg anhängen')}</strong>
+              <p className="muted small">{attachment ? t('{p0} KB · bleibt auf diesem Gerät', { p0: Math.round(attachment.size / 1024) }) : t('Foto oder PDF bis 10 MB, hierher ziehen oder auswählen.')}</p>
             </div>
             <div className="row wrap">
               <Button size="sm" icon={Upload} onClick={() => input.current?.click()}>
-                {attachment ? 'Ersetzen' : 'Datei wählen'}
+                {attachment ? t('Ersetzen') : t('Datei wählen')}
               </Button>
               {attachment && (
                 <>
                   <Button size="sm" icon={Paperclip} onClick={() => run(() => openAttachment(attachment.id))}>
-                    Öffnen
+                    {t('Öffnen')}
                   </Button>
                   <Button size="sm" variant="ghost" icon={X} onClick={() => setE({ ...e, attachmentId: null })}>
-                    Entfernen
+                    {t('Entfernen')}
                   </Button>
                 </>
               )}

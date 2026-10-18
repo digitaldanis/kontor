@@ -1,3 +1,4 @@
+import { t } from '../lib/i18n'
 import { Square } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { formatClock } from '../lib/dates'
@@ -15,17 +16,17 @@ export function TimerPill({ timer, customerName, compact }: { timer: RunningTime
   return (
     <div className={`timer-pill ${compact ? 'compact' : ''}`}>
       <span className="pulse" aria-hidden />
-      <Link to="/zeit" className="meta" style={{ color: 'inherit', textDecoration: 'none' }} aria-label={`Laufende Stoppuhr: ${formatClock(seconds)}`}>
+      <Link to="/zeit" className="meta" style={{ color: 'inherit', textDecoration: 'none' }} aria-label={t('Laufende Stoppuhr: {p0}', { p0: formatClock(seconds) })}>
         <span className="time" aria-live="off">
           {formatClock(seconds)}
         </span>
-        {!compact && <small>{[customerName, timer.description].filter(Boolean).join(' · ') || 'Läuft'}</small>}
+        {!compact && <small>{[customerName, timer.description].filter(Boolean).join(' · ') || t('Läuft')}</small>}
       </Link>
       <IconButton
         icon={Square}
         size={14}
-        label="Stoppuhr anhalten"
-        onClick={() => run(stopTimer, 'Zeit gespeichert')}
+        label={t('Stoppuhr anhalten')}
+        onClick={() => run(stopTimer, t('Zeit gespeichert'))}
         style={{ width: 28, height: 28, background: 'var(--red-soft)', color: 'var(--red)' }}
       />
     </div>

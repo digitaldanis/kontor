@@ -1,3 +1,4 @@
+import { t, uiLocale } from '../lib/i18n'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { BellRing, CheckCircle2, Download, Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
@@ -17,7 +18,7 @@ import { amountDue, displayStatus } from '../lib/status'
 import type { InvoiceDocument, Reminder } from '../lib/types'
 
 export function Dunning() {
-  useDocumentTitle('Mahnwesen')
+  useDocumentTitle(t('Mahnwesen'))
   const settings = useSettings()
   const { run, undoable } = useFeedback()
   const [params, setParams] = useSearchParams()
@@ -56,36 +57,36 @@ export function Dunning() {
 
   const remove = async (r: Reminder) => {
     await run(() => deleteReminder(r.id))
-    undoable(`${LEVEL_LABELS[r.level]} gelöscht`, () => db.reminders.put(r))
+    undoable(t('{p0} gelöscht', { p0: LEVEL_LABELS[r.level] }), () => db.reminders.put(r))
   }
 
   return (
     <div className="page">
-      <PageHeader title="Mahnwesen" subtitle="Überfällige Rechnungen im Blick behalten und freundlich, aber bestimmt nachfassen." />
+      <PageHeader title={t('Mahnwesen')} subtitle={t('Überfällige Rechnungen im Blick behalten und freundlich, aber bestimmt nachfassen.')} />
 
       <div className="grid grid-3" style={{ marginBottom: 20 }}>
-        <Stat label="Überfällig" value={formatMoney(openSum)} sub={`${rows.length} ${rows.length === 1 ? 'Rechnung' : 'Rechnungen'}`} icon={BellRing} tone={rows.length ? 'red' : 'green'} />
-        <Stat label="Jetzt fällig" value={String(ready.length)} sub="nächster Mahnschritt erreicht" tone="orange" />
-        <Stat label="Basiszinssatz" value={`${settings.dunning.baseRatePercent.toLocaleString('de-DE')} %`} sub={<Link to="/einstellungen#mahnwesen">seit {formatDate(settings.dunning.baseRateSince)} · ändern</Link>} tone="blue" />
+        <Stat label={t('Überfällig')} value={formatMoney(openSum)} sub={rows.length === 1 ? t('1 Rechnung') : t('{n} Rechnungen', { n: rows.length })} icon={BellRing} tone={rows.length ? 'red' : 'green'} />
+        <Stat label={t('Jetzt fällig')} value={String(ready.length)} sub={t('nächster Mahnschritt erreicht')} tone="orange" />
+        <Stat label={t('Basiszinssatz')} value={`${settings.dunning.baseRatePercent.toLocaleString(uiLocale())} %`} sub={<Link to="/einstellungen#mahnwesen">{t('seit')} {formatDate(settings.dunning.baseRateSince)} {t('· ändern')}</Link>} tone="blue" />
       </div>
 
       <section className="card" style={{ marginBottom: 20 }}>
         <div className="card-header">
-          <h2>Überfällige Rechnungen</h2>
+          <h2>{t('Überfällige Rechnungen')}</h2>
         </div>
         {rows.length === 0 ? (
-          <EmptyState icon={CheckCircle2} title="Nichts überfällig" compact>
-            Alle Rechnungen sind bezahlt oder noch nicht fällig.
+          <EmptyState icon={CheckCircle2} title={t('Nichts überfällig')} compact>
+            {t('Alle Rechnungen sind bezahlt oder noch nicht fällig.')}
           </EmptyState>
         ) : (
           <div className="table-wrap">
             <table className="table responsive">
               <thead>
                 <tr>
-                  <th>Rechnung</th>
-                  <th className="hide-sm">Überfällig</th>
-                  <th className="hide-sm">Letzter Schritt</th>
-                  <th className="num">Offen</th>
+                  <th>{t('Rechnung')}</th>
+                  <th className="hide-sm">{t('Überfällig')}</th>
+                  <th className="hide-sm">{t('Letzter Schritt')}</th>
+                  <th className="num">{t('Offen')}</th>
                   <th />
                 </tr>
               </thead>
@@ -99,22 +100,22 @@ export function Dunning() {
                       <small>{recipientName(r.doc.recipient)}</small>
                     </td>
                     <td className="hide-sm">
-                      {r.days} {r.days === 1 ? 'Tag' : 'Tage'}
-                      <small className="faint" style={{ display: 'block' }}>seit {formatDate(r.doc.dueDate)}</small>
+                      {r.days} {r.days === 1 ? t('Tag') : t('Tage')}
+                      <small className="faint" style={{ display: 'block' }}>{t('seit')} {formatDate(r.doc.dueDate)}</small>
                     </td>
                     <td className="hide-sm muted">
-                      {r.last ? `${LEVEL_LABELS[r.last.level]} vom ${formatDate(r.last.issueDate)}` : '–'}
-                      {r.level !== null && r.next && !r.ready && <small style={{ display: 'block' }}>nächster Schritt ab {formatDate(r.next)}</small>}
+                      {r.last ? t('{p0} vom {p1}', { p0: LEVEL_LABELS[r.last.level], p1: formatDate(r.last.issueDate) }) : '–'}
+                      {r.level !== null && r.next && !r.ready && <small style={{ display: 'block' }}>{t('nächster Schritt ab')} {formatDate(r.next)}</small>}
                     </td>
                     <td className="num">
                       <strong>{formatMoney(amountDue(r.doc), r.doc.currency)}</strong>
                     </td>
                     <td className="num">
                       {r.level === null ? (
-                        <span className="badge red">Letzte Stufe</span>
+                        <span className="badge red">{t('Letzte Stufe')}</span>
                       ) : (
                         <Button size="sm" variant={r.ready ? 'primary' : 'default'} icon={BellRing} onClick={() => setManual(r.doc)}>
-                          {LEVEL_LABELS[r.level]}
+                          {t(LEVEL_LABELS[r.level])}
                         </Button>
                       )}
                     </td>
@@ -128,10 +129,10 @@ export function Dunning() {
 
       <section className="card">
         <div className="card-header">
-          <h2>Verlauf</h2>
+          <h2>{t('Verlauf')}</h2>
         </div>
         {history.length === 0 ? (
-          <p className="card-body muted small">Noch keine Erinnerungen oder Mahnungen geschrieben.</p>
+          <p className="card-body muted small">{t('Noch keine Erinnerungen oder Mahnungen geschrieben.')}</p>
         ) : (
           <ul className="list" style={{ marginTop: 8 }}>
             {history.map((r) => {
@@ -140,16 +141,16 @@ export function Dunning() {
                 <li key={r.id} className="list-item">
                   <div className="grow">
                     <div className="title">
-                      {LEVEL_LABELS[r.level]} · {inv ? <Link to={`/rechnungen/${inv.id}`}>{inv.number}</Link> : 'Rechnung gelöscht'}
+                      {LEVEL_LABELS[r.level]} · {inv ? <Link to={`/rechnungen/${inv.id}`}>{inv.number}</Link> : t('Rechnung gelöscht')}
                     </div>
                     <div className="sub">
-                      {formatDate(r.issueDate)} · Frist {formatDate(r.deadline)}
+                      {formatDate(r.issueDate)} {t('· Frist')} {formatDate(r.deadline)}
                       {inv ? ` · ${recipientName(inv.recipient)}` : ''}
                     </div>
                   </div>
                   <strong className="tabular">{formatMoney(reminderTotal(r), inv?.currency)}</strong>
-                  {inv && <IconButton icon={Download} label="PDF herunterladen" onClick={() => run(() => downloadReminderPdf(r, inv, settings))} />}
-                  <IconButton icon={Trash2} label="Löschen" danger onClick={() => remove(r)} />
+                  {inv && <IconButton icon={Download} label={t('PDF herunterladen')} onClick={() => run(() => downloadReminderPdf(r, inv, settings))} />}
+                  <IconButton icon={Trash2} label={t('Löschen')} danger onClick={() => remove(r)} />
                 </li>
               )
             })}

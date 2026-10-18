@@ -1,3 +1,4 @@
+import { t } from '../lib/i18n'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { FilePlus, FileText, Plus, Search, Zap } from 'lucide-react'
 import { useMemo, useState } from 'react'
@@ -17,21 +18,21 @@ import type { DocumentKind } from '../lib/types'
 type Filter = 'all' | DisplayStatus
 
 const INVOICE_FILTERS: { value: Filter; label: string }[] = [
-  { value: 'all', label: 'Alle' },
-  { value: 'draft', label: 'Entwürfe' },
-  { value: 'open', label: 'Offen' },
-  { value: 'overdue', label: 'Überfällig' },
-  { value: 'paid', label: 'Bezahlt' },
-  { value: 'creditNote', label: 'Gutschriften' },
-  { value: 'cancelled', label: 'Storniert' },
+  { value: 'all', label: t('Alle') },
+  { value: 'draft', label: t('Entwürfe') },
+  { value: 'open', label: t('Offen') },
+  { value: 'overdue', label: t('Überfällig') },
+  { value: 'paid', label: t('Bezahlt') },
+  { value: 'creditNote', label: t('Gutschriften') },
+  { value: 'cancelled', label: t('Storniert') },
 ]
 
 const QUOTE_FILTERS: { value: Filter; label: string }[] = [
-  { value: 'all', label: 'Alle' },
-  { value: 'draft', label: 'Entwürfe' },
-  { value: 'sent', label: 'Versendet' },
-  { value: 'accepted', label: 'Angenommen' },
-  { value: 'declined', label: 'Abgelehnt' },
+  { value: 'all', label: t('Alle') },
+  { value: 'draft', label: t('Entwürfe') },
+  { value: 'sent', label: t('Versendet') },
+  { value: 'accepted', label: t('Angenommen') },
+  { value: 'declined', label: t('Abgelehnt') },
 ]
 
 export function Documents() {
@@ -39,7 +40,7 @@ export function Documents() {
   const art = params.get('art')
   const view: 'invoice' | 'quote' | 'recurring' = art === 'angebote' ? 'quote' : art === 'serien' ? 'recurring' : 'invoice'
   const kind = view === 'quote' ? 'quote' : 'invoice'
-  useDocumentTitle(view === 'quote' ? 'Angebote' : view === 'recurring' ? 'Serienrechnungen' : 'Rechnungen')
+  useDocumentTitle(view === 'quote' ? t('Angebote') : view === 'recurring' ? t('Serienrechnungen') : t('Rechnungen'))
   const [filter, setFilter] = useState<Filter>((params.get('status') as Filter) || 'all')
   const [query, setQuery] = useState('')
   const [creating, setCreating] = useState<DocumentKind | null>(null)
@@ -82,41 +83,41 @@ export function Documents() {
   return (
     <div className="page">
       <PageHeader
-        title={view === 'quote' ? 'Angebote' : view === 'recurring' ? 'Serienrechnungen' : 'Rechnungen'}
+        title={view === 'quote' ? t('Angebote') : view === 'recurring' ? t('Serienrechnungen') : t('Rechnungen')}
         subtitle={
           view === 'recurring'
-            ? 'Wiederkehrende Rechnungen werden zum Stichtag als Entwurf angelegt.'
+            ? t('Wiederkehrende Rechnungen werden zum Stichtag als Entwurf angelegt.')
             : kind === 'invoice' && docs?.length
-            ? `${formatMoney(openSum)} offen${overdueSum ? ` · ${formatMoney(overdueSum)} überfällig` : ''}`
+            ? t('{p0} offen{p1}', { p0: formatMoney(openSum), p1: overdueSum ? ` · ${formatMoney(overdueSum)} überfällig` : '' })
             : kind === 'quote'
-              ? 'Angebote lassen sich mit einem Klick in eine Rechnung umwandeln.'
+              ? t('Angebote lassen sich mit einem Klick in eine Rechnung umwandeln.')
               : undefined
         }
         actions={
           view !== 'recurring' && <Button variant="primary" icon={Plus} onClick={() => setCreating(kind)}>
-            {kind === 'quote' ? 'Neues Angebot' : 'Neue Rechnung'}
+            {kind === 'quote' ? t('Neues Angebot') : t('Neue Rechnung')}
           </Button>
         }
       />
 
       <div className="toolbar">
         <Segmented
-          label="Dokumentart"
+          label={t('Dokumentart')}
           value={view}
           onChange={switchKind}
           options={[
-            { value: 'invoice', label: 'Rechnungen' },
-            { value: 'quote', label: 'Angebote' },
-            { value: 'recurring', label: 'Serien' },
+            { value: 'invoice', label: t('Rechnungen') },
+            { value: 'quote', label: t('Angebote') },
+            { value: 'recurring', label: t('Serien') },
           ]}
         />
         {view !== 'recurring' && docs && docs.length > 0 && (
           <>
-            <Segmented label="Status" value={filter} onChange={setFilter} options={kind === 'quote' ? QUOTE_FILTERS : INVOICE_FILTERS} />
+            <Segmented label={t('Status')} value={filter} onChange={setFilter} options={kind === 'quote' ? QUOTE_FILTERS : INVOICE_FILTERS} />
             <label className="search">
-              <span className="sr-only">Suchen</span>
+              <span className="sr-only">{t('Suchen')}</span>
               <Search size={16} aria-hidden />
-              <input className="input" type="search" placeholder="Nummer, Kunde, Leistung …" value={query} onChange={(e) => setQuery(e.target.value)} />
+              <input className="input" type="search" placeholder={t('Nummer, Kunde, Leistung …')} value={query} onChange={(e) => setQuery(e.target.value)} />
             </label>
           </>
         )}
@@ -126,20 +127,20 @@ export function Documents() {
         {docs && docs.length === 0 ? (
           <EmptyState
             icon={FileText}
-            title={kind === 'quote' ? 'Noch keine Angebote' : 'Noch keine Rechnungen'}
+            title={kind === 'quote' ? t('Noch keine Angebote') : t('Noch keine Rechnungen')}
             action={
               <Button variant="primary" icon={FilePlus} onClick={() => setCreating(kind)}>
-                {kind === 'quote' ? 'Erstes Angebot erstellen' : 'Erste Rechnung erstellen'}
+                {kind === 'quote' ? t('Erstes Angebot erstellen') : t('Erste Rechnung erstellen')}
               </Button>
             }
           >
             {kind === 'quote'
-              ? 'Erstelle ein Angebot für einen Kunden. Wird es angenommen, machst du daraus mit einem Klick eine Rechnung.'
-              : 'Wähle einen Kunden oder schreib eine Schnellrechnung an einen beliebigen Empfänger. Kontor prüft dabei alle Pflichtangaben.'}
+              ? t('Erstelle ein Angebot für einen Kunden. Wird es angenommen, machst du daraus mit einem Klick eine Rechnung.')
+              : t('Wähle einen Kunden oder schreib eine Schnellrechnung an einen beliebigen Empfänger. Kontor prüft dabei alle Pflichtangaben.')}
           </EmptyState>
         ) : list.length === 0 && docs ? (
-          <EmptyState icon={Search} title="Nichts gefunden" compact>
-            Passe Filter oder Suche an.
+          <EmptyState icon={Search} title={t('Nichts gefunden')} compact>
+            {t('Passe Filter oder Suche an.')}
           </EmptyState>
         ) : (
           <DocumentsTable docs={list} />
@@ -169,16 +170,16 @@ export function NewDocumentDialog({ kind, onClose }: { kind: DocumentKind | null
   const filtered = (customers ?? []).filter((c) => !q || customerName(c).toLowerCase().includes(q.toLowerCase()) || c.number.toLowerCase().includes(q.toLowerCase()))
 
   return (
-    <Dialog open={!!kind} onClose={onClose} title={kind === 'quote' ? 'Neues Angebot' : 'Neue Rechnung'} description="Für wen ist das Dokument?">
+    <Dialog open={!!kind} onClose={onClose} title={kind === 'quote' ? t('Neues Angebot') : t('Neue Rechnung')} description={t('Für wen ist das Dokument?')}>
       <div className="stack-sm">
         <button type="button" className="quick-option" onClick={() => create(null)}>
           <span className="empty-icon" style={{ width: 40, height: 40, borderRadius: 12, margin: 0 }}>
             <Zap size={19} aria-hidden />
           </span>
           <span>
-            <strong>{kind === 'quote' ? 'Freies Angebot' : 'Schnellrechnung'}</strong>
+            <strong>{kind === 'quote' ? t('Freies Angebot') : t('Schnellrechnung')}</strong>
             <span className="muted small" style={{ display: 'block' }}>
-              Empfänger frei eintippen, ohne Kunden anzulegen
+              {t('Empfänger frei eintippen, ohne Kunden anzulegen')}
             </span>
           </span>
         </button>
@@ -186,13 +187,13 @@ export function NewDocumentDialog({ kind, onClose }: { kind: DocumentKind | null
           <>
             {customers.length > 6 && (
               <label className="search" style={{ maxWidth: 'none' }}>
-                <span className="sr-only">Kunden suchen</span>
+                <span className="sr-only">{t('Kunden suchen')}</span>
                 <Search size={16} aria-hidden />
-                <input className="input" type="search" placeholder="Kunden suchen" value={q} onChange={(e) => setQ(e.target.value)} />
+                <input className="input" type="search" placeholder={t('Kunden suchen')} value={q} onChange={(e) => setQ(e.target.value)} />
               </label>
             )}
             <div className="faint small" style={{ marginTop: 6 }}>
-              Kunden
+              {t('Kunden')}
             </div>
             <ul className="list card" style={{ boxShadow: 'none', border: '1px solid var(--border)', maxHeight: 340, overflowY: 'auto' }}>
               {filtered.map((c) => (

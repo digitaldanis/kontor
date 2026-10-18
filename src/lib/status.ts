@@ -1,5 +1,6 @@
 import { documentTotals } from './calc'
 import { today } from './dates'
+import { t } from './i18n'
 import type { InvoiceDocument } from './types'
 
 export type DisplayStatus =
@@ -88,11 +89,12 @@ export function amountDue(doc: InvoiceDocument): number {
   return documentTotals(doc).dueCents - creditedOf(doc) - paidOf(doc)
 }
 
+/** Name of the document type in the interface language. */
 export function documentLabel(doc: Pick<InvoiceDocument, 'kind' | 'billingType'>): string {
-  if (doc.kind === 'quote') return 'Angebot'
-  if (doc.kind === 'cancellation') return 'Stornorechnung'
-  if (doc.kind === 'creditNote') return 'Gutschrift'
-  if (doc.billingType === 'downPayment') return 'Abschlagsrechnung'
-  if (doc.billingType === 'final') return 'Schlussrechnung'
-  return 'Rechnung'
+  if (doc.kind === 'quote') return t('Angebot')
+  if (doc.kind === 'cancellation') return t('Stornorechnung')
+  if (doc.kind === 'creditNote') return t('Gutschrift')
+  if (doc.billingType === 'downPayment') return t('Abschlagsrechnung')
+  if (doc.billingType === 'final') return t('Schlussrechnung')
+  return t('Rechnung')
 }

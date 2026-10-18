@@ -1,3 +1,4 @@
+import { t, uiLocale } from '../lib/i18n'
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
   AlertCircle,
@@ -116,8 +117,8 @@ function ComplianceCard({ issues }: { issues: Issue[] }) {
       <div className="row" style={{ marginBottom: issues.length ? 12 : 0 }}>
         {errors.length ? <AlertCircle size={20} color="var(--red)" aria-hidden /> : <CheckCircle2 size={20} color="var(--green)" aria-hidden />}
         <div>
-          <strong>{errors.length ? `${errors.length} Pflichtangabe${errors.length > 1 ? 'n' : ''} fehlt` : 'Alle Pflichtangaben vorhanden'}</strong>
-          <div className="small muted">Geprüft nach § 14 Abs. 4 UStG und Art. 226 MwStSystRL</div>
+          <strong>{errors.length ? t('{p0} Pflichtangabe{p1} fehlt', { p0: errors.length, p1: errors.length > 1 ? 'n' : '' }) : t('Alle Pflichtangaben vorhanden')}</strong>
+          <div className="small muted">{t('Geprüft nach § 14 Abs. 4 UStG und Art. 226 MwStSystRL')}</div>
         </div>
       </div>
       {issues.length > 0 && <IssueList issues={[...errors, ...rest]} />}
@@ -137,7 +138,7 @@ function DraftEditor({ initial, settings }: { initial: InvoiceDocument; settings
   const pending = useRef<InvoiceDocument | null>(null)
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined)
   const isQuote = doc.kind === 'quote'
-  useDocumentTitle(`${documentLabel(doc)} (Entwurf)`)
+  useDocumentTitle(t('{p0} (Entwurf)', { p0: documentLabel(doc) }))
 
   const unbilledCount = useLiveQuery(
     async () => (doc.customerId ? db.timeEntries.where('customerId').equals(doc.customerId).filter((e) => !e.invoiceId && e.billable).count() : 0),
@@ -197,13 +198,13 @@ function DraftEditor({ initial, settings }: { initial: InvoiceDocument; settings
       if (!r.company && !r.contactPerson) throw new Error('Bitte zuerst Firma oder Name eintragen.')
       const c = await saveCustomer({ ...emptyCustomer(), ...r, phone: '' })
       update({ customerId: c.id })
-    }, 'Als Kunde gespeichert')
+    }, t('Als Kunde gespeichert'))
 
   const importTime = async () => {
     if (!doc.customerId) return
     await flush()
     const entries = await db.timeEntries.where('customerId').equals(doc.customerId).filter((e) => !e.invoiceId && e.billable).toArray()
-    const updated = await run(() => invoiceTimeEntries(doc.customerId!, entries.map((e) => e.id), 'entry', doc.id), `${entries.length} Zeiteinträge übernommen`)
+    const updated = await run(() => invoiceTimeEntries(doc.customerId!, entries.map((e) => e.id), 'entry', doc.id), t('{p0} Zeiteinträge übernommen', { p0: entries.length }))
     if (updated) setDoc(updated)
   }
 
@@ -211,23 +212,23 @@ function DraftEditor({ initial, settings }: { initial: InvoiceDocument; settings
     setItems((items) => items.filter((i) => i.id !== item.id))
     if (item.timeEntryIds?.length) {
       void flush().then(() => releaseTimeEntries(item.timeEntryIds!))
-      toast('Zugehörige Zeiten sind wieder offen')
+      toast(t('Zugehörige Zeiten sind wieder offen'))
     }
   }
 
   const finalize = async () => {
     await flush()
-    const result = await run(() => finalizeDocument(doc.id), isQuote ? 'Angebot abgeschlossen' : 'Rechnung abgeschlossen')
+    const result = await run(() => finalizeDocument(doc.id), isQuote ? t('Angebot abgeschlossen') : t('Rechnung abgeschlossen'))
     setFinalizing(false)
     if (result) window.scrollTo({ top: 0 })
   }
 
   const remove = async () => {
-    const ok = await confirm({ title: 'Entwurf löschen?', message: 'Der Entwurf wird entfernt. Übernommene Zeiten werden wieder als offen markiert.', confirmLabel: 'Löschen', danger: true })
+    const ok = await confirm({ title: t('Entwurf löschen?'), message: t('Der Entwurf wird entfernt. Übernommene Zeiten werden wieder als offen markiert.'), confirmLabel: t('Löschen'), danger: true })
     if (!ok) return
     clearTimeout(timer.current)
     pending.current = null
-    await run(() => deleteDraft(doc.id), 'Entwurf gelöscht')
+    await run(() => deleteDraft(doc.id), t('Entwurf gelöscht'))
     navigate(isQuote ? '/rechnungen?art=angebote' : '/rechnungen')
   }
 
@@ -255,23 +256,23 @@ function DraftEditor({ initial, settings }: { initial: InvoiceDocument; settings
       <header className="editor-header">
         <div style={{ minWidth: 0 }}>
           <Link to={isQuote ? '/rechnungen?art=angebote' : '/rechnungen'} className="back-link">
-            <ChevronLeft size={16} aria-hidden /> {isQuote ? 'Angebote' : 'Rechnungen'}
+            <ChevronLeft size={16} aria-hidden /> {isQuote ? t('Angebote') : t('Rechnungen')}
           </Link>
           <h1>
-            {doc.kind === 'invoice' && doc.billingType === 'regular' && !doc.customerId ? 'Schnellrechnung' : documentLabel(doc)}
+            {doc.kind === 'invoice' && doc.billingType === 'regular' && !doc.customerId ? t('Schnellrechnung') : documentLabel(doc)}
             <span className="badge" style={{ marginLeft: 12, verticalAlign: 'middle' }}>
-              Entwurf
+              {t('Entwurf')}
             </span>
           </h1>
-          <p className="subtitle muted small">Änderungen werden automatisch gespeichert. Die Nummer wird beim Abschließen vergeben.</p>
+          <p className="subtitle muted small">{t('Änderungen werden automatisch gespeichert. Die Nummer wird beim Abschließen vergeben.')}</p>
         </div>
         <div className="actions row wrap">
-          <IconButton icon={Trash2} label="Entwurf löschen" danger onClick={remove} />
+          <IconButton icon={Trash2} label={t('Entwurf löschen')} danger onClick={remove} />
           <Button icon={Download} onClick={() => run(async () => { await flush(); await downloadPdf(doc, settings) })}>
-            PDF-Vorschau
+            {t('PDF-Vorschau')}
           </Button>
-          <Button variant="primary" icon={FileCheck2} onClick={() => setFinalizing(true)} disabled={blocking} title={blocking ? 'Es fehlen noch Pflichtangaben' : undefined}>
-            Abschließen
+          <Button variant="primary" icon={FileCheck2} onClick={() => setFinalizing(true)} disabled={blocking} title={blocking ? t('Es fehlen noch Pflichtangaben') : undefined}>
+            {t('Abschließen')}
           </Button>
         </div>
       </header>
@@ -279,12 +280,12 @@ function DraftEditor({ initial, settings }: { initial: InvoiceDocument; settings
       {narrow && (
         <div className="toolbar">
           <Segmented
-            label="Ansicht"
+            label={t('Ansicht')}
             value={mobileTab}
             onChange={setMobileTab}
             options={[
-              { value: 'edit', label: 'Bearbeiten' },
-              { value: 'preview', label: 'Vorschau' },
+              { value: 'edit', label: t('Bearbeiten') },
+              { value: 'preview', label: t('Vorschau') },
             ]}
           />
         </div>
@@ -296,48 +297,48 @@ function DraftEditor({ initial, settings }: { initial: InvoiceDocument; settings
 
           <section className="card card-pad">
             <div className="card-title-row">
-              <h2>Empfänger</h2>
+              <h2>{t('Empfänger')}</h2>
               {!doc.customerId && (r.company || r.contactPerson) && (
                 <Button size="sm" variant="ghost" icon={UserPlus} onClick={saveAsCustomer}>
-                  Als Kunde speichern
+                  {t('Als Kunde speichern')}
                 </Button>
               )}
             </div>
             <div className="form-grid">
-              <SelectField className="span-6" label="Kunde" value={doc.customerId ?? ''} onChange={chooseCustomer}>
-                <option value="">Ohne Kunde – Empfänger frei eintragen</option>
+              <SelectField className="span-6" label={t('Kunde')} value={doc.customerId ?? ''} onChange={chooseCustomer}>
+                <option value="">{t('Ohne Kunde – Empfänger frei eintragen')}</option>
                 {customers?.map((c) => (
                   <option key={c.id} value={c.id}>
                     {customerName(c)} ({c.number})
                   </option>
                 ))}
               </SelectField>
-              <TextField className="span-3" label="Firma" value={r.company} onChange={(company) => setR({ company })} />
-              <TextField className="span-3" label="Ansprechpartner / Name" value={r.contactPerson} onChange={(contactPerson) => setR({ contactPerson })} />
-              <TextField className="span-4" label="Straße und Hausnummer" value={r.street} onChange={(street) => setR({ street })} />
-              <TextField className="span-2" label="Adresszusatz" value={r.addressExtra} onChange={(addressExtra) => setR({ addressExtra })} />
-              <TextField className="span-2" label="PLZ" value={r.zip} onChange={(zip) => setR({ zip })} />
-              <TextField className="span-2" label="Ort" value={r.city} onChange={(city) => setR({ city })} />
-              <SelectField className="span-2" label="Land" value={r.country} onChange={(country) => setR({ country })}>
+              <TextField className="span-3" label={t('Firma')} value={r.company} onChange={(company) => setR({ company })} />
+              <TextField className="span-3" label={t('Ansprechpartner / Name')} value={r.contactPerson} onChange={(contactPerson) => setR({ contactPerson })} />
+              <TextField className="span-4" label={t('Straße und Hausnummer')} value={r.street} onChange={(street) => setR({ street })} />
+              <TextField className="span-2" label={t('Adresszusatz')} value={r.addressExtra} onChange={(addressExtra) => setR({ addressExtra })} />
+              <TextField className="span-2" label={t('PLZ')} value={r.zip} onChange={(zip) => setR({ zip })} />
+              <TextField className="span-2" label={t('Ort')} value={r.city} onChange={(city) => setR({ city })} />
+              <SelectField className="span-2" label={t('Land')} value={r.country} onChange={(country) => setR({ country })}>
                 {COUNTRIES.map((c) => (
                   <option key={c.code} value={c.code}>
                     {c.name}
                   </option>
                 ))}
               </SelectField>
-              <TextField className="span-3" label="USt-IdNr. des Empfängers" value={r.vatId} onChange={(vatId) => setR({ vatId: vatId.toUpperCase() })} />
-              <TextField className="span-3" label="E-Mail" type="email" value={r.email} onChange={(email) => setR({ email })} hint="Für den Versand und die E-Rechnung" />
+              <TextField className="span-3" label={t('USt-IdNr. des Empfängers')} value={r.vatId} onChange={(vatId) => setR({ vatId: vatId.toUpperCase() })} />
+              <TextField className="span-3" label={t('E-Mail')} type="email" value={r.email} onChange={(email) => setR({ email })} hint={t('Für den Versand und die E-Rechnung')} />
             </div>
           </section>
 
           {doc.kind === 'creditNote' && <CreditNoteInfo doc={doc} />}
 
           <section className="card card-pad">
-            <h2 style={{ marginBottom: 14 }}>{isQuote ? 'Angebotsdaten' : doc.kind === 'creditNote' ? 'Gutschriftsdaten' : 'Rechnungsdaten'}</h2>
+            <h2 style={{ marginBottom: 14 }}>{isQuote ? t('Angebotsdaten') : doc.kind === 'creditNote' ? t('Gutschriftsdaten') : t('Rechnungsdaten')}</h2>
             {doc.kind === 'invoice' && (
               <div style={{ marginBottom: 16 }}>
                 <Segmented<BillingType>
-                  label="Rechnungsart"
+                  label={t('Rechnungsart')}
                   value={doc.billingType}
                   onChange={(billingType) => {
                     update({ billingType, deductions: billingType === 'final' ? doc.deductions : [], title: retitle(doc, billingType) })
@@ -345,86 +346,86 @@ function DraftEditor({ initial, settings }: { initial: InvoiceDocument; settings
                       void openDownPayments(doc.customerId, doc.id).then((list) => list.length && update({ deductions: list.map(deductionFor) }))
                   }}
                   options={[
-                    { value: 'regular', label: 'Rechnung' },
-                    { value: 'downPayment', label: 'Abschlag' },
-                    { value: 'final', label: 'Schlussrechnung' },
+                    { value: 'regular', label: t('Rechnung') },
+                    { value: 'downPayment', label: t('Abschlag') },
+                    { value: 'final', label: t('Schlussrechnung') },
                   ]}
                 />
               </div>
             )}
             <div className="form-grid">
-              <TextField className="span-2" label="Titel" value={doc.title} onChange={(title) => update({ title })} />
+              <TextField className="span-2" label={t('Titel')} value={doc.title} onChange={(title) => update({ title })} />
               <TextField
                 className="span-2"
-                label={isQuote ? 'Angebotsdatum' : 'Rechnungsdatum'}
+                label={isQuote ? t('Angebotsdatum') : t('Rechnungsdatum')}
                 type="date"
                 value={doc.issueDate}
                 onChange={(issueDate) => update({ issueDate, dueDate: issueDate ? addDays(issueDate, Math.max(0, term)) : doc.dueDate })}
-                hint={`Nummer wird: ${nextNumber}`}
+                hint={t('Nummer wird: {p0}', { p0: nextNumber })}
               />
               {isQuote ? (
-                <TextField className="span-2" label="Gültig bis" type="date" value={doc.validUntil} onChange={(validUntil) => update({ validUntil })} />
+                <TextField className="span-2" label={t('Gültig bis')} type="date" value={doc.validUntil} onChange={(validUntil) => update({ validUntil })} />
               ) : (
-                <Field className="span-2" label="Zahlungsziel" hint={doc.dueDate ? `fällig am ${formatDate(doc.dueDate)}` : undefined}>
-                  <NumberInput value={term} onChange={(n) => update({ dueDate: addDays(doc.issueDate, Math.max(0, Math.round(n))) })} suffix="Tage" maxFraction={0} aria-label="Zahlungsziel in Tagen" />
+                <Field className="span-2" label={t('Zahlungsziel')} hint={doc.dueDate ? t('fällig am {p0}', { p0: formatDate(doc.dueDate) }) : undefined}>
+                  <NumberInput value={term} onChange={(n) => update({ dueDate: addDays(doc.issueDate, Math.max(0, Math.round(n))) })} suffix="Tage" maxFraction={0} aria-label={t('Zahlungsziel in Tagen')} />
                 </Field>
               )}
-              <TextField className="span-2" label={period ? 'Leistung von' : 'Leistungsdatum'} type="date" value={doc.serviceFrom} onChange={(serviceFrom) => update({ serviceFrom })} />
+              <TextField className="span-2" label={period ? t('Leistung von') : t('Leistungsdatum')} type="date" value={doc.serviceFrom} onChange={(serviceFrom) => update({ serviceFrom })} />
               {period ? (
-                <TextField className="span-2" label="Leistung bis" type="date" value={doc.serviceTo} onChange={(serviceTo) => update({ serviceTo })} />
+                <TextField className="span-2" label={t('Leistung bis')} type="date" value={doc.serviceTo} onChange={(serviceTo) => update({ serviceTo })} />
               ) : (
                 <div className="span-2" style={{ alignSelf: 'end' }}>
                   <Button size="sm" variant="ghost" onClick={() => update({ serviceTo: doc.serviceFrom || doc.issueDate })}>
-                    Zeitraum angeben
+                    {t('Zeitraum angeben')}
                   </Button>
                 </div>
               )}
               {period && (
                 <div className="span-2" style={{ alignSelf: 'end' }}>
                   <Button size="sm" variant="ghost" onClick={() => update({ serviceTo: '' })}>
-                    Einzelnes Datum
+                    {t('Einzelnes Datum')}
                   </Button>
                 </div>
               )}
-              <TextField className={period ? 'span-6' : 'span-2'} label="Ihre Referenz / Bestellnr." value={doc.buyerReference} onChange={(buyerReference) => update({ buyerReference })} placeholder="optional" />
-              <SelectField className="span-2" label="Steuerfall" value={doc.taxMode} onChange={(m) => update(taxModePatch(doc, m as TaxMode, settings, true))}>
+              <TextField className={period ? 'span-6' : 'span-2'} label={t('Ihre Referenz / Bestellnr.')} value={doc.buyerReference} onChange={(buyerReference) => update({ buyerReference })} placeholder={t('optional')} />
+              <SelectField className="span-2" label={t('Steuerfall')} value={doc.taxMode} onChange={(m) => update(taxModePatch(doc, m as TaxMode, settings, true))}>
                 {(Object.keys(TAX_MODE_LABELS) as TaxMode[]).map((m) => (
                   <option key={m} value={m}>
-                    {TAX_MODE_LABELS[m]}
+                    {t(TAX_MODE_LABELS[m])}
                   </option>
                 ))}
               </SelectField>
-              <SelectField className="span-2" label="Währung" value={doc.currency} onChange={(currency) => update({ currency })}>
+              <SelectField className="span-2" label={t('Währung')} value={doc.currency} onChange={(currency) => update({ currency })}>
                 {CURRENCIES.map((c) => (
                   <option key={c}>{c}</option>
                 ))}
               </SelectField>
-              <SelectField className="span-2" label="Sprache" value={doc.language} onChange={(language) => update(languagePatch(doc, language as Language, settings))}>
-                <option value="de">Deutsch</option>
-                <option value="en">English</option>
+              <SelectField className="span-2" label={t('Sprache')} value={doc.language} onChange={(language) => update(languagePatch(doc, language as Language, settings))}>
+                <option value="de">{t('Deutsch')}</option>
+                <option value="en">{t('English')}</option>
               </SelectField>
               {doc.taxMode !== 'standard' && (
-                <TextAreaField className="span-6" label="Hinweis zur Steuerbefreiung" value={doc.taxNote} onChange={(taxNote) => update({ taxNote })} rows={2} hint="Pflichtangabe – erscheint unter den Summen." />
+                <TextAreaField className="span-6" label={t('Hinweis zur Steuerbefreiung')} value={doc.taxNote} onChange={(taxNote) => update({ taxNote })} rows={2} hint={t('Pflichtangabe – erscheint unter den Summen.')} />
               )}
             </div>
           </section>
 
           <section className="card card-pad">
             <div className="card-title-row">
-              <h2>Positionen</h2>
+              <h2>{t('Positionen')}</h2>
               {!!unbilledCount && (
                 <Button size="sm" icon={Clock} onClick={importTime}>
-                  {unbilledCount} offene Zeiten übernehmen
+                  {unbilledCount} {t('offene Zeiten übernehmen')}
                 </Button>
               )}
             </div>
             <ItemsEditor doc={doc} setItems={setItems} onRemove={removeItem} settings={settings} />
             <div className="row wrap" style={{ marginTop: 12 }}>
               <Button icon={Plus} onClick={() => setItems((items) => [...items, newLineItem(settings, doc.customerId ? { unitPriceCents: 0 } : {})])}>
-                Position hinzufügen
+                {t('Position hinzufügen')}
               </Button>
               <Button icon={PackageSearch} onClick={() => setPicking(true)}>
-                Aus Leistungen
+                {t('Aus Leistungen')}
               </Button>
               <Button
                 variant="ghost"
@@ -433,7 +434,7 @@ function DraftEditor({ initial, settings }: { initial: InvoiceDocument; settings
                   setItems((items) => [...items, newLineItem(settings, { unit: 'Std.', unitPriceCents: c?.hourlyRateCents ?? settings.defaults.hourlyRateCents })])
                 }}
               >
-                + Stunden
+                {t('+ Stunden')}
               </Button>
             </div>
             <DiscountEditor doc={doc} onChange={(discount) => update({ discount })} />
@@ -448,30 +449,30 @@ function DraftEditor({ initial, settings }: { initial: InvoiceDocument; settings
                   <span className="tabular">{row.value}</span>
                 </div>
               ))}
-              {totals.discountCents > 0 && <div className="small faint">enthält {formatMoney(totals.discountCents, doc.currency)} Positionsrabatt</div>}
+              {totals.discountCents > 0 && <div className="small faint">{t('enthält')} {formatMoney(totals.discountCents, doc.currency)} {t('Positionsrabatt')}</div>}
             </div>
           </section>
 
           <section className="card card-pad">
-            <h2 style={{ marginBottom: 14 }}>Texte</h2>
+            <h2 style={{ marginBottom: 14 }}>{t('Texte')}</h2>
             <div className="stack-sm">
-              <TextAreaField label="Einleitung" value={doc.introText} onChange={(introText) => update({ introText })} rows={3} />
-              <TextAreaField label="Schlusstext" value={doc.closingText} onChange={(closingText) => update({ closingText })} rows={4} hint="Platzhalter wie {Fälligkeitsdatum} oder {Rechnungsnummer} werden automatisch ersetzt." />
-              <TextAreaField label="Zusätzliche Fußzeile" value={doc.footerText} onChange={(footerText) => update({ footerText })} rows={2} />
+              <TextAreaField label={t('Einleitung')} value={doc.introText} onChange={(introText) => update({ introText })} rows={3} />
+              <TextAreaField label={t('Schlusstext')} value={doc.closingText} onChange={(closingText) => update({ closingText })} rows={4} hint={t('Platzhalter wie {Fälligkeitsdatum} oder {Rechnungsnummer} werden automatisch ersetzt.')} />
+              <TextAreaField label={t('Zusätzliche Fußzeile')} value={doc.footerText} onChange={(footerText) => update({ footerText })} rows={2} />
             </div>
           </section>
 
           <section className="card card-pad">
-            <h2 style={{ marginBottom: 14 }}>Darstellung</h2>
+            <h2 style={{ marginBottom: 14 }}>{t('Darstellung')}</h2>
             <div className="stack-sm">
               <Segmented<LayoutId>
-                label="Layout"
+                label={t('Layout')}
                 value={doc.layout}
                 onChange={(layout) => update({ layout })}
                 options={[
-                  { value: 'classic', label: 'Klassisch' },
-                  { value: 'modern', label: 'Modern' },
-                  { value: 'minimal', label: 'Minimal' },
+                  { value: 'classic', label: t('Klassisch') },
+                  { value: 'modern', label: t('Modern') },
+                  { value: 'minimal', label: t('Minimal') },
                 ]}
               />
               <AccentPicker value={doc.accentColor} onChange={(accentColor) => update({ accentColor })} />
@@ -480,7 +481,7 @@ function DraftEditor({ initial, settings }: { initial: InvoiceDocument; settings
 
           {narrow && (
             <Button variant="primary" size="lg" block icon={FileCheck2} onClick={() => setFinalizing(true)} disabled={blocking}>
-              {blocking ? 'Pflichtangaben ergänzen' : 'Abschließen'}
+              {blocking ? t('Pflichtangaben ergänzen') : t('Abschließen')}
             </Button>
           )}
         </div>
@@ -497,31 +498,31 @@ function DraftEditor({ initial, settings }: { initial: InvoiceDocument; settings
       <Dialog
         open={finalizing}
         onClose={() => setFinalizing(false)}
-        title={`${documentLabel(doc)} abschließen?`}
+        title={t('{p0} abschließen?', { p0: documentLabel(doc) })}
         footer={
           <>
-            <Button onClick={() => setFinalizing(false)}>Noch nicht</Button>
+            <Button onClick={() => setFinalizing(false)}>{t('Noch nicht')}</Button>
             <Button variant="primary" icon={Lock} onClick={finalize}>
-              Abschließen als {nextNumber}
+              {t('Abschließen als')} {nextNumber}
             </Button>
           </>
         }
       >
         <div className="stack-sm">
           <p>
-            {isQuote ? 'Das Angebot' : doc.kind === 'creditNote' ? 'Die Gutschrift' : 'Die Rechnung'} an <strong>{recipientName(doc.recipient)}</strong> über <strong>{formatMoney(totals.grossCents, doc.currency)}</strong> erhält die Nummer <strong>{nextNumber}</strong>.
+            {isQuote ? t('Das Angebot') : doc.kind === 'creditNote' ? t('Die Gutschrift') : t('Die Rechnung')} {t('an')} <strong>{recipientName(doc.recipient)}</strong> {t('über')} <strong>{formatMoney(totals.grossCents, doc.currency)}</strong> {t('erhält die Nummer')} <strong>{nextNumber}</strong>.
           </p>
           {!isQuote && (
             <div className="callout info">
               <Lock size={18} aria-hidden />
               <span>
-                Danach ist sie unveränderbar (GoBD). Korrekturen sind nur noch über eine Stornorechnung möglich. Deine Firmendaten werden mit dem heutigen Stand festgeschrieben.
+                {t('Danach ist sie unveränderbar (GoBD). Korrekturen sind nur noch über eine Stornorechnung möglich. Deine Firmendaten werden mit dem heutigen Stand festgeschrieben.')}
               </span>
             </div>
           )}
           {issues.some((i) => i.level === 'warning') && (
             <>
-              <strong className="small">Hinweise</strong>
+              <strong className="small">{t('Hinweise')}</strong>
               <IssueList issues={issues.filter((i) => i.level === 'warning')} />
             </>
           )}
@@ -580,16 +581,16 @@ function DiscountEditor({ doc, onChange }: { doc: InvoiceDocument; onChange: (d:
     return (
       <div className="row wrap" style={{ marginTop: 8 }}>
         <Button size="sm" variant="ghost" icon={Percent} onClick={() => onChange({ type: 'percent', value: 0 })}>
-          Rabatt auf die ganze Rechnung
+          {t('Rabatt auf die ganze Rechnung')}
         </Button>
       </div>
     )
   }
   return (
     <div className="discount-editor">
-      <span className="small" style={{ fontWeight: 600 }}>Rabatt auf die ganze Rechnung</span>
+      <span className="small" style={{ fontWeight: 600 }}>{t('Rabatt auf die ganze Rechnung')}</span>
       <Segmented
-        label="Rabattart"
+        label={t('Rabattart')}
         value={d.type}
         onChange={(type) => onChange({ type, value: 0 })}
         options={[
@@ -598,15 +599,15 @@ function DiscountEditor({ doc, onChange }: { doc: InvoiceDocument; onChange: (d:
         ]}
       />
       {d.type === 'percent' ? (
-        <NumberInput value={d.value} onChange={(value) => onChange({ type: 'percent', value: Math.min(100, Math.max(0, value)) })} suffix="%" maxFraction={2} aria-label="Gesamtrabatt in Prozent" style={{ width: 110 }} />
+        <NumberInput value={d.value} onChange={(value) => onChange({ type: 'percent', value: Math.min(100, Math.max(0, value)) })} suffix="%" maxFraction={2} aria-label={t('Gesamtrabatt in Prozent')} style={{ width: 110 }} />
       ) : (
         <div style={{ width: 140 }}>
-          <MoneyInput value={d.value} onChange={(value) => onChange({ type: 'amount', value: Math.max(0, value ?? 0) })} currencySymbol={symbol} aria-label="Gesamtrabatt als Betrag" />
+          <MoneyInput value={d.value} onChange={(value) => onChange({ type: 'amount', value: Math.max(0, value ?? 0) })} currencySymbol={symbol} aria-label={t('Gesamtrabatt als Betrag')} />
         </div>
       )}
-      <IconButton icon={X} label="Rabatt entfernen" size={16} onClick={() => onChange(null)} />
+      <IconButton icon={X} label={t('Rabatt entfernen')} size={16} onClick={() => onChange(null)} />
       <span className="hint small faint" style={{ flexBasis: '100%' }}>
-        Wird anteilig auf die Steuersätze verteilt und in der E-Rechnung als Nachlass je Steuersatz ausgewiesen.
+        {t('Wird anteilig auf die Steuersätze verteilt und in der E-Rechnung als Nachlass je Steuersatz ausgewiesen.')}
       </span>
     </div>
   )
@@ -616,10 +617,10 @@ function DeductionPicker({ doc, onChange }: { doc: InvoiceDocument; onChange: (d
   const candidates = useLiveQuery(() => openDownPayments(doc.customerId, doc.id), [doc.customerId, doc.id])
   const selected = new Set(doc.deductions.map((d) => d.invoiceId))
   if (!doc.customerId) {
-    return <p className="callout small" style={{ marginTop: 12 }}><Info size={16} aria-hidden /><span>Wähle oben einen Kunden, um seine Abschlagsrechnungen zu verrechnen.</span></p>
+    return <p className="callout small" style={{ marginTop: 12 }}><Info size={16} aria-hidden /><span>{t('Wähle oben einen Kunden, um seine Abschlagsrechnungen zu verrechnen.')}</span></p>
   }
   if (candidates && !candidates.length && !doc.deductions.length) {
-    return <p className="callout small" style={{ marginTop: 12 }}><Info size={16} aria-hidden /><span>Für diesen Kunden gibt es keine offenen Abschlagsrechnungen.</span></p>
+    return <p className="callout small" style={{ marginTop: 12 }}><Info size={16} aria-hidden /><span>{t('Für diesen Kunden gibt es keine offenen Abschlagsrechnungen.')}</span></p>
   }
   const toggle = (inv: InvoiceDocument) => {
     if (selected.has(inv.id)) onChange(doc.deductions.filter((d) => d.invoiceId !== inv.id))
@@ -627,7 +628,7 @@ function DeductionPicker({ doc, onChange }: { doc: InvoiceDocument; onChange: (d
   }
   return (
     <div className="deductions">
-      <strong className="small">Abschläge verrechnen</strong>
+      <strong className="small">{t('Abschläge verrechnen')}</strong>
       <ul className="list">
         {(candidates ?? []).map((inv) => (
           <li key={inv.id}>
@@ -635,7 +636,7 @@ function DeductionPicker({ doc, onChange }: { doc: InvoiceDocument; onChange: (d
               <input type="checkbox" className="checkbox" checked={selected.has(inv.id)} onChange={() => toggle(inv)} />
               <span className="grow">
                 <span className="title" style={{ display: 'block' }}>{inv.number}</span>
-                <span className="sub">vom {formatDate(inv.issueDate)}{paidOf(inv) ? ` · ${formatMoney(paidOf(inv), inv.currency)} bezahlt` : ' · noch nicht bezahlt'}</span>
+                <span className="sub">{t('vom')} {formatDate(inv.issueDate)}{paidOf(inv) ? t(' · {p0} bezahlt', { p0: formatMoney(paidOf(inv), inv.currency) }) : t(' · noch nicht bezahlt')}</span>
               </span>
               <span className="tabular">{formatMoney(documentTotals(inv).grossCents, inv.currency)}</span>
             </label>
@@ -657,12 +658,12 @@ function CreditNoteInfo({ doc }: { doc: InvoiceDocument }) {
         <Info size={20} color="var(--purple)" aria-hidden />
         <div className="grow" style={{ flex: 1 }}>
           <strong>
-            Gutschrift zu <Link to={`/rechnungen/${original.id}`}>{original.number}</Link>
+            {t('Gutschrift zu')} <Link to={`/rechnungen/${original.id}`}>{original.number}</Link>
           </strong>
           <p className="small muted">
-            Noch gutschreibbar: {formatMoney(remaining, original.currency)} · diese Gutschrift: {formatMoney(current, doc.currency)}. Reduziere Mengen oder Preise für eine Teilgutschrift. Die Gutschrift bekommt eine Nummer aus dem eigenen Nummernkreis.
+            {t('Noch gutschreibbar:')} {formatMoney(remaining, original.currency)} {t('· diese Gutschrift:')} {formatMoney(current, doc.currency)}{t('. Reduziere Mengen oder Preise für eine Teilgutschrift. Die Gutschrift bekommt eine Nummer aus dem eigenen Nummernkreis.')}
           </p>
-          {current > remaining && <p className="small" style={{ color: 'var(--red)', marginTop: 6 }}>Die Gutschrift ist höher als der noch offene Rechnungsbetrag.</p>}
+          {current > remaining && <p className="small" style={{ color: 'var(--red)', marginTop: 6 }}>{t('Die Gutschrift ist höher als der noch offene Rechnungsbetrag.')}</p>}
         </div>
       </div>
     </section>
@@ -682,7 +683,7 @@ function ItemsEditor({
 }) {
   const { run } = useFeedback()
   const standard = doc.taxMode === 'standard'
-  const saveToCatalog = (item: LineItem) => run(() => saveCatalogItem(lineToCatalog(item)), `„${item.title}“ in Leistungen gespeichert`)
+  const saveToCatalog = (item: LineItem) => run(() => saveCatalogItem(lineToCatalog(item)), t('„{p0}“ in Leistungen gespeichert', { p0: item.title }))
   const patch = (id: string, p: Partial<LineItem>) => setItems((items) => items.map((i) => (i.id === id ? { ...i, ...p } : i)))
   const move = (idx: number, dir: -1 | 1) =>
     setItems((items) => {
@@ -694,11 +695,11 @@ function ItemsEditor({
   const currencySymbol = doc.currency === 'EUR' ? '€' : doc.currency
 
   if (!doc.items.length) {
-    return <p className="muted small items-empty">Noch keine Positionen. Füge Leistungen hinzu oder übernimm erfasste Zeiten.</p>
+    return <p className="muted small items-empty">{t('Noch keine Positionen. Füge Leistungen hinzu oder übernimm erfasste Zeiten.')}</p>
   }
 
   return (
-    <ol className="items" aria-label="Positionen">
+    <ol className="items" aria-label={t('Positionen')}>
       <datalist id="units">
         {UNITS.map((u) => (
           <option key={u} value={u} />
@@ -712,25 +713,25 @@ function ItemsEditor({
               {idx + 1}
             </div>
             <div className="item-main">
-              <input className="input item-title" value={item.title} onChange={(e) => patch(item.id, { title: e.target.value })} placeholder="Bezeichnung der Leistung" aria-label={`Position ${idx + 1}: Bezeichnung`} />
-              <textarea className="textarea item-desc" value={item.description} onChange={(e) => patch(item.id, { description: e.target.value })} placeholder="Beschreibung (optional)" rows={item.description.split('\n').length > 1 ? Math.min(6, item.description.split('\n').length) : 1} aria-label={`Position ${idx + 1}: Beschreibung`} />
+              <input className="input item-title" value={item.title} onChange={(e) => patch(item.id, { title: e.target.value })} placeholder={t('Bezeichnung der Leistung')} aria-label={t('Position {p0}: Bezeichnung', { p0: idx + 1 })} />
+              <textarea className="textarea item-desc" value={item.description} onChange={(e) => patch(item.id, { description: e.target.value })} placeholder={t('Beschreibung (optional)')} rows={item.description.split('\n').length > 1 ? Math.min(6, item.description.split('\n').length) : 1} aria-label={t('Position {p0}: Beschreibung', { p0: idx + 1 })} />
               <div className="item-fields">
                 <label className="item-field qty">
-                  <span>Menge</span>
-                  <NumberInput value={item.quantity} onChange={(quantity) => patch(item.id, { quantity })} aria-label="Menge" />
+                  <span>{t('Menge')}</span>
+                  <NumberInput value={item.quantity} onChange={(quantity) => patch(item.id, { quantity })} aria-label={t('Menge')} />
                 </label>
                 <label className="item-field unit">
-                  <span>Einheit</span>
-                  <input className="input" list="units" value={item.unit} onChange={(e) => patch(item.id, { unit: e.target.value })} aria-label="Einheit" />
+                  <span>{t('Einheit')}</span>
+                  <input className="input" list="units" value={item.unit} onChange={(e) => patch(item.id, { unit: e.target.value })} aria-label={t('Einheit')} />
                 </label>
                 <label className="item-field price">
-                  <span>Einzelpreis</span>
-                  <MoneyInput value={item.unitPriceCents} onChange={(v) => patch(item.id, { unitPriceCents: v ?? 0 })} currencySymbol={currencySymbol} aria-label="Einzelpreis netto" />
+                  <span>{t('Einzelpreis')}</span>
+                  <MoneyInput value={item.unitPriceCents} onChange={(v) => patch(item.id, { unitPriceCents: v ?? 0 })} currencySymbol={currencySymbol} aria-label={t('Einzelpreis netto')} />
                 </label>
                 {standard && (
                   <label className="item-field tax">
-                    <span>USt</span>
-                    <select className="select" value={item.taxRate} onChange={(e) => patch(item.id, { taxRate: Number(e.target.value) })} aria-label="Steuersatz">
+                    <span>{t('USt')}</span>
+                    <select className="select" value={item.taxRate} onChange={(e) => patch(item.id, { taxRate: Number(e.target.value) })} aria-label={t('Steuersatz')}>
                       {[...new Set([...TAX_RATES, item.taxRate, settings.defaults.taxRate])].sort((a, b) => b - a).map((r) => (
                         <option key={r} value={r}>
                           {formatNumber(r)} %
@@ -740,26 +741,26 @@ function ItemsEditor({
                   </label>
                 )}
                 <label className="item-field discount">
-                  <span>Rabatt</span>
-                  <NumberInput value={item.discountPercent} onChange={(n) => patch(item.id, { discountPercent: Math.min(100, Math.max(0, n)) })} suffix="%" maxFraction={2} aria-label="Rabatt in Prozent" />
+                  <span>{t('Rabatt')}</span>
+                  <NumberInput value={item.discountPercent} onChange={(n) => patch(item.id, { discountPercent: Math.min(100, Math.max(0, n)) })} suffix="%" maxFraction={2} aria-label={t('Rabatt in Prozent')} />
                 </label>
                 <div className="item-field total">
-                  <span>Gesamt</span>
+                  <span>{t('Gesamt')}</span>
                   <strong className="tabular">{formatMoney(total.netCents, doc.currency)}</strong>
                 </div>
               </div>
               {item.timeEntryIds?.length ? (
                 <div className="small faint row" style={{ gap: 6 }}>
-                  <Clock size={13} aria-hidden /> aus {item.timeEntryIds.length} Zeiteintrag{item.timeEntryIds.length > 1 ? 'en' : ''}
+                  <Clock size={13} aria-hidden /> {item.timeEntryIds.length > 1 ? t('aus {n} Zeiteinträgen', { n: item.timeEntryIds.length }) : t('aus einem Zeiteintrag')}
                 </div>
               ) : null}
             </div>
             <div className="item-actions">
-              <IconButton icon={ArrowUp} label="Nach oben" onClick={() => move(idx, -1)} disabled={idx === 0} size={16} />
-              <IconButton icon={ArrowDown} label="Nach unten" onClick={() => move(idx, 1)} disabled={idx === doc.items.length - 1} size={16} />
+              <IconButton icon={ArrowUp} label={t('Nach oben')} onClick={() => move(idx, -1)} disabled={idx === 0} size={16} />
+              <IconButton icon={ArrowDown} label={t('Nach unten')} onClick={() => move(idx, 1)} disabled={idx === doc.items.length - 1} size={16} />
               <IconButton
                 icon={Copy}
-                label="Duplizieren"
+                label={t('Duplizieren')}
                 size={16}
                 onClick={() =>
                   setItems((items) => {
@@ -769,8 +770,8 @@ function ItemsEditor({
                   })
                 }
               />
-              <IconButton icon={BookmarkPlus} label="Als Leistung speichern" size={16} onClick={() => saveToCatalog(item)} disabled={!item.title.trim()} />
-              <IconButton icon={Trash2} label="Entfernen" danger size={16} onClick={() => onRemove(item)} />
+              <IconButton icon={BookmarkPlus} label={t('Als Leistung speichern')} size={16} onClick={() => saveToCatalog(item)} disabled={!item.title.trim()} />
+              <IconButton icon={Trash2} label={t('Entfernen')} danger size={16} onClick={() => onRemove(item)} />
             </div>
           </li>
         )
@@ -815,7 +816,7 @@ function DocumentViewer({ doc, settings }: { doc: InvoiceDocument; settings: Set
   }
 
   const duplicate = async (asKind?: 'invoice') => {
-    const copy = await run(() => duplicateDocument(doc.id, asKind), asKind ? 'Rechnung aus Angebot erstellt' : 'Kopie als Entwurf erstellt')
+    const copy = await run(() => duplicateDocument(doc.id, asKind), asKind ? t('Rechnung aus Angebot erstellt') : t('Kopie als Entwurf erstellt'))
     if (copy) navigate(`/rechnungen/${copy.id}`)
   }
 
@@ -838,7 +839,7 @@ function DocumentViewer({ doc, settings }: { doc: InvoiceDocument; settings: Set
   }
 
   const cancel = async (correct: boolean) => {
-    const storno = await run(() => cancelInvoice(doc.id), 'Stornorechnung erstellt')
+    const storno = await run(() => cancelInvoice(doc.id), t('Stornorechnung erstellt'))
     setCancelOpen(false)
     if (!storno) return
     if (correct) {
@@ -854,7 +855,7 @@ function DocumentViewer({ doc, settings }: { doc: InvoiceDocument; settings: Set
       <header className="editor-header">
         <div style={{ minWidth: 0 }}>
           <Link to={isQuote ? '/rechnungen?art=angebote' : '/rechnungen'} className="back-link">
-            <ChevronLeft size={16} aria-hidden /> {isQuote ? 'Angebote' : 'Rechnungen'}
+            <ChevronLeft size={16} aria-hidden /> {isQuote ? t('Angebote') : t('Rechnungen')}
           </Link>
           <h1>
             {label} {doc.number}
@@ -868,18 +869,18 @@ function DocumentViewer({ doc, settings }: { doc: InvoiceDocument; settings: Set
         </div>
         <div className="actions row wrap">
           <Button icon={Printer} onClick={printDocument} className="hide-sm">
-            Drucken
+            {t('Drucken')}
           </Button>
           <Button icon={Mail} onClick={() => setSendOpen(true)}>
-            Senden
+            {t('Senden')}
           </Button>
           {!isQuote && (
             <Button icon={FileCode2} onClick={() => setEOpen(true)}>
-              E-Rechnung
+              {t('E-Rechnung')}
             </Button>
           )}
           <Button variant="primary" icon={Download} onClick={() => pdf(false)} disabled={busy}>
-            PDF
+            {t('PDF')}
           </Button>
         </div>
       </header>
@@ -891,76 +892,76 @@ function DocumentViewer({ doc, settings }: { doc: InvoiceDocument; settings: Set
 
           {isQuote && (
             <section className="card card-pad stack-sm">
-              <strong>Wie hat der Kunde entschieden?</strong>
+              <strong>{t('Wie hat der Kunde entschieden?')}</strong>
               <Segmented
-                label="Angebotsstatus"
+                label={t('Angebotsstatus')}
                 value={doc.status as 'sent' | 'accepted' | 'declined'}
                 onChange={(s) => run(() => setQuoteStatus(doc.id, s))}
                 options={[
-                  { value: 'sent', label: 'Offen' },
-                  { value: 'accepted', label: 'Angenommen' },
-                  { value: 'declined', label: 'Abgelehnt' },
+                  { value: 'sent', label: t('Offen') },
+                  { value: 'accepted', label: t('Angenommen') },
+                  { value: 'declined', label: t('Abgelehnt') },
                 ]}
               />
               <Button variant="primary" icon={FileCheck2} onClick={() => duplicate('invoice')}>
-                In Rechnung umwandeln
+                {t('In Rechnung umwandeln')}
               </Button>
               {related?.invoicesFromQuote.map((d) => (
                 <Link key={d.id} to={`/rechnungen/${d.id}`} className="small">
-                  → Rechnung {d.number ?? '(Entwurf)'}
+                  {t('→ Rechnung')} {d.number ?? t('(Entwurf)')}
                 </Link>
               ))}
             </section>
           )}
 
           <section className="card card-pad stack-sm">
-            <h3>Details</h3>
+            <h3>{t('Details')}</h3>
             <dl className="details-list">
-              <dt>Empfänger</dt>
+              <dt>{t('Empfänger')}</dt>
               <dd>{recipientName(doc.recipient)}</dd>
-              <dt>Netto</dt>
+              <dt>{t('Netto')}</dt>
               <dd className="tabular">{formatMoney(totals.netCents, doc.currency)}</dd>
-              <dt>Umsatzsteuer</dt>
+              <dt>{t('Umsatzsteuer')}</dt>
               <dd className="tabular">{formatMoney(totals.taxCents, doc.currency)}</dd>
-              <dt>Brutto</dt>
+              <dt>{t('Brutto')}</dt>
               <dd className="tabular">
                 <strong>{formatMoney(totals.grossCents, doc.currency)}</strong>
               </dd>
-              <dt>Steuerfall</dt>
-              <dd>{TAX_MODE_LABELS[doc.taxMode]}</dd>
+              <dt>{t('Steuerfall')}</dt>
+              <dd>{t(TAX_MODE_LABELS[doc.taxMode])}</dd>
               {totals.prepaidCents !== 0 && (
                 <>
-                  <dt>Abschläge</dt>
+                  <dt>{t('Abschläge')}</dt>
                   <dd className="tabular">−{formatMoney(totals.prepaidCents, doc.currency)}</dd>
-                  <dt>Zu zahlen</dt>
+                  <dt>{t('Zu zahlen')}</dt>
                   <dd className="tabular">{formatMoney(totals.dueCents, doc.currency)}</dd>
                 </>
               )}
               {doc.sentAt && (
                 <>
-                  <dt>Versendet</dt>
-                  <dd>{new Date(doc.sentAt).toLocaleString('de-DE', { dateStyle: 'medium', timeStyle: 'short' })}</dd>
+                  <dt>{t('Versendet')}</dt>
+                  <dd>{new Date(doc.sentAt).toLocaleString(uiLocale(), { dateStyle: 'medium', timeStyle: 'short' })}</dd>
                 </>
               )}
-              <dt>Abgeschlossen</dt>
-              <dd>{doc.finalizedAt ? new Date(doc.finalizedAt).toLocaleString('de-DE', { dateStyle: 'medium', timeStyle: 'short' }) : '–'}</dd>
+              <dt>{t('Abgeschlossen')}</dt>
+              <dd>{doc.finalizedAt ? new Date(doc.finalizedAt).toLocaleString(uiLocale(), { dateStyle: 'medium', timeStyle: 'short' }) : '–'}</dd>
               {!!related?.timeCount && (
                 <>
-                  <dt>Zeiten</dt>
-                  <dd>{related.timeCount} Einträge abgerechnet</dd>
+                  <dt>{t('Zeiten')}</dt>
+                  <dd>{related.timeCount} {t('Einträge abgerechnet')}</dd>
                 </>
               )}
             </dl>
             {doc.customerId && (
               <Link to={`/kunden/${doc.customerId}`} className="small">
-                Zum Kunden
+                {t('Zum Kunden')}
               </Link>
             )}
             {related?.cancelledBy && (
               <div className="callout warning small">
                 <Ban size={16} aria-hidden />
                 <span>
-                  Storniert durch <Link to={`/rechnungen/${related.cancelledBy.id}`}>{related.cancelledBy.number}</Link>
+                  {t('Storniert durch')} <Link to={`/rechnungen/${related.cancelledBy.id}`}>{related.cancelledBy.number}</Link>
                 </span>
               </div>
             )}
@@ -968,26 +969,26 @@ function DocumentViewer({ doc, settings }: { doc: InvoiceDocument; settings: Set
               <div className="callout small">
                 <Info size={16} aria-hidden />
                 <span>
-                  Storniert die Rechnung <Link to={`/rechnungen/${related.cancels.id}`}>{related.cancels.number}</Link>
+                  {t('Storniert die Rechnung')} <Link to={`/rechnungen/${related.cancels.id}`}>{related.cancels.number}</Link>
                 </span>
               </div>
             )}
             {related?.source && (
               <div className="small muted">
-                Aus Angebot <Link to={`/rechnungen/${related.source.id}`}>{related.source.number}</Link>
+                {t('Aus Angebot')} <Link to={`/rechnungen/${related.source.id}`}>{related.source.number}</Link>
               </div>
             )}
             {related?.credits && (
               <div className="callout small">
                 <Info size={16} aria-hidden />
                 <span>
-                  Gutschrift zur Rechnung <Link to={`/rechnungen/${related.credits.id}`}>{related.credits.number}</Link>
+                  {t('Gutschrift zur Rechnung')} <Link to={`/rechnungen/${related.credits.id}`}>{related.credits.number}</Link>
                 </span>
               </div>
             )}
             {doc.creditNotes.length > 0 && (
               <div className="small stack-sm" style={{ gap: 4 }}>
-                <strong>Gutschriften</strong>
+                <strong>{t('Gutschriften')}</strong>
                 {doc.creditNotes.map((c) => (
                   <div key={c.id} className="row between">
                     <Link to={`/rechnungen/${c.id}`}>{c.number}</Link>
@@ -998,15 +999,15 @@ function DocumentViewer({ doc, settings }: { doc: InvoiceDocument; settings: Set
             )}
             {related?.creditDrafts.map((d) => (
               <Link key={d.id} to={`/rechnungen/${d.id}`} className="small">
-                → Gutschrift-Entwurf fortsetzen
+                {t('→ Gutschrift-Entwurf fortsetzen')}
               </Link>
             ))}
             {doc.deductions.length > 0 && (
               <div className="small stack-sm" style={{ gap: 4 }}>
-                <strong>Verrechnete Abschläge</strong>
+                <strong>{t('Verrechnete Abschläge')}</strong>
                 {doc.deductions.map((d) => (
                   <Link key={d.invoiceId} to={`/rechnungen/${d.invoiceId}`}>
-                    {d.number} vom {formatDate(d.issueDate)}
+                    {d.number} {t('vom')} {formatDate(d.issueDate)}
                   </Link>
                 ))}
               </div>
@@ -1015,36 +1016,36 @@ function DocumentViewer({ doc, settings }: { doc: InvoiceDocument; settings: Set
               <div className="callout small">
                 <Info size={16} aria-hidden />
                 <span>
-                  Verrechnet in der Schlussrechnung <Link to={`/rechnungen/${related.settledBy.id}`}>{related.settledBy.number ?? '(Entwurf)'}</Link>
+                  {t('Verrechnet in der Schlussrechnung')} <Link to={`/rechnungen/${related.settledBy.id}`}>{related.settledBy.number ?? t('(Entwurf)')}</Link>
                 </span>
               </div>
             )}
           </section>
 
           <section className="card card-pad stack-sm">
-            <h3>Weitere Aktionen</h3>
+            <h3>{t('Weitere Aktionen')}</h3>
             <div className="row wrap">
               <Button icon={Copy} onClick={() => duplicate()}>
-                Duplizieren
+                {t('Duplizieren')}
               </Button>
               {doc.kind === 'invoice' && doc.customerId && doc.billingType === 'regular' && (
                 <Button icon={Repeat} onClick={() => setRecurring(newRecurring(doc.customerId!, templateFromDocument(doc), addMonths(doc.issueDate, 1)))}>
-                  Als Serie
+                  {t('Als Serie')}
                 </Button>
               )}
               {doc.kind === 'invoice' && doc.status !== 'cancelled' && creditableAmount(doc) > 0 && (
                 <Button icon={ReceiptText} onClick={() => setCreditOpen(true)}>
-                  Gutschrift
+                  {t('Gutschrift')}
                 </Button>
               )}
               {doc.kind === 'invoice' && doc.billingType === 'downPayment' && !doc.settledById && doc.status !== 'cancelled' && (
                 <Button icon={FileCheck2} onClick={createFinal}>
-                  Schlussrechnung erstellen
+                  {t('Schlussrechnung erstellen')}
                 </Button>
               )}
               {doc.kind === 'invoice' && doc.status !== 'cancelled' && !doc.creditNotes.length && !doc.settledById && (
                 <Button variant="danger" icon={Ban} onClick={() => setCancelOpen(true)}>
-                  Stornieren
+                  {t('Stornieren')}
                 </Button>
               )}
               {isQuote && (
@@ -1052,18 +1053,18 @@ function DocumentViewer({ doc, settings }: { doc: InvoiceDocument; settings: Set
                   variant="danger"
                   icon={Trash2}
                   onClick={async () => {
-                    if (!(await confirm({ title: 'Angebot löschen?', message: 'Angebote unterliegen nicht der Aufbewahrungspflicht wie Rechnungen und können gelöscht werden.', confirmLabel: 'Löschen', danger: true }))) return
-                    await run(() => db.documents.delete(doc.id), 'Angebot gelöscht')
+                    if (!(await confirm({ title: t('Angebot löschen?'), message: t('Angebote unterliegen nicht der Aufbewahrungspflicht wie Rechnungen und können gelöscht werden.'), confirmLabel: t('Löschen'), danger: true }))) return
+                    await run(() => db.documents.delete(doc.id), t('Angebot gelöscht'))
                     navigate('/rechnungen?art=angebote')
                   }}
                 >
-                  Löschen
+                  {t('Löschen')}
                 </Button>
               )}
             </div>
             {!isQuote && (
               <p className="small faint">
-                <Lock size={12} aria-hidden /> Abgeschlossene Rechnungen sind nicht mehr änderbar. Für Korrekturen erstellst du eine Stornorechnung.
+                <Lock size={12} aria-hidden /> {t('Abgeschlossene Rechnungen sind nicht mehr änderbar. Für Korrekturen erstellst du eine Stornorechnung.')}
               </p>
             )}
           </section>
@@ -1081,41 +1082,41 @@ function DocumentViewer({ doc, settings }: { doc: InvoiceDocument; settings: Set
       <Dialog
         open={creditOpen}
         onClose={() => setCreditOpen(false)}
-        title={`Gutschrift zu ${doc.number}`}
-        description="Eine Gutschrift (Rechnungskorrektur) mindert den Rechnungsbetrag, ohne die Rechnung zu stornieren. Sie bekommt eine Nummer aus dem eigenen Nummernkreis."
+        title={t('Gutschrift zu {p0}', { p0: doc.number })}
+        description={t('Eine Gutschrift (Rechnungskorrektur) mindert den Rechnungsbetrag, ohne die Rechnung zu stornieren. Sie bekommt eine Nummer aus dem eigenen Nummernkreis.')}
         footer={
           <>
-            <Button onClick={() => setCreditOpen(false)}>Abbrechen</Button>
-            <Button onClick={() => credit('partial')}>Teilgutschrift</Button>
+            <Button onClick={() => setCreditOpen(false)}>{t('Abbrechen')}</Button>
+            <Button onClick={() => credit('partial')}>{t('Teilgutschrift')}</Button>
             <Button variant="primary" onClick={() => credit('full')}>
-              Vollgutschrift
+              {t('Vollgutschrift')}
             </Button>
           </>
         }
       >
         <p className="small muted">
-          Noch gutschreibbar: <strong>{formatMoney(creditableAmount(doc), doc.currency)}</strong>. Bei einer Teilgutschrift übernimmt Kontor die Positionen, die du anschließend reduzierst oder entfernst. Hinweis: Im Steuerrecht meint „Gutschrift“ eigentlich die Abrechnung durch den Leistungsempfänger – auf dem Dokument steht deshalb „Rechnungskorrektur“.
+          {t('Noch gutschreibbar:')} <strong>{formatMoney(creditableAmount(doc), doc.currency)}</strong>{t('. Bei einer Teilgutschrift übernimmt Kontor die Positionen, die du anschließend reduzierst oder entfernst. Hinweis: Im Steuerrecht meint „Gutschrift“ eigentlich die Abrechnung durch den Leistungsempfänger – auf dem Dokument steht deshalb „Rechnungskorrektur“.')}
         </p>
       </Dialog>
 
       <Dialog
         open={cancelOpen}
         onClose={() => setCancelOpen(false)}
-        title={`Rechnung ${doc.number} stornieren?`}
-        description="Es wird eine Stornorechnung mit eigener Nummer und negativen Beträgen erstellt. Die Original-Rechnung bleibt erhalten und wird als storniert markiert."
+        title={t('Rechnung {p0} stornieren?', { p0: doc.number })}
+        description={t('Es wird eine Stornorechnung mit eigener Nummer und negativen Beträgen erstellt. Die Original-Rechnung bleibt erhalten und wird als storniert markiert.')}
         footer={
           <>
-            <Button onClick={() => setCancelOpen(false)}>Abbrechen</Button>
+            <Button onClick={() => setCancelOpen(false)}>{t('Abbrechen')}</Button>
             <Button variant="danger" onClick={() => cancel(false)}>
-              Nur stornieren
+              {t('Nur stornieren')}
             </Button>
             <Button variant="primary" onClick={() => cancel(true)}>
-              Stornieren und korrigieren
+              {t('Stornieren und korrigieren')}
             </Button>
           </>
         }
       >
-        <p className="small muted">„Stornieren und korrigieren“ legt zusätzlich eine Kopie als neuen Entwurf an, den du anpassen kannst. Bereits abgerechnete Zeiten werden wieder freigegeben.</p>
+        <p className="small muted">{t('„Stornieren und korrigieren“ legt zusätzlich eine Kopie als neuen Entwurf an, den du anpassen kannst. Bereits abgerechnete Zeiten werden wieder freigegeben.')}</p>
       </Dialog>
 
       <RecurringDialog rec={recurring} onClose={() => setRecurring(null)} />
@@ -1132,20 +1133,20 @@ function ReminderHistory({ doc, settings }: { doc: InvoiceDocument; settings: Se
   if (!reminders?.length) return null
   return (
     <section className="card card-pad stack-sm">
-      <h3>Mahnverlauf</h3>
+      <h3>{t('Mahnverlauf')}</h3>
       <ul className="list payments-list">
         {reminders.map((r) => (
           <li key={r.id} className="list-item">
             <span className="grow">
-              <span className="title" style={{ display: 'block' }}>{LEVEL_LABELS[r.level]}</span>
+              <span className="title" style={{ display: 'block' }}>{t(LEVEL_LABELS[r.level])}</span>
               <span className="sub">
-                {formatDate(r.issueDate)} · Frist {formatDate(r.deadline)}
-                {r.sentAt ? ' · versendet' : ''}
+                {formatDate(r.issueDate)} {t('· Frist')} {formatDate(r.deadline)}
+                {r.sentAt ? t(' · versendet') : ''}
               </span>
             </span>
             <span className="tabular">{formatMoney(reminderTotal(r), doc.currency)}</span>
-            <IconButton icon={Mail} label="Per E-Mail senden" size={15} onClick={() => setSending(r)} />
-            <IconButton icon={Download} label="PDF herunterladen" size={15} onClick={() => run(() => downloadReminderPdf(r, doc, settings))} />
+            <IconButton icon={Mail} label={t('Per E-Mail senden')} size={15} onClick={() => setSending(r)} />
+            <IconButton icon={Download} label={t('PDF herunterladen')} size={15} onClick={() => run(() => downloadReminderPdf(r, doc, settings))} />
           </li>
         ))}
       </ul>
@@ -1180,13 +1181,13 @@ function PaymentsCard({ doc }: { doc: InvoiceDocument }) {
     const ok = await run(async () => {
       await addPayment(doc.id, { date, amountCents: amount ?? 0, note: note.trim() })
       return true
-    }, (amount ?? 0) >= due ? 'Rechnung ist bezahlt' : 'Zahlung erfasst')
+    }, (amount ?? 0) >= due ? t('Rechnung ist bezahlt') : t('Zahlung erfasst'))
     if (ok) setOpen(false)
   }
 
   const remove = async (p: Payment) => {
     await run(() => removePayment(doc.id, p.id))
-    undoable(`Zahlung über ${formatMoney(p.amountCents, doc.currency)} entfernt`, () => addPayment(doc.id, { date: p.date, amountCents: p.amountCents, note: p.note }))
+    undoable(t('Zahlung über {p0} entfernt', { p0: formatMoney(p.amountCents, doc.currency) }), () => addPayment(doc.id, { date: p.date, amountCents: p.amountCents, note: p.note }))
   }
 
   return (
@@ -1203,22 +1204,22 @@ function PaymentsCard({ doc }: { doc: InvoiceDocument }) {
           <strong>
             {due <= 0
               ? displayStatus(doc) === 'settled'
-                ? 'Durch Gutschrift ausgeglichen'
-                : `Bezahlt am ${formatDate(doc.paidAt)}`
+                ? t('Durch Gutschrift ausgeglichen')
+                : t('Bezahlt am {p0}', { p0: formatDate(doc.paidAt) })
               : status === 'overdue'
-                ? `Seit ${overdueDays} ${overdueDays === 1 ? 'Tag' : 'Tagen'} überfällig`
-                : `Fällig am ${formatDate(doc.dueDate)}`}
+                ? t('Seit {p0} {p1} überfällig', { p0: overdueDays, p1: overdueDays === 1 ? 'Tag' : 'Tagen' })
+                : t('Fällig am {p0}', { p0: formatDate(doc.dueDate) })}
           </strong>
           {due > 0 && (
             <p className="small muted">
-              {paid > 0 ? `${formatMoney(due, doc.currency)} von ${formatMoney(target, doc.currency)} offen.` : status === 'overdue' ? 'Zeit für eine freundliche Zahlungserinnerung.' : daysBetween(today(), doc.dueDate) === 0 ? 'Heute fällig.' : `Noch ${daysBetween(today(), doc.dueDate)} Tage bis zur Fälligkeit.`}
+              {paid > 0 ? t('{p0} von {p1} offen.', { p0: formatMoney(due, doc.currency), p1: formatMoney(target, doc.currency) }) : status === 'overdue' ? t('Zeit für eine freundliche Zahlungserinnerung.') : daysBetween(today(), doc.dueDate) === 0 ? t('Heute fällig.') : t('Noch {p0} Tage bis zur Fälligkeit.', { p0: daysBetween(today(), doc.dueDate) })}
             </p>
           )}
         </div>
       </div>
       {(paid > 0 || credited > 0) && (
         <>
-          <div className="progress" aria-label={`${Math.round(progress)} % bezahlt`}>
+          <div className="progress" aria-label={t('{p0} % bezahlt', { p0: Math.round(progress) })}>
             <span style={{ width: `${progress}%`, background: 'var(--green)' }} />
           </div>
           <ul className="list payments-list">
@@ -1229,14 +1230,14 @@ function PaymentsCard({ doc }: { doc: InvoiceDocument }) {
                   {p.note && <span className="sub">{p.note}</span>}
                 </span>
                 <span className="tabular">{formatMoney(p.amountCents, doc.currency)}</span>
-                <IconButton icon={Trash2} label="Zahlung entfernen" danger size={15} onClick={() => remove(p)} />
+                <IconButton icon={Trash2} label={t('Zahlung entfernen')} danger size={15} onClick={() => remove(p)} />
               </li>
             ))}
             {doc.creditNotes.map((c) => (
               <li key={c.id} className="list-item">
                 <span className="grow">
                   <Link to={`/rechnungen/${c.id}`} className="title" style={{ display: 'block' }}>
-                    Gutschrift {c.number}
+                    {t('Gutschrift')} {c.number}
                   </Link>
                   <span className="sub">{formatDate(c.issueDate)}</span>
                 </span>
@@ -1249,11 +1250,11 @@ function PaymentsCard({ doc }: { doc: InvoiceDocument }) {
       {due > 0 && (
         <div className="row wrap">
           <Button variant="success" icon={CheckCircle2} onClick={openDialog} className="grow" style={{ flex: 1 }}>
-            Zahlung erfassen
+            {t('Zahlung erfassen')}
           </Button>
           {status === 'overdue' && (
             <Link to={`/mahnwesen?rechnung=${doc.id}`} className="btn">
-              <BellRing size={17} aria-hidden /> Mahnen
+              <BellRing size={17} aria-hidden /> {t('Mahnen')}
             </Link>
           )}
         </div>
@@ -1262,13 +1263,13 @@ function PaymentsCard({ doc }: { doc: InvoiceDocument }) {
       <Dialog
         open={open}
         onClose={() => setOpen(false)}
-        title="Zahlung erfassen"
-        description={`${formatMoney(due, doc.currency)} offen von ${recipientName(doc.recipient)}`}
+        title={t('Zahlung erfassen')}
+        description={t('{p0} offen von {p1}', { p0: formatMoney(due, doc.currency), p1: recipientName(doc.recipient) })}
         footer={
           <>
-            <Button onClick={() => setOpen(false)}>Abbrechen</Button>
+            <Button onClick={() => setOpen(false)}>{t('Abbrechen')}</Button>
             <Button variant="success" onClick={save}>
-              {(amount ?? 0) >= due ? 'Als bezahlt buchen' : 'Teilzahlung buchen'}
+              {(amount ?? 0) >= due ? t('Als bezahlt buchen') : t('Teilzahlung buchen')}
             </Button>
           </>
         }
@@ -1280,13 +1281,13 @@ function PaymentsCard({ doc }: { doc: InvoiceDocument }) {
             void save()
           }}
         >
-          <Field className="span-3" label="Betrag">
-            <MoneyInput value={amount} onChange={setAmount} currencySymbol={doc.currency === 'EUR' ? '€' : doc.currency} aria-label="Zahlungsbetrag" autoFocus />
+          <Field className="span-3" label={t('Betrag')}>
+            <MoneyInput value={amount} onChange={setAmount} currencySymbol={doc.currency === 'EUR' ? '€' : doc.currency} aria-label={t('Zahlungsbetrag')} autoFocus />
           </Field>
-          <TextField className="span-3" label="Zahlungseingang am" type="date" value={date} onChange={setDate} max={today()} />
-          <TextField className="span-6" label="Notiz" value={note} onChange={setNote} placeholder="optional, z. B. Verwendungszweck" />
-          {(amount ?? 0) > 0 && (amount ?? 0) < due && <p className="span-6 small muted">Teilzahlung – es bleiben {formatMoney(due - (amount ?? 0), doc.currency)} offen.</p>}
-          {(amount ?? 0) > due && <p className="span-6 small" style={{ color: 'var(--orange)' }}>Der Betrag ist höher als der offene Betrag ({formatMoney(due, doc.currency)}).</p>}
+          <TextField className="span-3" label={t('Zahlungseingang am')} type="date" value={date} onChange={setDate} max={today()} />
+          <TextField className="span-6" label={t('Notiz')} value={note} onChange={setNote} placeholder={t('optional, z. B. Verwendungszweck')} />
+          {(amount ?? 0) > 0 && (amount ?? 0) < due && <p className="span-6 small muted">{t('Teilzahlung – es bleiben')} {formatMoney(due - (amount ?? 0), doc.currency)} {t('offen.')}</p>}
+          {(amount ?? 0) > due && <p className="span-6 small" style={{ color: 'var(--orange)' }}>{t('Der Betrag ist höher als der offene Betrag (')}{formatMoney(due, doc.currency)}).</p>}
           <button type="submit" hidden />
         </form>
       </Dialog>
@@ -1316,23 +1317,23 @@ function EInvoiceDialog({
     <Dialog
       open={open}
       onClose={onClose}
-      title="E-Rechnung exportieren"
-      description="Strukturierte Rechnungsdaten nach EN 16931 – seit 2025 im inländischen B2B-Bereich relevant."
+      title={t('E-Rechnung exportieren')}
+      description={t('Strukturierte Rechnungsdaten nach EN 16931 – seit 2025 im inländischen B2B-Bereich relevant.')}
       footer={
         <>
-          <Button onClick={onClose}>Schließen</Button>
+          <Button onClick={onClose}>{t('Schließen')}</Button>
           {profile === 'facturx' ? (
             <>
               <Button icon={FileCode2} onClick={() => run(async () => downloadXml(doc, settings, 'facturx'))}>
-                Nur XML (CII)
+                {t('Nur XML (CII)')}
               </Button>
               <Button variant="primary" icon={Download} onClick={onPdf}>
-                ZUGFeRD-PDF
+                {t('ZUGFeRD-PDF')}
               </Button>
             </>
           ) : (
             <Button variant="primary" icon={Download} onClick={() => run(async () => downloadXml(doc, settings, 'xrechnung'))}>
-              XRechnung (XML)
+              {t('XRechnung (XML)')}
             </Button>
           )}
         </>
@@ -1340,23 +1341,23 @@ function EInvoiceDialog({
     >
       <div className="stack-sm">
         <Segmented
-          label="Format"
+          label={t('Format')}
           value={profile}
           onChange={setProfile}
           options={[
-            { value: 'facturx', label: 'ZUGFeRD / Factur-X' },
-            { value: 'xrechnung', label: 'XRechnung' },
+            { value: 'facturx', label: t('ZUGFeRD / Factur-X') },
+            { value: 'xrechnung', label: t('XRechnung') },
           ]}
         />
         <p className="small muted">
           {profile === 'facturx'
-            ? 'PDF mit eingebetteter XML-Datei (factur-x.xml, Profil EN 16931). Für Menschen lesbar, für Buchhaltungssoftware auswertbar.'
-            : 'Reines XML im CII-Format nach XRechnung 3.0 – Standard für öffentliche Auftraggeber.'}
+            ? t('PDF mit eingebetteter XML-Datei (factur-x.xml, Profil EN 16931). Für Menschen lesbar, für Buchhaltungssoftware auswertbar.')
+            : t('Reines XML im CII-Format nach XRechnung 3.0 – Standard für öffentliche Auftraggeber.')}
         </p>
         <div className="callout small">
           <Info size={16} aria-hidden />
           <span>
-            Die XML-Daten folgen EN 16931 und wurden für typische Fälle mit dem KoSIT-Validator geprüft, das ZUGFeRD-PDF mit veraPDF als PDF/A-3B. Eine offizielle Zertifizierung gibt es nicht – prüfe neue Konstellationen vor dem Versand, z. B. mit dem Prüfwerkzeug deines Empfängers.
+            {t('Die XML-Daten folgen EN 16931 und wurden für typische Fälle mit dem KoSIT-Validator geprüft, das ZUGFeRD-PDF mit veraPDF als PDF/A-3B. Eine offizielle Zertifizierung gibt es nicht – prüfe neue Konstellationen vor dem Versand, z. B. mit dem Prüfwerkzeug deines Empfängers.')}
           </span>
         </div>
         {issues.length > 0 && <IssueList issues={issues.map((i) => ({ level: 'warning', field: '', message: i.message }))} />}

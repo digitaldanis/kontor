@@ -1,3 +1,4 @@
+import { t } from '../lib/i18n'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Package, Search } from 'lucide-react'
 import { useState } from 'react'
@@ -27,13 +28,13 @@ export function CatalogItemDialog({ item, onClose, onSave }: { item: CatalogItem
     <Dialog
       open={!!item}
       onClose={onClose}
-      title={item?.name ? 'Leistung bearbeiten' : 'Neue Leistung'}
-      description="Gespeicherte Leistungen fügst du im Rechnungseditor per Suche ein."
+      title={item?.name ? t('Leistung bearbeiten') : t('Neue Leistung')}
+      description={t('Gespeicherte Leistungen fügst du im Rechnungseditor per Suche ein.')}
       footer={
         <>
-          <Button onClick={onClose}>Abbrechen</Button>
+          <Button onClick={onClose}>{t('Abbrechen')}</Button>
           <Button variant="primary" onClick={save}>
-            Speichern
+            {t('Speichern')}
           </Button>
         </>
       }
@@ -45,17 +46,17 @@ export function CatalogItemDialog({ item, onClose, onSave }: { item: CatalogItem
           save()
         }}
       >
-        <TextField className="span-6" label="Name *" value={draft.name} onChange={(name) => set({ name })} autoFocus error={tried && !draft.name.trim() ? 'Bitte einen Namen angeben' : null} placeholder="z. B. Webdesign" />
-        <TextAreaField className="span-6" label="Beschreibung" value={draft.description} onChange={(description) => set({ description })} rows={2} />
-        <Field className="span-2" label="Preis netto">
-          <MoneyInput value={draft.priceCents} onChange={(v) => set({ priceCents: v ?? 0 })} aria-label="Preis netto" />
+        <TextField className="span-6" label={t('Name *')} value={draft.name} onChange={(name) => set({ name })} autoFocus error={tried && !draft.name.trim() ? t('Bitte einen Namen angeben') : null} placeholder={t('z. B. Webdesign')} />
+        <TextAreaField className="span-6" label={t('Beschreibung')} value={draft.description} onChange={(description) => set({ description })} rows={2} />
+        <Field className="span-2" label={t('Preis netto')}>
+          <MoneyInput value={draft.priceCents} onChange={(v) => set({ priceCents: v ?? 0 })} aria-label={t('Preis netto')} />
         </Field>
-        <SelectField className="span-2" label="Einheit" value={draft.unit} onChange={(unit) => set({ unit })}>
+        <SelectField className="span-2" label={t('Einheit')} value={draft.unit} onChange={(unit) => set({ unit })}>
           {[...new Set([...UNITS, draft.unit])].map((u) => (
             <option key={u}>{u}</option>
           ))}
         </SelectField>
-        <SelectField className="span-2" label="Steuersatz" value={String(draft.taxRate)} onChange={(v) => set({ taxRate: Number(v) })}>
+        <SelectField className="span-2" label={t('Steuersatz')} value={String(draft.taxRate)} onChange={(v) => set({ taxRate: Number(v) })}>
           {[...new Set([...TAX_RATES, draft.taxRate])].map((r) => (
             <option key={r} value={r}>
               {r} %
@@ -81,20 +82,20 @@ export function CatalogPicker({ open, onClose, onPick }: { open: boolean; onClos
     onClose()
   }
   return (
-    <Dialog open={open} onClose={onClose} title="Leistung einfügen" description="Aus deinem Leistungskatalog">
+    <Dialog open={open} onClose={onClose} title={t('Leistung einfügen')} description={t('Aus deinem Leistungskatalog')}>
       {all && all.length === 0 ? (
-        <EmptyState icon={Package} title="Noch keine Leistungen" compact>
-          Lege unter „Leistungen“ wiederkehrende Positionen mit Preis und Steuersatz an oder speichere eine Position im Editor als Leistung.
+        <EmptyState icon={Package} title={t('Noch keine Leistungen')} compact>
+          {t('Lege unter „Leistungen“ wiederkehrende Positionen mit Preis und Steuersatz an oder speichere eine Position im Editor als Leistung.')}
         </EmptyState>
       ) : (
         <div className="stack-sm">
           <label className="search" style={{ maxWidth: 'none' }}>
-            <span className="sr-only">Leistungen suchen</span>
+            <span className="sr-only">{t('Leistungen suchen')}</span>
             <Search size={16} aria-hidden />
             <input
               className="input"
               type="search"
-              placeholder="Suchen …"
+              placeholder={t('Suchen …')}
               value={q}
               autoFocus
               onChange={(e) => {
@@ -117,7 +118,7 @@ export function CatalogPicker({ open, onClose, onPick }: { open: boolean; onClos
             />
           </label>
           <ul id="catalog-hits" className="list card" role="listbox" style={{ boxShadow: 'none', border: '1px solid var(--border)', maxHeight: 360, overflowY: 'auto' }}>
-            {hits.length === 0 && <li className="list-item muted small">Keine Treffer</li>}
+            {hits.length === 0 && <li className="list-item muted small">{t('Keine Treffer')}</li>}
             {hits.map((i, idx) => (
               <li key={i.id} role="option" aria-selected={idx === active}>
                 <button type="button" className={`list-item picker-item ${idx === active ? 'active' : ''}`} onClick={() => pick(i)} onMouseEnter={() => setActive(idx)}>

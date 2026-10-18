@@ -1,3 +1,4 @@
+import { t } from '../lib/i18n'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { AlertTriangle, Clock, Pencil, Play, ReceiptText, Square, Trash2, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
@@ -62,8 +63,8 @@ export function TimerCard({ defaultCustomerId }: { defaultCustomerId?: string })
   if (customers && customers.length === 0) {
     return (
       <div className="card">
-        <EmptyState icon={Clock} title="Zuerst einen Kunden anlegen" compact action={<Button variant="primary" onClick={() => navigate('/kunden')}>Zu den Kunden</Button>}>
-          Zeiten werden immer einem Kunden zugeordnet, damit du sie später abrechnen kannst.
+        <EmptyState icon={Clock} title={t('Zuerst einen Kunden anlegen')} compact action={<Button variant="primary" onClick={() => navigate('/kunden')}>{t('Zu den Kunden')}</Button>}>
+          {t('Zeiten werden immer einem Kunden zugeordnet, damit du sie später abrechnen kannst.')}
         </EmptyState>
       </div>
     )
@@ -82,16 +83,16 @@ export function TimerCard({ defaultCustomerId }: { defaultCustomerId?: string })
           setDescription('')
         }}
       >
-        <SelectField className="span-2" label="Kunde" value={customerId} onChange={setCustomerId}>
+        <SelectField className="span-2" label={t('Kunde')} value={customerId} onChange={setCustomerId}>
           {customers?.map((c) => (
             <option key={c.id} value={c.id}>
               {customerName(c)}
             </option>
           ))}
         </SelectField>
-        <TextField className="span-2" label="Tätigkeit" value={description} onChange={setDescription} placeholder="Woran arbeitest du?" />
-        <Field className="span-2" label="Projekt">
-          <input className="input" list="start-projects" value={project} onChange={(e) => setProject(e.target.value)} placeholder="optional" />
+        <TextField className="span-2" label={t('Tätigkeit')} value={description} onChange={setDescription} placeholder={t('Woran arbeitest du?')} />
+        <Field className="span-2" label={t('Projekt')}>
+          <input className="input" list="start-projects" value={project} onChange={(e) => setProject(e.target.value)} placeholder={t('optional')} />
         </Field>
         <datalist id="start-projects">
           {projects.map((p) => (
@@ -99,9 +100,9 @@ export function TimerCard({ defaultCustomerId }: { defaultCustomerId?: string })
           ))}
         </datalist>
         <div className="span-6 row wrap between">
-          <Toggle checked={billable} onChange={setBillable} label="Abrechenbar" />
+          <Toggle checked={billable} onChange={setBillable} label={t('Abrechenbar')} />
           <Button type="submit" variant="success" size="lg" icon={Play} disabled={!customerId}>
-            Stoppuhr starten
+            {t('Stoppuhr starten')}
           </Button>
         </div>
       </form>
@@ -130,24 +131,24 @@ function RunningTimerCard({ timer, customer }: { timer: RunningTimer; customer?:
     <div className="card card-pad timer-card running">
       <div className="timer-display">
         <span className="pulse" aria-hidden />
-        <span className="timer-clock" role="timer" aria-label="Laufende Zeit">
+        <span className="timer-clock" role="timer" aria-label={t('Laufende Zeit')}>
           {formatClock(seconds)}
         </span>
         <span className="muted small">
-          seit {formatTime(timer.startedAt)} Uhr · {customer ? customerName(customer) : 'Kunde'}
+          {t('seit')} {formatTime(timer.startedAt)} {t('Uhr ·')} {customer ? customerName(customer) : t('Kunde')}
         </span>
       </div>
       <div className="form-grid" style={{ marginTop: 16 }}>
-        <TextField className="span-4" label="Was machst du gerade?" value={description} onChange={setDescription} placeholder="z. B. Startseite gestalten" />
-        <Field className="span-2" label="Projekt">
-          <input className="input" list="timer-projects" value={project} onChange={(e) => setProject(e.target.value)} placeholder="optional" />
+        <TextField className="span-4" label={t('Was machst du gerade?')} value={description} onChange={setDescription} placeholder={t('z. B. Startseite gestalten')} />
+        <Field className="span-2" label={t('Projekt')}>
+          <input className="input" list="timer-projects" value={project} onChange={(e) => setProject(e.target.value)} placeholder={t('optional')} />
         </Field>
       </div>
       {warning && (
         <div className={`callout ${warning.usage.state === 'over' ? 'warning' : 'info'} small`} style={{ marginTop: 12 }}>
           <AlertTriangle size={16} aria-hidden />
           <span>
-            Projekt „{warning.project.name}“: {Math.round(warning.usage.ratio * 100)} % des Budgets {warning.usage.state === 'over' ? 'verbraucht – Budget überschritten.' : 'verbraucht.'}
+            {t('Projekt „')}{warning.project.name}“: {Math.round(warning.usage.ratio * 100)} {t('% des Budgets')} {warning.usage.state === 'over' ? t('verbraucht – Budget überschritten.') : t('verbraucht.')}
           </span>
         </div>
       )}
@@ -165,14 +166,14 @@ function RunningTimerCard({ timer, customer }: { timer: RunningTimer; customer?:
             run(async () => {
               await updateTimer({ description, project })
               const entry = await stopTimer()
-              toast(entry ? `${formatDuration(durationMinutes(entry.start, entry.end))} gespeichert` : 'Unter einer Minute – nicht gespeichert')
+              toast(entry ? t('{p0} gespeichert', { p0: formatDuration(durationMinutes(entry.start, entry.end)) }) : t('Unter einer Minute – nicht gespeichert'))
             })
           }
         >
-          Stoppen
+          {t('Stoppen')}
         </Button>
-        <Button variant="ghost" icon={X} onClick={() => run(discardTimer, 'Stoppuhr verworfen')}>
-          Verwerfen
+        <Button variant="ghost" icon={X} onClick={() => run(discardTimer, t('Stoppuhr verworfen'))}>
+          {t('Verwerfen')}
         </Button>
       </div>
     </div>
@@ -234,7 +235,7 @@ export function TimeEntryDialog({ entry, onClose }: { entry: TimeEntry | null; o
     const ok = await run(async () => {
       await saveTimeEntry({ ...e, start, end })
       return true
-    }, 'Zeiteintrag gespeichert')
+    }, t('Zeiteintrag gespeichert'))
     if (ok) onClose()
   }
 
@@ -243,13 +244,13 @@ export function TimeEntryDialog({ entry, onClose }: { entry: TimeEntry | null; o
       open={!!entry}
       onClose={onClose}
       wide
-      title={entry && entry.createdAt === entry.updatedAt && !entry.invoiceId ? 'Zeit erfassen' : 'Zeiteintrag'}
-      description={locked ? 'Dieser Eintrag ist bereits einer Rechnung zugeordnet und kann nur eingeschränkt geändert werden.' : undefined}
+      title={entry && entry.createdAt === entry.updatedAt && !entry.invoiceId ? t('Zeit erfassen') : t('Zeiteintrag')}
+      description={locked ? t('Dieser Eintrag ist bereits einer Rechnung zugeordnet und kann nur eingeschränkt geändert werden.') : undefined}
       footer={
         <>
-          <Button onClick={onClose}>Abbrechen</Button>
+          <Button onClick={onClose}>{t('Abbrechen')}</Button>
           <Button variant="primary" onClick={save}>
-            Speichern
+            {t('Speichern')}
           </Button>
         </>
       }
@@ -261,36 +262,36 @@ export function TimeEntryDialog({ entry, onClose }: { entry: TimeEntry | null; o
           save()
         }}
       >
-        <SelectField className="span-3" label="Kunde" value={e.customerId} onChange={(customerId) => setE({ ...e, customerId })} disabled={locked}>
+        <SelectField className="span-3" label={t('Kunde')} value={e.customerId} onChange={(customerId) => setE({ ...e, customerId })} disabled={locked}>
           {customers?.map((c) => (
             <option key={c.id} value={c.id}>
               {customerName(c)}
             </option>
           ))}
         </SelectField>
-        <Field className="span-3" label="Projekt">
-          <input className="input" list="entry-projects" value={e.project} onChange={(ev) => setE({ ...e, project: ev.target.value })} placeholder="optional" />
+        <Field className="span-3" label={t('Projekt')}>
+          <input className="input" list="entry-projects" value={e.project} onChange={(ev) => setE({ ...e, project: ev.target.value })} placeholder={t('optional')} />
         </Field>
         <datalist id="entry-projects">
           {projects.map((p) => (
             <option key={p} value={p} />
           ))}
         </datalist>
-        <TextField className="span-6" label="Tätigkeit *" value={e.description} onChange={(description) => setE({ ...e, description })} placeholder="z. B. Abstimmung Konzept" error={tried && !e.description.trim() ? 'Bitte beschreiben, was gemacht wurde' : null} autoFocus />
-        <TextAreaField className="span-6" label="Details" value={e.details} onChange={(details) => setE({ ...e, details })} rows={2} placeholder="Was genau wurde gemacht? Erscheint auf Wunsch in der Rechnung." />
-        <TextField className="span-2" label="Datum" type="date" value={date} onChange={setDate} disabled={locked} />
-        <TextField className="span-1" label="Von" type="time" value={from} onChange={setFrom} disabled={locked} />
-        <TextField className="span-1" label="Bis" type="time" value={to} onChange={setTo} disabled={locked} />
-        <Field className="span-2" label="Dauer">
+        <TextField className="span-6" label={t('Tätigkeit *')} value={e.description} onChange={(description) => setE({ ...e, description })} placeholder={t('z. B. Abstimmung Konzept')} error={tried && !e.description.trim() ? t('Bitte beschreiben, was gemacht wurde') : null} autoFocus />
+        <TextAreaField className="span-6" label={t('Details')} value={e.details} onChange={(details) => setE({ ...e, details })} rows={2} placeholder={t('Was genau wurde gemacht? Erscheint auf Wunsch in der Rechnung.')} />
+        <TextField className="span-2" label={t('Datum')} type="date" value={date} onChange={setDate} disabled={locked} />
+        <TextField className="span-1" label={t('Von')} type="time" value={from} onChange={setFrom} disabled={locked} />
+        <TextField className="span-1" label={t('Bis')} type="time" value={to} onChange={setTo} disabled={locked} />
+        <Field className="span-2" label={t('Dauer')}>
           <div className="input tabular" aria-live="polite" style={{ display: 'flex', alignItems: 'center', background: 'var(--surface-3)', color: minutes > 0 ? undefined : 'var(--red)' }}>
-            {minutes > 0 ? formatDuration(minutes) : 'Ungültig'}
+            {minutes > 0 ? formatDuration(minutes) : t('Ungültig')}
           </div>
         </Field>
-        <Field className="span-3" label="Abweichender Stundensatz" hint="Leer = Satz des Kunden">
-          <MoneyInput value={e.rateCents} onChange={(rateCents) => setE({ ...e, rateCents })} allowEmpty placeholder="Kundensatz" disabled={locked} aria-label="Stundensatz" />
+        <Field className="span-3" label={t('Abweichender Stundensatz')} hint={t('Leer = Satz des Kunden')}>
+          <MoneyInput value={e.rateCents} onChange={(rateCents) => setE({ ...e, rateCents })} allowEmpty placeholder={t('Kundensatz')} disabled={locked} aria-label={t('Stundensatz')} />
         </Field>
         <div className="span-3" style={{ alignSelf: 'center' }}>
-          <Toggle checked={e.billable} onChange={(billable) => setE({ ...e, billable })} label="Abrechenbar" description="Nicht abrechenbare Zeiten zählen nur für die Statistik." />
+          <Toggle checked={e.billable} onChange={(billable) => setE({ ...e, billable })} label={t('Abrechenbar')} description={t('Nicht abrechenbare Zeiten zählen nur für die Statistik.')} />
         </div>
         <button type="submit" hidden />
       </form>
@@ -331,7 +332,7 @@ export function TimeEntryList({
         return (
           <section key={day} className="time-day">
             <header className="time-day-header">
-              <h3>{day === today() ? 'Heute' : formatLongDate(day)}</h3>
+              <h3>{day === today() ? t('Heute') : formatLongDate(day)}</h3>
               <span className="muted tabular small">{formatDuration(total)}</span>
             </header>
             <ul className="list">
@@ -353,25 +354,25 @@ export function TimeEntryList({
                       <div className="small">
                         {e.invoiceId ? (
                           <button type="button" className="badge green plain" style={{ border: 0, cursor: 'pointer' }} onClick={() => navigate(`/rechnungen/${e.invoiceId}`)}>
-                            abgerechnet
+                            {t('abgerechnet')}
                           </button>
                         ) : e.billable ? (
                           <span className="faint tabular">{formatMoney(Math.round(minutesToHours(billableMinutes(e, settings.timeRounding)) * rate))}</span>
                         ) : (
-                          <span className="faint">nicht abrechenbar</span>
+                          <span className="faint">{t('nicht abrechenbar')}</span>
                         )}
                       </div>
                     </div>
                     <div className="row" style={{ gap: 2 }}>
-                      <IconButton icon={Pencil} label="Bearbeiten" onClick={() => onEdit(e)} />
+                      <IconButton icon={Pencil} label={t('Bearbeiten')} onClick={() => onEdit(e)} />
                       <IconButton
                         icon={Trash2}
-                        label="Löschen"
+                        label={t('Löschen')}
                         danger
                         disabled={!!e.invoiceId}
                         onClick={async () => {
-                          if (await confirm({ title: 'Zeiteintrag löschen?', message: `„${e.description}“ (${formatDuration(minutes)}) wird entfernt.`, confirmLabel: 'Löschen', danger: true }))
-                            run(() => deleteTimeEntry(e.id), 'Eintrag gelöscht')
+                          if (await confirm({ title: t('Zeiteintrag löschen?'), message: t('„{p0}“ ({p1}) wird entfernt.', { p0: e.description, p1: formatDuration(minutes) }), confirmLabel: t('Löschen'), danger: true }))
+                            run(() => deleteTimeEntry(e.id), t('Eintrag gelöscht'))
                         }}
                       />
                     </div>
@@ -425,7 +426,7 @@ export function BillTimeDialog({ customerId, open, onClose }: { customerId: stri
 
   const submit = async () => {
     if (!customerId) return
-    const doc = await run(() => invoiceTimeEntries(customerId, [...selected], grouping, target === 'new' ? undefined : target), 'Positionen übernommen')
+    const doc = await run(() => invoiceTimeEntries(customerId, [...selected], grouping, target === 'new' ? undefined : target), t('Positionen übernommen'))
     if (doc) {
       onClose()
       navigate(`/rechnungen/${doc.id}`)
@@ -437,43 +438,43 @@ export function BillTimeDialog({ customerId, open, onClose }: { customerId: stri
       open={open}
       onClose={onClose}
       wide
-      title="Zeiten abrechnen"
-      description={data.customer ? `Offene Zeiten für ${customerName(data.customer)} als Rechnungspositionen übernehmen.` : undefined}
+      title={t('Zeiten abrechnen')}
+      description={data.customer ? t('Offene Zeiten für {p0} als Rechnungspositionen übernehmen.', { p0: customerName(data.customer) }) : undefined}
       footer={
         <>
           <span className="muted small" style={{ marginRight: 'auto', alignSelf: 'center' }}>
-            {chosen.length} Einträge · {formatDuration(minutes)} · {formatMoney(amount)} netto
+            {chosen.length} {t('Einträge ·')} {formatDuration(minutes)} · {formatMoney(amount)} {t('netto')}
           </span>
-          <Button onClick={onClose}>Abbrechen</Button>
+          <Button onClick={onClose}>{t('Abbrechen')}</Button>
           <Button variant="primary" icon={ReceiptText} onClick={submit} disabled={!chosen.length}>
-            In Rechnung übernehmen
+            {t('In Rechnung übernehmen')}
           </Button>
         </>
       }
     >
       {data.entries.length === 0 ? (
-        <EmptyState icon={Clock} title="Alles abgerechnet" compact>
-          Für diesen Kunden gibt es keine offenen, abrechenbaren Zeiten.
+        <EmptyState icon={Clock} title={t('Alles abgerechnet')} compact>
+          {t('Für diesen Kunden gibt es keine offenen, abrechenbaren Zeiten.')}
         </EmptyState>
       ) : (
         <div className="stack">
           <div className="row wrap between">
             <Segmented
-              label="Positionen"
+              label={t('Positionen')}
               value={grouping}
               onChange={setGrouping}
               options={[
-                { value: 'entry', label: 'Je Eintrag' },
-                { value: 'day', label: 'Je Tag' },
-                { value: 'project', label: 'Je Projekt' },
+                { value: 'entry', label: t('Je Eintrag') },
+                { value: 'day', label: t('Je Tag') },
+                { value: 'project', label: t('Je Projekt') },
               ]}
             />
             {data.drafts.length > 0 && (
-              <select className="select" style={{ width: 'auto' }} value={target} onChange={(e) => setTarget(e.target.value)} aria-label="Ziel">
-                <option value="new">Neue Rechnung</option>
+              <select className="select" style={{ width: 'auto' }} value={target} onChange={(e) => setTarget(e.target.value)} aria-label={t('Ziel')}>
+                <option value="new">{t('Neue Rechnung')}</option>
                 {data.drafts.map((d) => (
                   <option key={d.id} value={d.id}>
-                    Zu Entwurf vom {formatDate(d.issueDate)} hinzufügen
+                    {t('Zu Entwurf vom')} {formatDate(d.issueDate)} {t('hinzufügen')}
                   </option>
                 ))}
               </select>
@@ -487,9 +488,9 @@ export function BillTimeDialog({ customerId, open, onClose }: { customerId: stri
                   className="checkbox"
                   checked={selected.size === data.entries.length}
                   onChange={(e) => setSelected(e.target.checked ? new Set(data.entries.map((x) => x.id)) : new Set())}
-                  aria-label="Alle auswählen"
+                  aria-label={t('Alle auswählen')}
                 />
-                <span className="grow small muted">Alle auswählen</span>
+                <span className="grow small muted">{t('Alle auswählen')}</span>
               </li>
               {data.entries.map((e) => {
                 const m = billableMinutes(e, settings.timeRounding)

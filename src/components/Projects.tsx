@@ -1,3 +1,4 @@
+import { t } from '../lib/i18n'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { AlertTriangle, Archive, ArchiveRestore, FolderKanban, Pencil, Plus } from 'lucide-react'
 import { useState } from 'react'
@@ -16,16 +17,16 @@ const STATE_COLOR = { none: 'var(--accent)', ok: 'var(--accent)', warning: 'var(
 export function BudgetBar({ usage, project }: { usage: ProjectUsage; project: Project }) {
   if (usage.state === 'none') return null
   const parts = [
-    project.budgetMinutes ? `${formatDuration(usage.minutes)} von ${formatNumber(project.budgetMinutes / 60, 1)} h` : '',
-    project.budgetCents ? `${formatMoney(usage.cents)} von ${formatMoney(project.budgetCents)}` : '',
+    project.budgetMinutes ? t('{p0} von {p1} h', { p0: formatDuration(usage.minutes), p1: formatNumber(project.budgetMinutes / 60, 1) }) : '',
+    project.budgetCents ? t('{p0} von {p1}', { p0: formatMoney(usage.cents), p1: formatMoney(project.budgetCents) }) : '',
   ].filter(Boolean)
   return (
     <div className="stack-sm" style={{ gap: 4 }}>
-      <div className="progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(usage.ratio * 100)} aria-label={`Budget ${project.name}`}>
+      <div className="progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(usage.ratio * 100)} aria-label={t('Budget {p0}', { p0: project.name })}>
         <span style={{ width: `${Math.min(100, usage.ratio * 100)}%`, background: STATE_COLOR[usage.state] }} />
       </div>
       <span className="sub" style={{ color: usage.state === 'over' ? 'var(--red)' : usage.state === 'warning' ? 'var(--orange)' : undefined }}>
-        {parts.join(' · ')} · {Math.round(usage.ratio * 100)} %{usage.state === 'over' ? ' – Budget überschritten' : usage.state === 'warning' ? ' – bald ausgeschöpft' : ''}
+        {parts.join(' · ')} · {Math.round(usage.ratio * 100)} %{usage.state === 'over' ? t(' – Budget überschritten') : usage.state === 'warning' ? t(' – bald ausgeschöpft') : ''}
       </span>
     </div>
   )
@@ -52,8 +53,8 @@ export function ProjectsPanel({ customers, showCustomer }: { customers: Customer
   return (
     <>
       {rows.length === 0 ? (
-        <EmptyState icon={FolderKanban} title="Noch keine Projekte" compact action={customers.length === 1 ? <Button icon={Plus} onClick={() => setEditing(emptyProject(customers[0].id))}>Projekt anlegen</Button> : undefined}>
-          Projekte entstehen automatisch, sobald du bei einer Zeit ein Projekt einträgst. Hinterlege ein Stunden- oder Euro-Budget, um den Verbrauch zu sehen.
+        <EmptyState icon={FolderKanban} title={t('Noch keine Projekte')} compact action={customers.length === 1 ? <Button icon={Plus} onClick={() => setEditing(emptyProject(customers[0].id))}>{t('Projekt anlegen')}</Button> : undefined}>
+          {t('Projekte entstehen automatisch, sobald du bei einer Zeit ein Projekt einträgst. Hinterlege ein Stunden- oder Euro-Budget, um den Verbrauch zu sehen.')}
         </EmptyState>
       ) : (
         <ul className="list">
@@ -70,7 +71,7 @@ export function ProjectsPanel({ customers, showCustomer }: { customers: Customer
                   <div>
                     <div className="title">
                       {p.name}
-                      {p.archived && <span className="badge" style={{ marginLeft: 8 }}>Archiviert</span>}
+                      {p.archived && <span className="badge" style={{ marginLeft: 8 }}>{t('Archiviert')}</span>}
                     </div>
                     <div className="sub">
                       {[showCustomer && c ? customerName(c) : '', `${formatDuration(usage.minutes)} erfasst`, usage.cents ? `${formatMoney(usage.cents)} Wert` : '', usage.state === 'none' ? 'kein Budget' : ''].filter(Boolean).join(' · ')}
@@ -78,11 +79,11 @@ export function ProjectsPanel({ customers, showCustomer }: { customers: Customer
                   </div>
                   <BudgetBar usage={usage} project={p} />
                 </div>
-                <IconButton icon={Pencil} label="Bearbeiten" onClick={() => setEditing(p)} />
+                <IconButton icon={Pencil} label={t('Bearbeiten')} onClick={() => setEditing(p)} />
                 <IconButton
                   icon={p.archived ? ArchiveRestore : Archive}
-                  label={p.archived ? 'Wiederherstellen' : 'Archivieren'}
-                  onClick={() => run(() => db.projects.update(p.id, { archived: !p.archived, updatedAt: now() }), p.archived ? 'Projekt aktiv' : 'Projekt archiviert')}
+                  label={p.archived ? t('Wiederherstellen') : t('Archivieren')}
+                  onClick={() => run(() => db.projects.update(p.id, { archived: !p.archived, updatedAt: now() }), p.archived ? t('Projekt aktiv') : t('Projekt archiviert'))}
                 />
               </li>
             )
@@ -92,12 +93,12 @@ export function ProjectsPanel({ customers, showCustomer }: { customers: Customer
       {((customers.length === 1 && rows.length > 0) || data.projects.some((p) => p.archived)) && <div className="card-body row wrap">
         {customers.length === 1 && rows.length > 0 && (
           <Button size="sm" icon={Plus} onClick={() => setEditing(emptyProject(customers[0].id))}>
-            Projekt anlegen
+            {t('Projekt anlegen')}
           </Button>
         )}
         {data.projects.some((p) => p.archived) && (
           <Button size="sm" variant="ghost" onClick={() => setShowArchived(!showArchived)}>
-            {showArchived ? 'Archivierte ausblenden' : 'Archivierte zeigen'}
+            {showArchived ? t('Archivierte ausblenden') : t('Archivierte zeigen')}
           </Button>
         )}
       </div>}
@@ -116,20 +117,20 @@ export function ProjectDialog({ project, onClose }: { project: Project | null; o
   }
   if (!draft) return null
   const save = async () => {
-    const saved = await run(() => saveProject(draft), 'Projekt gespeichert')
+    const saved = await run(() => saveProject(draft), t('Projekt gespeichert'))
     if (saved) onClose()
   }
   return (
     <Dialog
       open={!!project}
       onClose={onClose}
-      title={project?.name ? 'Projekt bearbeiten' : 'Neues Projekt'}
-      description="Ab 80 % des Budgets warnt Kontor in der Zeiterfassung und in der Übersicht."
+      title={project?.name ? t('Projekt bearbeiten') : t('Neues Projekt')}
+      description={t('Ab 80 % des Budgets warnt Kontor in der Zeiterfassung und in der Übersicht.')}
       footer={
         <>
-          <Button onClick={onClose}>Abbrechen</Button>
+          <Button onClick={onClose}>{t('Abbrechen')}</Button>
           <Button variant="primary" onClick={save}>
-            Speichern
+            {t('Speichern')}
           </Button>
         </>
       }
@@ -141,12 +142,12 @@ export function ProjectDialog({ project, onClose }: { project: Project | null; o
           void save()
         }}
       >
-        <TextField className="span-6" label="Name" value={draft.name} onChange={(name) => setDraft({ ...draft, name })} autoFocus hint="Eine Umbenennung gilt auch für alle bisherigen Zeiten." />
-        <Field className="span-3" label="Stundenbudget" hint="leer = ohne">
-          <NumberInput value={draft.budgetMinutes ? draft.budgetMinutes / 60 : 0} onChange={(h) => setDraft({ ...draft, budgetMinutes: h > 0 ? Math.round(h * 60) : null })} suffix="h" maxFraction={2} aria-label="Stundenbudget" />
+        <TextField className="span-6" label={t('Name')} value={draft.name} onChange={(name) => setDraft({ ...draft, name })} autoFocus hint={t('Eine Umbenennung gilt auch für alle bisherigen Zeiten.')} />
+        <Field className="span-3" label={t('Stundenbudget')} hint={t('leer = ohne')}>
+          <NumberInput value={draft.budgetMinutes ? draft.budgetMinutes / 60 : 0} onChange={(h) => setDraft({ ...draft, budgetMinutes: h > 0 ? Math.round(h * 60) : null })} suffix="h" maxFraction={2} aria-label={t('Stundenbudget')} />
         </Field>
-        <Field className="span-3" label="Budget netto" hint="leer = ohne">
-          <MoneyInput value={draft.budgetCents} onChange={(budgetCents) => setDraft({ ...draft, budgetCents: budgetCents && budgetCents > 0 ? budgetCents : null })} allowEmpty aria-label="Budget netto" />
+        <Field className="span-3" label={t('Budget netto')} hint={t('leer = ohne')}>
+          <MoneyInput value={draft.budgetCents} onChange={(budgetCents) => setDraft({ ...draft, budgetCents: budgetCents && budgetCents > 0 ? budgetCents : null })} allowEmpty aria-label={t('Budget netto')} />
         </Field>
         <button type="submit" hidden />
       </form>

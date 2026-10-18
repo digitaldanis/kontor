@@ -1,3 +1,4 @@
+import { t } from '../lib/i18n'
 import { AlertTriangle, CheckCircle2 } from 'lucide-react'
 import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from 'react'
 import { Button, Dialog } from './ui'
@@ -51,13 +52,13 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
   const undoable = useCallback(
     (message: string, undo: () => Promise<unknown>) => {
       toast(message, 'default', {
-        label: 'Rückgängig',
+        label: t('Rückgängig'),
         onClick: async () => {
           try {
             await undo()
-            toast('Wiederhergestellt')
+            toast(t('Wiederhergestellt'))
           } catch (e) {
-            toast(e instanceof Error ? e.message : 'Konnte nicht wiederhergestellt werden', 'error')
+            toast(e instanceof Error ? e.message : t('Konnte nicht wiederhergestellt werden'), 'error')
           }
         },
       })
@@ -85,7 +86,7 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
         if (success) toast(success)
         return result
       } catch (e) {
-        toast(e instanceof Error ? e.message : 'Unbekannter Fehler', 'error')
+        toast(e instanceof Error ? t(e.message) : t('Unbekannter Fehler'), 'error')
         return undefined
       }
     },
@@ -122,9 +123,9 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
         description={pending?.message}
         footer={
           <>
-            <Button onClick={() => close(false)}>Abbrechen</Button>
+            <Button onClick={() => close(false)}>{t('Abbrechen')}</Button>
             <Button variant={pending?.danger ? 'danger' : 'primary'} onClick={() => close(true)}>
-              {pending?.confirmLabel ?? 'Bestätigen'}
+              {pending?.confirmLabel ?? t('Bestätigen')}
             </Button>
           </>
         }

@@ -1,3 +1,4 @@
+import { t, uiLocale } from '../lib/i18n'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { AlertTriangle, CheckCircle2, Circle, Clock, FilePlus, FileText, ReceiptText, Repeat, TrendingUp, UserPlus } from 'lucide-react'
 import { useState } from 'react'
@@ -17,14 +18,14 @@ import { NewDocumentDialog } from './Documents'
 
 function greeting() {
   const h = new Date().getHours()
-  if (h < 5) return 'Gute Nacht'
-  if (h < 11) return 'Guten Morgen'
-  if (h < 18) return 'Guten Tag'
-  return 'Guten Abend'
+  if (h < 5) return t('Gute Nacht')
+  if (h < 11) return t('Guten Morgen')
+  if (h < 18) return t('Guten Tag')
+  return t('Guten Abend')
 }
 
 export function Dashboard() {
-  useDocumentTitle('Übersicht')
+  useDocumentTitle(t('Übersicht'))
   const settings = useSettings()
   const navigate = useNavigate()
   const [creating, setCreating] = useState(false)
@@ -56,8 +57,8 @@ export function Dashboard() {
     const value = revenueDocs.filter((x) => x.issueDate.startsWith(key)).reduce((s, x) => s + netOf(x), 0)
     return {
       key,
-      label: d.toLocaleDateString('de-DE', { month: 'short' }).replace('.', ''),
-      hint: d.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' }),
+      label: d.toLocaleDateString(uiLocale(), { month: 'short' }).replace('.', ''),
+      hint: d.toLocaleDateString(uiLocale(), { month: 'long', year: 'numeric' }),
       value: Math.max(0, value),
       display: formatMoney(value),
       current: key === month,
@@ -74,11 +75,11 @@ export function Dashboard() {
 
   const company = settings.company
   const setup = [
-    { done: !!(company.name && company.street && (company.taxNumber || company.vatId)), label: 'Firmendaten eintragen', to: '/einstellungen' },
-    { done: !!company.iban, label: 'Bankverbindung hinterlegen', to: '/einstellungen' },
-    { done: !!settings.logo, label: 'Logo hochladen', to: '/einstellungen' },
-    { done: customers.length > 0, label: 'Ersten Kunden anlegen', to: '/kunden' },
-    { done: docs.some((d) => d.status !== 'draft'), label: 'Erste Rechnung abschließen', to: '/rechnungen' },
+    { done: !!(company.name && company.street && (company.taxNumber || company.vatId)), label: t('Firmendaten eintragen'), to: '/einstellungen' },
+    { done: !!company.iban, label: t('Bankverbindung hinterlegen'), to: '/einstellungen' },
+    { done: !!settings.logo, label: t('Logo hochladen'), to: '/einstellungen' },
+    { done: customers.length > 0, label: t('Ersten Kunden anlegen'), to: '/kunden' },
+    { done: docs.some((d) => d.status !== 'draft'), label: t('Erste Rechnung abschließen'), to: '/rechnungen' },
   ]
   const setupOpen = setup.filter((s) => !s.done).length
   const firstName = (company.owner || '').split(' ')[0]
@@ -88,7 +89,7 @@ export function Dashboard() {
       <header className="page-header">
         <div>
           <p className="muted small" style={{ fontWeight: 550 }}>
-            {now.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' })}
+            {now.toLocaleDateString(uiLocale(), { weekday: 'long', day: 'numeric', month: 'long' })}
           </p>
           <h1>
             {greeting()}
@@ -97,51 +98,51 @@ export function Dashboard() {
         </div>
         <div className="actions">
           <Button icon={UserPlus} onClick={() => navigate('/kunden')}>
-            Kunde
+            {t('Kunde')}
           </Button>
           <Button variant="primary" icon={FilePlus} onClick={() => setCreating(true)}>
-            Neue Rechnung
+            {t('Neue Rechnung')}
           </Button>
         </div>
       </header>
 
       <div className="grid grid-4" style={{ marginBottom: 20 }}>
-        <Stat label="Umsatz diesen Monat" value={formatMoney(monthRevenue)} sub="netto, nach Rechnungsdatum" icon={TrendingUp} tone="green" />
-        <Stat label={`Umsatz ${year}`} value={formatMoney(yearRevenue)} sub={`${revenueDocs.filter((d) => d.issueDate.startsWith(year) && d.kind === 'invoice').length} Rechnungen`} icon={ReceiptText} tone="blue" />
+        <Stat label={t('Umsatz diesen Monat')} value={formatMoney(monthRevenue)} sub={t('netto, nach Rechnungsdatum')} icon={TrendingUp} tone="green" />
+        <Stat label={t('Umsatz {p0}', { p0: year })} value={formatMoney(yearRevenue)} sub={t('{p0} Rechnungen', { p0: revenueDocs.filter((d) => d.issueDate.startsWith(year) && d.kind === 'invoice').length })} icon={ReceiptText} tone="blue" />
         <Stat
-          label="Offene Rechnungen"
+          label={t('Offene Rechnungen')}
           value={formatMoney(outstanding.reduce((s, d) => s + amountDue(d), 0))}
-          sub={overdue.length ? `${overdue.length} überfällig · ${formatMoney(overdue.reduce((s, d) => s + amountDue(d), 0))}` : `${outstanding.length} offen, keine überfällig`}
+          sub={overdue.length ? t('{p0} überfällig · {p1}', { p0: overdue.length, p1: formatMoney(overdue.reduce((s, d) => s + amountDue(d), 0)) }) : t('{p0} offen, keine überfällig', { p0: outstanding.length })}
           icon={overdue.length ? AlertTriangle : FileText}
           tone={overdue.length ? 'red' : 'orange'}
         />
-        <Stat label="Stunden diese Woche" value={formatDuration(weekMinutes)} sub={`${formatDuration(monthMinutes)} im Monat · ${formatDuration(unbilledMinutes)} offen`} icon={Clock} tone="purple" />
+        <Stat label={t('Stunden diese Woche')} value={formatDuration(weekMinutes)} sub={t('{p0} im Monat · {p1} offen', { p0: formatDuration(monthMinutes), p1: formatDuration(unbilledMinutes) })} icon={Clock} tone="purple" />
       </div>
 
       <div className="dashboard-grid">
         <div className="stack">
           <section className="card">
             <div className="card-header">
-              <h2>Umsatz der letzten 12 Monate</h2>
+              <h2>{t('Umsatz der letzten 12 Monate')}</h2>
               <Link to="/berichte" className="small">
-                Berichte
+                {t('Berichte')}
               </Link>
             </div>
             <div className="card-body">
-              <BarChart bars={months} label="Nettoumsatz pro Monat" />
+              <BarChart bars={months} label={t('Nettoumsatz pro Monat')} />
             </div>
           </section>
 
           <section className="card">
             <div className="card-header">
-              <h2>Offene Rechnungen</h2>
+              <h2>{t('Offene Rechnungen')}</h2>
               <Link to="/rechnungen?status=open" className="small">
-                Alle anzeigen
+                {t('Alle anzeigen')}
               </Link>
             </div>
             {attention.length === 0 ? (
               <div className="card-body row muted">
-                <CheckCircle2 size={18} color="var(--green)" aria-hidden /> Keine offenen Rechnungen – alles bezahlt.
+                <CheckCircle2 size={18} color="var(--green)" aria-hidden /> {t('Keine offenen Rechnungen – alles bezahlt.')}
               </div>
             ) : (
               <ul className="list" style={{ marginTop: 8 }}>
@@ -151,7 +152,7 @@ export function Dashboard() {
                       <div className="grow">
                         <div className="title">{recipientName(d.recipient)}</div>
                         <div className="sub">
-                          {d.number} · fällig {formatDate(d.dueDate)}
+                          {d.number} {t('· fällig')} {formatDate(d.dueDate)}
                         </div>
                       </div>
                       <StatusBadge doc={d} />
@@ -166,7 +167,7 @@ export function Dashboard() {
           {drafts.length > 0 && (
             <section className="card">
               <div className="card-header">
-                <h2>Entwürfe</h2>
+                <h2>{t('Entwürfe')}</h2>
               </div>
               <ul className="list" style={{ marginTop: 8 }}>
                 {drafts.slice(0, 4).map((d) => (
@@ -175,7 +176,7 @@ export function Dashboard() {
                       <div className="grow">
                         <div className="title">{recipientName(d.recipient)}</div>
                         <div className="sub">
-                          {d.kind === 'quote' ? 'Angebot' : 'Rechnung'} · {d.items.length} {d.items.length === 1 ? 'Position' : 'Positionen'}
+                          {d.kind === 'quote' ? t('Angebot') : t('Rechnung')} · {d.items.length} {d.items.length === 1 ? t('Position') : t('Positionen')}
                         </div>
                       </div>
                       <strong className="tabular">{formatMoney(grossOf(d), d.currency)}</strong>
@@ -190,9 +191,9 @@ export function Dashboard() {
         <div className="stack">
           {setupOpen > 0 && (
             <section className="card card-pad">
-              <h2 style={{ marginBottom: 4 }}>Erste Schritte</h2>
+              <h2 style={{ marginBottom: 4 }}>{t('Erste Schritte')}</h2>
               <p className="small muted" style={{ marginBottom: 12 }}>
-                Noch {setupOpen} von {setup.length} offen
+                {t('Noch')} {setupOpen} {t('von')} {setup.length} {t('offen')}
               </p>
               <div className="progress" style={{ marginBottom: 12 }}>
                 <span style={{ width: `${((setup.length - setupOpen) / setup.length) * 100}%` }} />
@@ -213,9 +214,9 @@ export function Dashboard() {
           {!!warnings?.length && (
             <section className="card">
               <div className="card-header">
-                <h2>Budgets</h2>
+                <h2>{t('Budgets')}</h2>
                 <Link to="/zeit" className="small">
-                  Projekte
+                  {t('Projekte')}
                 </Link>
               </div>
               <ul className="list" style={{ marginTop: 8 }}>
@@ -235,9 +236,9 @@ export function Dashboard() {
           {(recurringDrafts.length > 0 || upcoming.length > 0) && (
             <section className="card">
               <div className="card-header">
-                <h2>Serienrechnungen</h2>
+                <h2>{t('Serienrechnungen')}</h2>
                 <Link to="/rechnungen?art=serien" className="small">
-                  Alle Serien
+                  {t('Alle Serien')}
                 </Link>
               </div>
               <ul className="list" style={{ marginTop: 8 }}>
@@ -247,7 +248,7 @@ export function Dashboard() {
                       <Repeat size={17} color="var(--accent)" aria-hidden />
                       <div className="grow">
                         <div className="title">{recipientName(d.recipient)}</div>
-                        <div className="sub">Entwurf bereit · {formatDate(d.serviceFrom)}</div>
+                        <div className="sub">{t('Entwurf bereit ·')} {formatDate(d.serviceFrom)}</div>
                       </div>
                       <strong className="tabular">{formatMoney(grossOf(d), d.currency)}</strong>
                     </Link>
@@ -258,7 +259,7 @@ export function Dashboard() {
                     <Repeat size={17} className="faint" aria-hidden />
                     <div className="grow">
                       <div className="title">{r.name}</div>
-                      <div className="sub">nächster Entwurf am {formatDate(r.nextRun)}</div>
+                      <div className="sub">{t('nächster Entwurf am')} {formatDate(r.nextRun)}</div>
                     </div>
                   </li>
                 ))}
@@ -270,13 +271,13 @@ export function Dashboard() {
 
           <section className="card">
             <div className="card-header">
-              <h2>Zuletzt erfasst</h2>
+              <h2>{t('Zuletzt erfasst')}</h2>
               <Link to="/zeit" className="small">
-                Zeiterfassung
+                {t('Zeiterfassung')}
               </Link>
             </div>
             {recent.length === 0 ? (
-              <p className="card-body muted small">Noch keine Zeiten erfasst.</p>
+              <p className="card-body muted small">{t('Noch keine Zeiten erfasst.')}</p>
             ) : (
               <ul className="list" style={{ marginTop: 8 }}>
                 {recent.map((e) => {

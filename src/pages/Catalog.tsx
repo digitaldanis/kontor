@@ -1,3 +1,4 @@
+import { t } from '../lib/i18n'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Package, Plus, Search, Trash2 } from 'lucide-react'
 import { useState } from 'react'
@@ -11,7 +12,7 @@ import { formatMoney, formatNumber } from '../lib/money'
 import type { CatalogItem } from '../lib/types'
 
 export function Catalog() {
-  useDocumentTitle('Leistungen')
+  useDocumentTitle(t('Leistungen'))
   const settings = useSettings()
   const { run, undoable } = useFeedback()
   const items = useLiveQuery(() => db.catalog.toArray(), [])
@@ -23,47 +24,47 @@ export function Catalog() {
 
   const remove = async (i: CatalogItem) => {
     await run(() => deleteCatalogItem(i.id))
-    undoable(`„${i.name}“ gelöscht`, () => db.catalog.put(i))
+    undoable(t('„{p0}“ gelöscht', { p0: i.name }), () => db.catalog.put(i))
   }
 
   return (
     <div className="page">
       <PageHeader
-        title="Leistungen"
-        subtitle="Dein Katalog für wiederkehrende Positionen – im Rechnungseditor per Suche einfügen."
+        title={t('Leistungen')}
+        subtitle={t('Dein Katalog für wiederkehrende Positionen – im Rechnungseditor per Suche einfügen.')}
         actions={
           <Button variant="primary" icon={Plus} onClick={create}>
-            Neue Leistung
+            {t('Neue Leistung')}
           </Button>
         }
       />
       {items && items.length > 0 && (
         <div className="toolbar">
           <label className="search">
-            <span className="sr-only">Leistungen durchsuchen</span>
+            <span className="sr-only">{t('Leistungen durchsuchen')}</span>
             <Search size={16} aria-hidden />
-            <input className="input" type="search" placeholder="Name oder Beschreibung …" value={q} onChange={(e) => setQ(e.target.value)} />
+            <input className="input" type="search" placeholder={t('Name oder Beschreibung …')} value={q} onChange={(e) => setQ(e.target.value)} />
           </label>
         </div>
       )}
       <div className="card">
         {items && items.length === 0 ? (
-          <EmptyState icon={Package} title="Noch keine Leistungen" action={<Button variant="primary" icon={Plus} onClick={create}>Erste Leistung anlegen</Button>}>
-            Lege Leistungen wie „Webdesign“, „Wartungspauschale“ oder „Fahrtkosten“ einmal mit Preis, Einheit und Steuersatz an.
+          <EmptyState icon={Package} title={t('Noch keine Leistungen')} action={<Button variant="primary" icon={Plus} onClick={create}>{t('Erste Leistung anlegen')}</Button>}>
+            {t('Lege Leistungen wie „Webdesign“, „Wartungspauschale“ oder „Fahrtkosten“ einmal mit Preis, Einheit und Steuersatz an.')}
           </EmptyState>
         ) : list.length === 0 && items ? (
-          <EmptyState icon={Search} title="Keine Treffer" compact>
-            Für „{q}“ wurde keine Leistung gefunden.
+          <EmptyState icon={Search} title={t('Keine Treffer')} compact>
+            {t('Für „{q}“ wurde keine Leistung gefunden.', { q })}
           </EmptyState>
         ) : (
           <div className="table-wrap">
             <table className="table responsive">
               <thead>
                 <tr>
-                  <th>Leistung</th>
-                  <th className="hide-sm">Einheit</th>
-                  <th className="num hide-sm">USt</th>
-                  <th className="num">Preis netto</th>
+                  <th>{t('Leistung')}</th>
+                  <th className="hide-sm">{t('Einheit')}</th>
+                  <th className="num hide-sm">{t('USt')}</th>
+                  <th className="num">{t('Preis netto')}</th>
                   <th />
                 </tr>
               </thead>
@@ -82,7 +83,7 @@ export function Catalog() {
                       <strong>{formatMoney(i.priceCents)}</strong>
                     </td>
                     <td className="num" onClick={(e) => e.stopPropagation()}>
-                      <IconButton icon={Trash2} label="Löschen" danger onClick={() => remove(i)} />
+                      <IconButton icon={Trash2} label={t('Löschen')} danger onClick={() => remove(i)} />
                     </td>
                   </tr>
                 ))}
@@ -95,7 +96,7 @@ export function Catalog() {
         item={editing}
         onClose={() => setEditing(null)}
         onSave={async (i) => {
-          const saved = await run(() => saveCatalogItem(i), 'Leistung gespeichert')
+          const saved = await run(() => saveCatalogItem(i), t('Leistung gespeichert'))
           if (saved) setEditing(null)
         }}
       />

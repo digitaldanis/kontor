@@ -1,3 +1,4 @@
+import { t } from '../lib/i18n'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Archive, ArchiveRestore, ChevronLeft, Clock, FilePlus, FileText, Mail, MapPin, Pencil, Phone, Play, ReceiptText, Trash2 } from 'lucide-react'
 import { useState } from 'react'
@@ -39,7 +40,7 @@ export function CustomerDetail() {
     docs.sort((a, b) => (b.issueDate + b.createdAt).localeCompare(a.issueDate + a.createdAt))
     return { customer, docs, entries }
   }, [id])
-  useDocumentTitle(data?.customer ? customerName(data.customer) : 'Kunde')
+  useDocumentTitle(data?.customer ? customerName(data.customer) : t('Kunde'))
 
   if (!data || !settings) return <div className="page" />
   const { customer, docs, entries } = data
@@ -61,16 +62,16 @@ export function CustomerDetail() {
 
   const remove = async () => {
     const ok = await confirm({
-      title: `${name} löschen?`,
-      message: 'Kunden mit abgeschlossenen Rechnungen oder abgerechneten Zeiten werden nur archiviert, damit die Buchhaltung vollständig bleibt. Ansonsten werden der Kunde, seine Entwürfe und offenen Zeiten gelöscht.',
-      confirmLabel: 'Löschen',
+      title: t('{p0} löschen?', { p0: name }),
+      message: t('Kunden mit abgeschlossenen Rechnungen oder abgerechneten Zeiten werden nur archiviert, damit die Buchhaltung vollständig bleibt. Ansonsten werden der Kunde, seine Entwürfe und offenen Zeiten gelöscht.'),
+      confirmLabel: t('Löschen'),
       danger: true,
     })
     if (!ok) return
     const result = await run(() => deleteCustomer(id))
-    if (result === 'archived') toast('Kunde archiviert')
+    if (result === 'archived') toast(t('Kunde archiviert'))
     if (result === 'deleted') {
-      toast('Kunde gelöscht')
+      toast(t('Kunde gelöscht'))
       navigate('/kunden')
     }
   }
@@ -80,7 +81,7 @@ export function CustomerDetail() {
       <PageHeader
         back={
           <Link to="/kunden" className="back-link">
-            <ChevronLeft size={16} aria-hidden /> Kunden
+            <ChevronLeft size={16} aria-hidden /> {t('Kunden')}
           </Link>
         }
         title={
@@ -92,61 +93,61 @@ export function CustomerDetail() {
         subtitle={
           <>
             {customer.number}
-            {customer.archived && <span className="badge" style={{ marginLeft: 8 }}>Archiviert</span>}
+            {customer.archived && <span className="badge" style={{ marginLeft: 8 }}>{t('Archiviert')}</span>}
           </>
         }
         actions={
           <>
             <Button icon={Pencil} onClick={() => setEditing(true)}>
-              Bearbeiten
+              {t('Bearbeiten')}
             </Button>
             {!timer && !customer.archived && (
-              <Button icon={Play} onClick={() => run(() => startTimer({ customerId: id, project: '', description: '', billable: true }), 'Stoppuhr läuft')}>
-                Stoppuhr
+              <Button icon={Play} onClick={() => run(() => startTimer({ customerId: id, project: '', description: '', billable: true }), t('Stoppuhr läuft'))}>
+                {t('Stoppuhr')}
               </Button>
             )}
             <Button variant="primary" icon={FilePlus} onClick={newInvoice}>
-              Neue Rechnung
+              {t('Neue Rechnung')}
             </Button>
           </>
         }
       />
 
       <div className="grid grid-4" style={{ marginBottom: 20 }}>
-        <Stat label="Offen" value={formatMoney(open)} sub={overdue.length ? `${overdue.length} überfällig` : 'nichts überfällig'} icon={FileText} tone={overdue.length ? 'red' : 'blue'} />
-        <Stat label="Umsatz netto" value={formatMoney(revenue)} sub={`${docs.filter(countsAsRevenue).length} Rechnungen`} icon={ReceiptText} tone="green" />
-        <Stat label="Nicht abgerechnet" value={formatDuration(unbilledMinutes)} sub={formatMoney(unbilledAmount) + ' netto'} icon={Clock} tone="orange" />
-        <Stat label="Stundensatz" value={formatMoney(rate)} sub={customer.hourlyRateCents == null ? 'Standardsatz' : 'kundenspezifisch'} icon={Clock} tone="purple" />
+        <Stat label={t('Offen')} value={formatMoney(open)} sub={overdue.length ? t('{p0} überfällig', { p0: overdue.length }) : t('nichts überfällig')} icon={FileText} tone={overdue.length ? 'red' : 'blue'} />
+        <Stat label={t('Umsatz netto')} value={formatMoney(revenue)} sub={t('{p0} Rechnungen', { p0: docs.filter(countsAsRevenue).length })} icon={ReceiptText} tone="green" />
+        <Stat label={t('Nicht abgerechnet')} value={formatDuration(unbilledMinutes)} sub={t('{p0} netto', { p0: formatMoney(unbilledAmount) })} icon={Clock} tone="orange" />
+        <Stat label={t('Stundensatz')} value={formatMoney(rate)} sub={customer.hourlyRateCents == null ? t('Standardsatz') : t('kundenspezifisch')} icon={Clock} tone="purple" />
       </div>
 
       {unbilled.length > 0 && (
         <div className="callout info" style={{ marginBottom: 20, alignItems: 'center' }}>
           <Clock size={18} aria-hidden />
           <span className="grow" style={{ flex: 1 }}>
-            <strong>{formatDuration(unbilledMinutes)}</strong> noch nicht abgerechnet ({unbilled.length} Einträge, {formatMoney(unbilledAmount)} netto).
+            <strong>{formatDuration(unbilledMinutes)}</strong> {t('noch nicht abgerechnet (')}{unbilled.length} {t('Einträge,')} {formatMoney(unbilledAmount)} {t('netto).')}
           </span>
           <Button size="sm" variant="primary" icon={ReceiptText} onClick={() => setBilling(true)}>
-            Jetzt abrechnen
+            {t('Jetzt abrechnen')}
           </Button>
         </div>
       )}
 
       <div className="toolbar">
         <Segmented
-          label="Ansicht"
+          label={t('Ansicht')}
           value={tab}
           onChange={setTab}
           options={[
-            { value: 'invoices', label: `Rechnungen (${docs.length})` },
-            { value: 'time', label: `Zeiten (${entries.length})` },
-            { value: 'projects', label: 'Projekte' },
-            { value: 'details', label: 'Stammdaten' },
+            { value: 'invoices', label: t('Rechnungen ({p0})', { p0: docs.length }) },
+            { value: 'time', label: t('Zeiten ({p0})', { p0: entries.length }) },
+            { value: 'projects', label: t('Projekte') },
+            { value: 'details', label: t('Stammdaten') },
           ]}
         />
         <span className="spacer" />
         {tab === 'time' && !customer.archived && (
           <Button size="sm" icon={Clock} onClick={() => setEntry(emptyEntry(id))}>
-            Zeit nachtragen
+            {t('Zeit nachtragen')}
           </Button>
         )}
       </div>
@@ -156,8 +157,8 @@ export function CustomerDetail() {
           {docs.length ? (
             <DocumentsTable docs={docs} showCustomer={false} />
           ) : (
-            <EmptyState icon={FileText} title="Noch keine Rechnungen" compact action={<Button variant="primary" icon={FilePlus} onClick={newInvoice}>Rechnung erstellen</Button>}>
-              Die Anschrift von {name} wird automatisch übernommen.
+            <EmptyState icon={FileText} title={t('Noch keine Rechnungen')} compact action={<Button variant="primary" icon={FilePlus} onClick={newInvoice}>{t('Rechnung erstellen')}</Button>}>
+              {t('Die Anschrift von')} {name} {t('wird automatisch übernommen.')}
             </EmptyState>
           )}
         </div>
@@ -168,8 +169,8 @@ export function CustomerDetail() {
           {entries.length ? (
             <TimeEntryList entries={entries} customers={[customer]} onEdit={setEntry} showCustomer={false} />
           ) : (
-            <EmptyState icon={Clock} title="Noch keine Zeiten" compact>
-              Starte die Stoppuhr oder trage Zeiten nach – sie lassen sich später direkt in eine Rechnung übernehmen.
+            <EmptyState icon={Clock} title={t('Noch keine Zeiten')} compact>
+              {t('Starte die Stoppuhr oder trage Zeiten nach – sie lassen sich später direkt in eine Rechnung übernehmen.')}
             </EmptyState>
           )}
         </div>
@@ -184,7 +185,7 @@ export function CustomerDetail() {
       {tab === 'details' && (
         <div className="grid grid-2">
           <div className="card card-pad stack-sm">
-            <h3>Kontakt</h3>
+            <h3>{t('Kontakt')}</h3>
             <div className="row" style={{ alignItems: 'flex-start' }}>
               <MapPin size={17} className="faint" aria-hidden style={{ marginTop: 3 }} />
               <div>
@@ -209,24 +210,24 @@ export function CustomerDetail() {
             )}
           </div>
           <div className="card card-pad stack-sm">
-            <h3>Abrechnung</h3>
+            <h3>{t('Abrechnung')}</h3>
             <dl className="details-list">
-              <dt>USt-IdNr.</dt>
+              <dt>{t('USt-IdNr.')}</dt>
               <dd>{customer.vatId || '–'}</dd>
-              <dt>Zahlungsziel</dt>
-              <dd>{customer.paymentTermDays ?? settings.defaults.paymentTermDays} Tage</dd>
-              <dt>Stundensatz</dt>
+              <dt>{t('Zahlungsziel')}</dt>
+              <dd>{customer.paymentTermDays ?? settings.defaults.paymentTermDays} {t('Tage')}</dd>
+              <dt>{t('Stundensatz')}</dt>
               <dd>{formatMoney(rate)}</dd>
               {customer.leitwegId && (
                 <>
-                  <dt>Leitweg-ID</dt>
+                  <dt>{t('Leitweg-ID')}</dt>
                   <dd>{customer.leitwegId}</dd>
                 </>
               )}
             </dl>
             {customer.notes && (
               <>
-                <h3 style={{ marginTop: 12 }}>Notizen</h3>
+                <h3 style={{ marginTop: 12 }}>{t('Notizen')}</h3>
                 <p className="muted" style={{ whiteSpace: 'pre-line' }}>
                   {customer.notes}
                 </p>
@@ -235,16 +236,16 @@ export function CustomerDetail() {
           </div>
           <div className="card card-pad row wrap span-2" style={{ gridColumn: '1 / -1' }}>
             {customer.archived ? (
-              <Button icon={ArchiveRestore} onClick={() => run(() => db.customers.update(id, { archived: false }), 'Kunde wieder aktiv')}>
-                Wiederherstellen
+              <Button icon={ArchiveRestore} onClick={() => run(() => db.customers.update(id, { archived: false }), t('Kunde wieder aktiv'))}>
+                {t('Wiederherstellen')}
               </Button>
             ) : (
-              <Button icon={Archive} onClick={() => run(() => db.customers.update(id, { archived: true }), 'Kunde archiviert')}>
-                Archivieren
+              <Button icon={Archive} onClick={() => run(() => db.customers.update(id, { archived: true }), t('Kunde archiviert'))}>
+                {t('Archivieren')}
               </Button>
             )}
             <Button variant="danger" icon={Trash2} onClick={remove}>
-              Kunde löschen
+              {t('Kunde löschen')}
             </Button>
           </div>
         </div>
