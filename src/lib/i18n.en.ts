@@ -1128,4 +1128,5 @@ export const EN: Record<string, string> = {
   "Anhang ansehen": "Preview attachment",
   "{p0} offen · {p1} überfällig": "{p0} open · {p1} overdue",
   "{p0} offen": "{p0} open",
+  "„{p0}“ ({p1}) gelöscht": "“{p0}” ({p1}) deleted",
 }

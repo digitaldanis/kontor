@@ -282,7 +282,7 @@ export function TimeEntryList({
   showCustomer?: boolean
 }) {
   const settings = useSettings()
-  const { run, confirm } = useFeedback()
+  const { run, undoable } = useFeedback()
   const navigate = useNavigate()
   const byId = useMemo(() => new Map(customers.map((c) => [c.id, c])), [customers])
   const days = useMemo(() => {
@@ -342,8 +342,11 @@ export function TimeEntryList({
                         danger
                         disabled={!!e.invoiceId}
                         onClick={async () => {
-                          if (await confirm({ title: t('Zeiteintrag löschen?'), message: t('„{p0}“ ({p1}) wird entfernt.', { p0: e.description, p1: formatDuration(minutes) }), confirmLabel: t('Löschen'), danger: true }))
-                            run(() => deleteTimeEntry(e.id), t('Eintrag gelöscht'))
+                          const done = await run(async () => {
+                            await deleteTimeEntry(e.id)
+                            return true
+                          })
+                          if (done) undoable(t('„{p0}“ ({p1}) gelöscht', { p0: e.description, p1: formatDuration(minutes) }), () => saveTimeEntry(e))
                         }}
                       />
                     </div>
