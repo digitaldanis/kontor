@@ -219,14 +219,18 @@ export function TimeEntryDialog({ entry, onClose }: { entry: TimeEntry | null; o
   const save = async () => {
     setTried(true)
     if (!e.description.trim() || !e.customerId || minutes <= 0) return
-    const ok = await run(() => saveTimeEntry({ ...e, start, end }), 'Zeiteintrag gespeichert')
-    if (ok !== undefined) onClose()
+    const ok = await run(async () => {
+      await saveTimeEntry({ ...e, start, end })
+      return true
+    }, 'Zeiteintrag gespeichert')
+    if (ok) onClose()
   }
 
   return (
     <Dialog
       open={!!entry}
       onClose={onClose}
+      wide
       title={entry && entry.createdAt === entry.updatedAt && !entry.invoiceId ? 'Zeit erfassen' : 'Zeiteintrag'}
       description={locked ? 'Dieser Eintrag ist bereits einer Rechnung zugeordnet und kann nur eingeschränkt geändert werden.' : undefined}
       footer={
