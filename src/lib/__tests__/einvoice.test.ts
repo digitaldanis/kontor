@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { emptyCompany, emptyRecipient } from '../defaults'
+import { blankDocument, emptyCompany, emptyRecipient } from '../defaults'
 import { buildCii } from '../einvoice'
 import type { InvoiceDocument } from '../types'
 
 const seller = { ...emptyCompany(), name: 'Studio Nordlicht', street: 'Kastanienallee 21', zip: '10435', city: 'Berlin', taxNumber: '30/245/67890', vatId: 'DE298765432', email: 'hallo@example.de', phone: '030 123', iban: 'DE89370400440532013000' }
 
-const doc: InvoiceDocument = {
+const doc: InvoiceDocument = blankDocument({
   id: 'x', kind: 'invoice', status: 'open', number: 'RE-2026-0007', customerId: null,
   recipient: { ...emptyRecipient(), company: 'Kunde GmbH', street: 'B 2', zip: '20095', city: 'Hamburg', email: 'k@example.de' },
   title: 'Rechnung', issueDate: '2026-05-01', serviceFrom: '2026-04-01', serviceTo: '2026-04-30', dueDate: '2026-05-15', validUntil: '',
@@ -14,9 +14,8 @@ const doc: InvoiceDocument = {
     { id: '2', title: 'Fachbuch', description: '', quantity: 2, unit: 'Stk.', unitPriceCents: 1999, taxRate: 7, discountPercent: 0 },
   ],
   introText: '', closingText: '', footerText: '', taxMode: 'standard', taxNote: '', currency: 'EUR', layout: 'modern',
-  accentColor: '#000', buyerReference: '', seller: null, sellerLogo: null, cancelsId: null, cancelsNumber: null,
-  cancelledById: null, sourceQuoteId: null, paidAt: null, finalizedAt: null, createdAt: '', updatedAt: '',
-}
+  accentColor: '#000',
+})
 
 describe('buildCii', () => {
   const xml = buildCii(doc, seller, 'xrechnung')

@@ -1,12 +1,12 @@
 import { addDays, today } from './dates'
-import { emptyRecipient, TAX_NOTES } from './defaults'
+import { blankDocument, emptyRecipient, TAX_NOTES } from './defaults'
 import type { InvoiceDocument, LayoutId, Settings } from './types'
 
 /** A representative invoice used for layout previews in the settings. */
 export function sampleDocument(settings: Settings, layout?: LayoutId): InvoiceDocument {
   const d = today()
   const rate = settings.smallBusiness ? 0 : settings.defaults.taxRate
-  return {
+  return blankDocument({
     id: 'sample',
     kind: 'invoice',
     status: 'draft',
@@ -32,16 +32,5 @@ export function sampleDocument(settings: Settings, layout?: LayoutId): InvoiceDo
     currency: settings.defaults.currency,
     layout: layout ?? settings.defaults.layout,
     accentColor: settings.defaults.accentColor,
-    buyerReference: '',
-    seller: null,
-    sellerLogo: null,
-    cancelsId: null,
-    cancelsNumber: null,
-    cancelledById: null,
-    sourceQuoteId: null,
-    paidAt: null,
-    finalizedAt: null,
-    createdAt: '',
-    updatedAt: '',
-  }
+  })
 }

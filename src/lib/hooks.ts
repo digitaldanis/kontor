@@ -1,13 +1,12 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useState } from 'react'
 import { db } from './db'
-import { defaultSettings } from './defaults'
+import { normalizeSettings } from './migrate'
 import type { Settings } from './types'
 
 export function useSettings(): Settings | undefined {
   return useLiveQuery(async () => {
-    const s = await db.settings.get('main')
-    return s ? { ...defaultSettings(), ...s } : defaultSettings()
+    return normalizeSettings(await db.settings.get('main'))
   })
 }
 

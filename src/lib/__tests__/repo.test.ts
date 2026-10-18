@@ -2,19 +2,25 @@ import 'fake-indexeddb/auto'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { db } from '../db'
 import {
+  addPayment,
   cancelInvoice,
+  createCreditNote,
   createDraft,
+  deductionFor,
   duplicateDocument,
   emptyCustomer,
   finalizeDocument,
   getSettings,
   invoiceTimeEntries,
   newLineItem,
+  openDownPayments,
+  removePayment,
   saveCustomer,
   saveDocument,
   updateSettings,
 } from '../repo'
-import { calculateTotals } from '../calc'
+import { calculateTotals, documentTotals } from '../calc'
+import { amountDue, displayStatus, netOf } from '../status'
 import type { TimeEntry } from '../types'
 
 async function setupCompany() {
@@ -148,5 +154,128 @@ describe('backup', () => {
     const { parseBackup } = await import('../backup')
     expect(() => parseBackup('{"foo":1}')).toThrow(/Kontor/)
     expect(() => parseBackup('kein json')).toThrow()
+  })
+})
+
+describe('payments', () => {
+  it('tracks partial payments and the remaining amount', async () => {
+    const c = await customer()
+    const inv = await finalizeDocument((await readyDraft(c.id)).id)
+    // 2 × 100 € + 19 % = 238 €
+    let doc = await addPayment(inv.id, { date: '2026-03-01', amountCents: 10000, note: 'Anzahlung' })
+    expect(doc.status).toBe('open')
+    expect(amountDue(doc)).toBe(13800)
+    expect(displayStatus(doc, '2000-01-01')).toBe('partial')
+
+    doc = await addPayment(inv.id, { date: '2026-03-15', amountCents: 13800, note: '' })
+    expect(doc.status).toBe('paid')
+    expect(doc.paidAt).toBe('2026-03-15')
+    expect(amountDue(doc)).toBe(0)
+
+    await removePayment(inv.id, doc.payments[1].id)
+    const back = await db.documents.get(inv.id)
+    expect(back?.status).toBe('open')
+    expect(back?.paidAt).toBeNull()
+    expect(amountDue(back!)).toBe(13800)
+  })
+
+  it('rejects payments on drafts and invalid amounts', async () => {
+    const c = await customer()
+    const draft = await readyDraft(c.id)
+    await expect(addPayment(draft.id, { date: '2026-03-01', amountCents: 100, note: '' })).rejects.toThrow()
+    const inv = await finalizeDocument(draft.id)
+    await expect(addPayment(inv.id, { date: '2026-03-01', amountCents: 0, note: '' })).rejects.toThrow()
+  })
+})
+
+describe('credit notes', () => {
+  it('uses its own number range and reduces the amount due', async () => {
+    const c = await customer()
+    const inv = await finalizeDocument((await readyDraft(c.id)).id)
+    const draft = await createCreditNote(inv.id, 'partial')
+    draft.items = [{ ...draft.items[0], quantity: 0.5 }]
+    await saveDocument(draft)
+    const credit = await finalizeDocument(draft.id)
+    const year = new Date().getFullYear()
+    expect(credit.number).toBe(`GS-${year}-0001`)
+    expect(credit.creditsNumber).toBe(inv.number)
+    expect(documentTotals(credit).grossCents).toBe(5950)
+    // credit notes count as negative revenue
+    expect(netOf(credit)).toBe(-5000)
+
+    const original = await db.documents.get(inv.id)
+    expect(original?.creditNotes).toHaveLength(1)
+    expect(amountDue(original!)).toBe(23800 - 5950)
+    // the invoice number range is untouched
+    expect((await getSettings()).invoiceNumbers.counters[String(year)]).toBe(1)
+  })
+
+  it('settles the invoice with a full credit note and refuses more', async () => {
+    const c = await customer()
+    const inv = await finalizeDocument((await readyDraft(c.id)).id)
+    const full = await finalizeDocument((await createCreditNote(inv.id, 'full')).id)
+    expect(documentTotals(full).grossCents).toBe(23800)
+    const original = await db.documents.get(inv.id)
+    expect(original?.status).toBe('paid')
+    expect(displayStatus(original!)).toBe('settled')
+    await expect(createCreditNote(inv.id)).rejects.toThrow(/vollständig/)
+    await expect(cancelInvoice(inv.id)).rejects.toThrow(/Gutschriften/)
+  })
+
+  it('credits only the remainder after a partial credit', async () => {
+    const c = await customer()
+    const inv = await finalizeDocument((await readyDraft(c.id)).id)
+    const partial = await createCreditNote(inv.id, 'partial')
+    partial.items = [{ ...partial.items[0], quantity: 1 }]
+    await saveDocument(partial)
+    await finalizeDocument(partial.id)
+    const rest = await createCreditNote(inv.id, 'full')
+    expect(documentTotals(rest).grossCents).toBe(11900)
+    await finalizeDocument(rest.id)
+    expect(amountDue((await db.documents.get(inv.id))!)).toBe(0)
+  })
+
+  it('cannot credit more than the invoice', async () => {
+    const c = await customer()
+    const inv = await finalizeDocument((await readyDraft(c.id)).id)
+    const draft = await createCreditNote(inv.id, 'partial')
+    draft.items = [{ ...draft.items[0], quantity: 3 }]
+    await saveDocument(draft)
+    await expect(finalizeDocument(draft.id)).rejects.toThrow(/übersteigt/)
+  })
+})
+
+describe('down payments', () => {
+  it('deducts a down payment in the final invoice', async () => {
+    const c = await customer()
+    const s = await getSettings()
+    const dp = await createDraft('invoice', { customerId: c.id, billingType: 'downPayment' })
+    dp.items = [newLineItem(s, { title: 'Abschlag 30 %', quantity: 1, unitPriceCents: 30000 })]
+    await saveDocument(dp)
+    const down = await finalizeDocument(dp.id)
+    await addPayment(down.id, { date: '2026-02-01', amountCents: 35700, note: '' })
+
+    expect((await openDownPayments(c.id)).map((d) => d.id)).toEqual([down.id])
+
+    const fin = await createDraft('invoice', { customerId: c.id, billingType: 'final' })
+    fin.items = [newLineItem(s, { title: 'Gesamtleistung', quantity: 10, unitPriceCents: 10000 })]
+    fin.deductions = [deductionFor(down)]
+    await saveDocument(fin)
+    const final = await finalizeDocument(fin.id)
+
+    const t = documentTotals(final)
+    expect(t.grossCents).toBe(119000)
+    expect(t.dueCents).toBe(83300)
+    expect(amountDue(final)).toBe(83300)
+    // revenue is not counted twice
+    expect(netOf(down) + netOf(final)).toBe(100000)
+    expect((await db.documents.get(down.id))?.settledById).toBe(final.id)
+    expect(await openDownPayments(c.id)).toEqual([])
+    await expect(cancelInvoice(down.id)).rejects.toThrow(/verrechnet/)
+
+    // cancelling the final invoice releases the down payment again
+    const storno = await cancelInvoice(final.id)
+    expect(documentTotals(storno).dueCents).toBe(-83300)
+    expect((await db.documents.get(down.id))?.settledById).toBeNull()
   })
 })

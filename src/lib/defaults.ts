@@ -1,4 +1,4 @@
-import type { Company, Customer, Recipient, Settings, TaxMode } from './types'
+import type { Company, Customer, InvoiceDocument, Recipient, Settings, TaxMode } from './types'
 
 export const TAX_NOTES: Record<TaxMode, string> = {
   standard: '',
@@ -65,10 +65,61 @@ export function defaultSettings(): Settings {
     },
     invoiceNumbers: { pattern: 'RE-{YYYY}-{0001}', counters: {} },
     quoteNumbers: { pattern: 'AN-{YYYY}-{0001}', counters: {} },
+    creditNoteNumbers: { pattern: 'GS-{YYYY}-{0001}', counters: {} },
     smallBusiness: false,
     smallBusinessNote: TAX_NOTES.smallBusiness,
     onboarded: false,
     updatedAt: new Date().toISOString(),
+  }
+}
+
+/** A document with every field set to its neutral value. */
+export function blankDocument(partial: Partial<InvoiceDocument> = {}): InvoiceDocument {
+  return {
+    id: '',
+    kind: 'invoice',
+    status: 'draft',
+    number: null,
+    customerId: null,
+    recipient: emptyRecipient(),
+    title: 'Rechnung',
+    issueDate: '',
+    serviceFrom: '',
+    serviceTo: '',
+    dueDate: '',
+    validUntil: '',
+    items: [],
+    introText: '',
+    closingText: '',
+    footerText: '',
+    taxMode: 'standard',
+    taxNote: '',
+    currency: 'EUR',
+    layout: 'modern',
+    accentColor: ACCENT_COLORS[0],
+    buyerReference: '',
+    seller: null,
+    sellerLogo: null,
+    cancelsId: null,
+    cancelsNumber: null,
+    cancelledById: null,
+    sourceQuoteId: null,
+    creditsId: null,
+    creditsNumber: null,
+    creditNotes: [],
+    discount: null,
+    billingType: 'regular',
+    deductions: [],
+    settledById: null,
+    payments: [],
+    language: 'de',
+    recurringId: null,
+    sentAt: null,
+    paidAt: null,
+    finalizedAt: null,
+    createdAt: '',
+    updatedAt: '',
+    ...partial,
   }
 }
 

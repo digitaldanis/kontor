@@ -1,4 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie'
+import { normalizeDocument, normalizeSettings } from './migrate'
 import type { Customer, InvoiceDocument, RunningTimer, Settings, TimeEntry } from './types'
 
 export class KontorDB extends Dexie {
@@ -17,6 +18,21 @@ export class KontorDB extends Dexie {
       timeEntries: 'id, customerId, start, invoiceId, project',
       timer: 'id',
     })
+    // Payments, invoice discounts, credit notes and down payments
+    this.version(2)
+      .stores({
+        documents: 'id, kind, status, number, customerId, issueDate, cancelsId, creditsId, recurringId',
+      })
+      .upgrade(async (tx) => {
+        await tx
+          .table('documents')
+          .toCollection()
+          .modify((doc: InvoiceDocument) => {
+            Object.assign(doc, normalizeDocument(doc))
+          })
+        const settings = await tx.table('settings').get('main')
+        if (settings) await tx.table('settings').put(normalizeSettings(settings))
+      })
   }
 }
 

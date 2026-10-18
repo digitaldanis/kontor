@@ -1,21 +1,20 @@
 import { describe, expect, it } from 'vitest'
-import { emptyCompany, emptyRecipient } from '../defaults'
+import { blankDocument, emptyCompany, emptyRecipient } from '../defaults'
 import type { InvoiceDocument } from '../types'
 import { isPlausibleIban, suggestTaxMode, validateInvoice } from '../validation'
 
 const seller = { ...emptyCompany(), name: 'Muster', street: 'A 1', zip: '10115', city: 'Berlin', taxNumber: '1', vatId: 'DE123456789' }
 
 function doc(partial: Partial<InvoiceDocument> = {}): InvoiceDocument {
-  return {
+  return blankDocument({
     id: 'x', kind: 'invoice', status: 'draft', number: null, customerId: null,
     recipient: { ...emptyRecipient(), company: 'Kunde GmbH', street: 'B 2', zip: '20095', city: 'Hamburg' },
     title: 'Rechnung', issueDate: '2026-05-01', serviceFrom: '2026-04-30', serviceTo: '', dueDate: '2026-05-15', validUntil: '',
     items: [{ id: '1', title: 'Beratung', description: '', quantity: 3, unit: 'Std.', unitPriceCents: 10000, taxRate: 19, discountPercent: 0 }],
     introText: '', closingText: '', footerText: '', taxMode: 'standard', taxNote: '', currency: 'EUR', layout: 'modern',
-    accentColor: '#000', buyerReference: '', seller: null, sellerLogo: null, cancelsId: null, cancelsNumber: null,
-    cancelledById: null, sourceQuoteId: null, paidAt: null, finalizedAt: null, createdAt: '', updatedAt: '',
+    accentColor: '#000',
     ...partial,
-  }
+  })
 }
 
 const errors = (d: InvoiceDocument, s = seller) => validateInvoice(d, s).filter((i) => i.level === 'error').map((i) => i.field)

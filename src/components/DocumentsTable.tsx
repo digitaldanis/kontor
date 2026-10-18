@@ -8,10 +8,13 @@ import type { InvoiceDocument } from '../lib/types'
 const TONES: Record<DisplayStatus, string> = {
   draft: '',
   open: 'blue',
+  partial: 'orange',
   overdue: 'red',
   paid: 'green',
+  settled: 'green',
   cancelled: '',
   cancellation: 'purple',
+  creditNote: 'purple',
   sent: 'blue',
   accepted: 'green',
   declined: 'red',
