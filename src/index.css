@@ -1788,7 +1788,7 @@ a.list-item:hover {
 }
 @container (max-width: 560px) {
   .timer-card .form-grid > * {
-    grid-column: span 6;
+    grid-column: 1 / -1;
   }
 }
 @media (prefers-color-scheme: dark) {
