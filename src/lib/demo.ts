@@ -1,6 +1,8 @@
 import { addDays, combineDateTime, today } from './dates'
 import { db, uid } from './db'
 import { createDraft, emptyCustomer, finalizeDocument, getSettings, invoiceTimeEntries, newLineItem, saveCustomer, setPaid, updateSettings } from './repo'
+import { emptyCatalogItem } from './catalog'
+import { ensureProject } from './projects'
 import type { Customer, TimeEntry } from './types'
 
 /** Fills an empty installation with believable example data. */
@@ -60,6 +62,14 @@ export async function seedDemo(): Promise<void> {
   add(wien, 20, '08:30', '12:00', 'Buchungsstrecke', 'UX-Analyse Buchungsprozess', 'Heatmaps ausgewertet, Empfehlungen erstellt')
   add(wien, 19, '13:00', '16:30', 'Buchungsstrecke', 'Prototyp neue Zimmerauswahl')
   await db.timeEntries.bulkPut(entries)
+  for (const e of entries) await ensureProject(e.customerId, e.project)
+  await db.projects.where('[customerId+name]').equals([acme.id, 'Relaunch Onlineshop']).modify({ budgetMinutes: 16 * 60, budgetCents: 150000 })
+  await db.catalog.bulkPut([
+    emptyCatalogItem({ name: 'Konzeption und Beratung', description: 'Workshop, Abstimmung und Konzept', unit: 'Std.', priceCents: 9500 }),
+    emptyCatalogItem({ name: 'Webdesign', description: 'Gestaltung und Umsetzung', unit: 'Std.', priceCents: 8500 }),
+    emptyCatalogItem({ name: 'Wartungspauschale', description: 'Updates, Backups und Monitoring', unit: 'Monat', priceCents: 4900 }),
+    emptyCatalogItem({ name: 'Fachbuch', unit: 'Stk.', priceCents: 3990, taxRate: 7 }),
+  ])
 
   // An older paid invoice, an overdue one and an open one from time entries
   const settings = await getSettings()

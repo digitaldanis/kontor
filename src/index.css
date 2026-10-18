@@ -1872,3 +1872,23 @@ a.list-item:hover {
   border-radius: var(--radius);
   background: var(--surface-2);
 }
+.projects-card > summary {
+  list-style: none;
+  cursor: pointer;
+}
+.projects-card > summary::-webkit-details-marker {
+  display: none;
+}
+.projects-card > summary::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  margin-left: auto;
+  border-right: 2px solid var(--text-3);
+  border-bottom: 2px solid var(--text-3);
+  transform: rotate(-45deg);
+  transition: transform 0.2s var(--ease);
+}
+.projects-card[open] > summary::after {
+  transform: rotate(45deg);
+}

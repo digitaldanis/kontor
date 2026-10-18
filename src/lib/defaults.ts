@@ -72,6 +72,7 @@ export function defaultSettings(): Settings {
     smallBusiness: false,
     taxation: 'accrual',
     dunning: defaultDunning(),
+    timeRounding: { minutes: 0, mode: 'up' },
     smallBusinessNote: TAX_NOTES.smallBusiness,
     onboarded: false,
     updatedAt: new Date().toISOString(),

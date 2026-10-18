@@ -10,6 +10,7 @@ import {
   TAX_NOTES,
 } from './defaults'
 import { normalizeSettings } from './migrate'
+import { billableMinutes, ensureProject } from './projects'
 import { formatDocDate, formatDocMoney } from './docText'
 import { takeNextNumber } from './numbering'
 import { amountDue, creditedOf } from './status'
@@ -603,6 +604,9 @@ export async function stopTimer(): Promise<TimeEntry | null> {
     }
     await db.timeEntries.put(entry)
     return entry
+  }).then(async (entry) => {
+    if (entry) await ensureProject(entry.customerId, entry.project)
+    return entry
   })
 }
 
@@ -611,7 +615,8 @@ export async function discardTimer(): Promise<void> {
 }
 
 export async function saveTimeEntry(e: TimeEntry): Promise<void> {
-  await db.timeEntries.put({ ...e, updatedAt: now() })
+  await db.timeEntries.put({ ...e, project: e.project.trim(), updatedAt: now() })
+  await ensureProject(e.customerId, e.project)
 }
 
 export async function deleteTimeEntry(id: string): Promise<void> {
@@ -654,7 +659,7 @@ export async function invoiceTimeEntries(
 
   const items: LineItem[] = [...groups.values()].map((group) => {
     const first = group[0]
-    const minutes = group.reduce((s, e) => s + durationMinutes(e.start, e.end), 0)
+    const minutes = group.reduce((s, e) => s + billableMinutes(e, settings.timeRounding), 0)
     const date = toISODate(new Date(first.start))
     let title: string
     let description: string

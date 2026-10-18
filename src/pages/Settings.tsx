@@ -223,6 +223,24 @@ export function SettingsPage() {
                     <option key={u}>{u}</option>
                   ))}
                 </SelectField>
+                <SelectField
+                  className="span-3"
+                  label="Zeitrundung beim Abrechnen"
+                  value={String(draft.timeRounding.minutes)}
+                  onChange={(v) => update({ timeRounding: { ...draft.timeRounding, minutes: Number(v) } })}
+                  hint="Gilt je Zeiteintrag, wenn Zeiten in eine Rechnung übernommen werden."
+                >
+                  <option value="0">Minutengenau</option>
+                  {[5, 6, 10, 15, 30, 60].map((m) => (
+                    <option key={m} value={m}>
+                      {m === 60 ? 'Volle Stunde' : `${m} Minuten`}
+                    </option>
+                  ))}
+                </SelectField>
+                <SelectField className="span-3" label="Rundungsart" value={draft.timeRounding.mode} onChange={(mode) => update({ timeRounding: { ...draft.timeRounding, mode: mode as 'up' | 'nearest' } })} disabled={!draft.timeRounding.minutes}>
+                  <option value="up">Aufrunden</option>
+                  <option value="nearest">Kaufmännisch runden</option>
+                </SelectField>
                 <TextAreaField className="span-6" label="Einleitungstext" value={d.introText} onChange={(introText) => setDefaults({ introText })} rows={3} />
                 <TextAreaField
                   className="span-6"

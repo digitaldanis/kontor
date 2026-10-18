@@ -35,6 +35,7 @@ export function normalizeSettings(raw: Partial<Settings> | undefined | null): Se
     defaults: { ...base.defaults, ...raw.defaults },
     company: { ...base.company, ...raw.company },
     dunning: { ...base.dunning, ...raw.dunning },
+    timeRounding: { ...base.timeRounding, ...raw.timeRounding },
     id: 'main',
   }
 }

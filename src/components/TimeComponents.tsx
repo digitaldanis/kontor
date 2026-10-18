@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Clock, Pencil, Play, ReceiptText, Square, Trash2, X } from 'lucide-react'
+import { AlertTriangle, Clock, Pencil, Play, ReceiptText, Square, Trash2, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { calculateTotals, minutesToHours } from '../lib/calc'
@@ -19,6 +19,7 @@ import { db, now, uid } from '../lib/db'
 import { customerName } from '../lib/defaults'
 import { useCustomers, useNow, useSettings, useTimer } from '../lib/hooks'
 import { formatMoney } from '../lib/money'
+import { billableMinutes } from '../lib/projects'
 import {
   deleteTimeEntry,
   discardTimer,
@@ -32,6 +33,7 @@ import {
 } from '../lib/repo'
 import type { Customer, RunningTimer, TimeEntry } from '../lib/types'
 import { useFeedback } from './feedback'
+import { useBudgetWarnings } from './Projects'
 import { Button, Dialog, EmptyState, Field, IconButton, MoneyInput, Segmented, SelectField, TextAreaField, TextField, Toggle } from './ui'
 
 function useProjects(customerId: string) {
@@ -121,6 +123,8 @@ function RunningTimerCard({ timer, customer }: { timer: RunningTimer; customer?:
   }, [description, project, timer.description, timer.project])
 
   const seconds = (nowMs - new Date(timer.startedAt).getTime()) / 1000
+  const warnings = useBudgetWarnings()
+  const warning = warnings?.find((w) => w.project.customerId === timer.customerId && w.project.name === project.trim())
 
   return (
     <div className="card card-pad timer-card running">
@@ -139,6 +143,14 @@ function RunningTimerCard({ timer, customer }: { timer: RunningTimer; customer?:
           <input className="input" list="timer-projects" value={project} onChange={(e) => setProject(e.target.value)} placeholder="optional" />
         </Field>
       </div>
+      {warning && (
+        <div className={`callout ${warning.usage.state === 'over' ? 'warning' : 'info'} small`} style={{ marginTop: 12 }}>
+          <AlertTriangle size={16} aria-hidden />
+          <span>
+            Projekt „{warning.project.name}“: {Math.round(warning.usage.ratio * 100)} % des Budgets {warning.usage.state === 'over' ? 'verbraucht – Budget überschritten.' : 'verbraucht.'}
+          </span>
+        </div>
+      )}
       <datalist id="timer-projects">
         {projects.map((p) => (
           <option key={p} value={p} />
@@ -344,7 +356,7 @@ export function TimeEntryList({
                             abgerechnet
                           </button>
                         ) : e.billable ? (
-                          <span className="faint tabular">{formatMoney(Math.round((minutesToHours(minutes) * rate)))}</span>
+                          <span className="faint tabular">{formatMoney(Math.round(minutesToHours(billableMinutes(e, settings.timeRounding)) * rate))}</span>
                         ) : (
                           <span className="faint">nicht abrechenbar</span>
                         )}
@@ -399,9 +411,9 @@ export function BillTimeDialog({ customerId, open, onClose }: { customerId: stri
 
   if (!data || !settings) return null
   const chosen = data.entries.filter((e) => selected.has(e.id))
-  const minutes = chosen.reduce((s, e) => s + durationMinutes(e.start, e.end), 0)
+  const minutes = chosen.reduce((s, e) => s + billableMinutes(e, settings.timeRounding), 0)
   const amount = calculateTotals(
-    chosen.map((e) => ({ id: e.id, title: '', description: '', unit: '', taxRate: 0, discountPercent: 0, quantity: minutesToHours(durationMinutes(e.start, e.end)), unitPriceCents: entryRate(e, data.customer, settings) })),
+    chosen.map((e) => ({ id: e.id, title: '', description: '', unit: '', taxRate: 0, discountPercent: 0, quantity: minutesToHours(billableMinutes(e, settings.timeRounding)), unitPriceCents: entryRate(e, data.customer, settings) })),
   ).netCents
 
   const toggle = (id: string) => {
@@ -480,7 +492,7 @@ export function BillTimeDialog({ customerId, open, onClose }: { customerId: stri
                 <span className="grow small muted">Alle auswählen</span>
               </li>
               {data.entries.map((e) => {
-                const m = durationMinutes(e.start, e.end)
+                const m = billableMinutes(e, settings.timeRounding)
                 return (
                   <li key={e.id}>
                     <label className="list-item" style={{ padding: '10px 16px', cursor: 'pointer' }}>

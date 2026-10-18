@@ -14,9 +14,11 @@ import { db } from '../lib/db'
 import { customerName } from '../lib/defaults'
 import { useDocumentTitle, useSettings, useTimer } from '../lib/hooks'
 import { formatMoney } from '../lib/money'
+import { billableMinutes } from '../lib/projects'
 import { createDraft, deleteCustomer, entryRate, startTimer } from '../lib/repo'
 import { amountDue, countsAsRevenue, displayStatus, isOutstanding, netOf } from '../lib/status'
 import type { TimeEntry } from '../lib/types'
+import { ProjectsPanel } from '../components/Projects'
 import { NotFound } from './NotFound'
 
 export function CustomerDetail() {
@@ -25,7 +27,7 @@ export function CustomerDetail() {
   const settings = useSettings()
   const timer = useTimer()
   const { run, confirm, toast } = useFeedback()
-  const [tab, setTab] = useState<'invoices' | 'time' | 'details'>('invoices')
+  const [tab, setTab] = useState<'invoices' | 'time' | 'projects' | 'details'>('invoices')
   const [editing, setEditing] = useState(false)
   const [entry, setEntry] = useState<TimeEntry | null>(null)
   const [billing, setBilling] = useState(false)
@@ -49,7 +51,7 @@ export function CustomerDetail() {
   const revenue = docs.filter(countsAsRevenue).reduce((s, d) => s + netOf(d), 0)
   const unbilled = entries.filter((e) => !e.invoiceId && e.billable)
   const unbilledMinutes = unbilled.reduce((s, e) => s + durationMinutes(e.start, e.end), 0)
-  const unbilledAmount = unbilled.reduce((s, e) => s + Math.round(minutesToHours(durationMinutes(e.start, e.end)) * entryRate(e, customer, settings)), 0)
+  const unbilledAmount = unbilled.reduce((s, e) => s + Math.round(minutesToHours(billableMinutes(e, settings.timeRounding)) * entryRate(e, customer, settings)), 0)
   const rate = customer.hourlyRateCents ?? settings.defaults.hourlyRateCents
 
   const newInvoice = async () => {
@@ -137,6 +139,7 @@ export function CustomerDetail() {
           options={[
             { value: 'invoices', label: `Rechnungen (${docs.length})` },
             { value: 'time', label: `Zeiten (${entries.length})` },
+            { value: 'projects', label: 'Projekte' },
             { value: 'details', label: 'Stammdaten' },
           ]}
         />
@@ -169,6 +172,12 @@ export function CustomerDetail() {
               Starte die Stoppuhr oder trage Zeiten nach – sie lassen sich später direkt in eine Rechnung übernehmen.
             </EmptyState>
           )}
+        </div>
+      )}
+
+      {tab === 'projects' && (
+        <div className="card">
+          <ProjectsPanel customers={[customer]} />
         </div>
       )}
 

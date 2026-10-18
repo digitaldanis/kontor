@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { BarChart } from '../components/BarChart'
 import { StatusBadge } from '../components/DocumentsTable'
+import { BudgetBar, useBudgetWarnings } from '../components/Projects'
 import { TimerCard } from '../components/TimeComponents'
 import { Button, Stat } from '../components/ui'
 import { addDays, durationMinutes, formatDate, formatDuration, startOfWeek, today, toISODate } from '../lib/dates'
@@ -27,6 +28,7 @@ export function Dashboard() {
   const settings = useSettings()
   const navigate = useNavigate()
   const [creating, setCreating] = useState(false)
+  const warnings = useBudgetWarnings()
   const data = useLiveQuery(async () => {
     const [docs, entries, customers, recurring] = await Promise.all([db.documents.toArray(), db.timeEntries.toArray(), db.customers.toArray(), db.recurring.toArray()])
     return { docs, entries, customers, recurring }
@@ -202,6 +204,28 @@ export function Dashboard() {
                       {s.done ? <CheckCircle2 size={18} color="var(--green)" aria-hidden /> : <Circle size={18} className="faint" aria-hidden />}
                       <span className="grow">{s.label}</span>
                     </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {!!warnings?.length && (
+            <section className="card">
+              <div className="card-header">
+                <h2>Budgets</h2>
+                <Link to="/zeit" className="small">
+                  Projekte
+                </Link>
+              </div>
+              <ul className="list" style={{ marginTop: 8 }}>
+                {warnings.slice(0, 4).map((w) => (
+                  <li key={w.project.id} className="list-item" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 6 }}>
+                    <div className="title">
+                      {w.project.name}
+                      <span className="sub"> · {w.customer ? customerName(w.customer) : ''}</span>
+                    </div>
+                    <BudgetBar usage={w.usage} project={w.project} />
                   </li>
                 ))}
               </ul>

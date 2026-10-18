@@ -10,8 +10,10 @@ import { db } from '../lib/db'
 import { customerName } from '../lib/defaults'
 import { useCustomers, useDocumentTitle, useSettings } from '../lib/hooks'
 import { formatMoney } from '../lib/money'
+import { billableMinutes } from '../lib/projects'
 import { entryRate } from '../lib/repo'
 import type { TimeEntry } from '../lib/types'
+import { ProjectsPanel, useBudgetWarnings } from '../components/Projects'
 import './time.css'
 
 type Period = 'week' | 'month'
@@ -80,13 +82,14 @@ export function TimeTracking() {
   const unbilledRows = [...(unbilled?.entries() ?? [])]
     .map(([id, s]) => {
       const c = customerById.get(id)
-      const amount = settings ? s.entries.reduce((sum, e) => sum + Math.round(minutesToHours(durationMinutes(e.start, e.end)) * entryRate(e, c, settings)), 0) : 0
+      const amount = settings ? s.entries.reduce((sum, e) => sum + Math.round(minutesToHours(billableMinutes(e, settings.timeRounding)) * entryRate(e, c, settings)), 0) : 0
       return { id, customer: c, minutes: s.minutes, amount }
     })
     .filter((r) => r.customer)
     .sort((a, b) => b.amount - a.amount)
 
   const activeCustomers = (customers ?? []).filter((c) => !c.archived)
+  const warnings = useBudgetWarnings()
 
   return (
     <div className="page">
@@ -199,6 +202,16 @@ export function TimeTracking() {
             </div>
           </div>
         </section>
+
+        {activeCustomers.length > 0 && (
+          <details className="card projects-card">
+            <summary className="card-header">
+              <h2>Projekte & Budgets</h2>
+              {!!warnings?.length && <span className="badge orange">{warnings.length} Warnung{warnings.length > 1 ? 'en' : ''}</span>}
+            </summary>
+            <ProjectsPanel customers={activeCustomers} showCustomer />
+          </details>
+        )}
 
         {filtered.length === 0 ? (
           <div className="card">

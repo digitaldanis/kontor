@@ -142,6 +142,12 @@ export interface Reminder {
   createdAt: string
 }
 
+export interface TimeRounding {
+  /** 0 = exact minutes */
+  minutes: number
+  mode: 'up' | 'nearest'
+}
+
 export interface NumberSequence {
   pattern: string
   counters: Record<string, number>
@@ -160,6 +166,7 @@ export interface Settings {
   /** Soll- (accrual, by invoice date) or Ist-Versteuerung (cash, by payment date). */
   taxation: 'accrual' | 'cash'
   dunning: DunningSettings
+  timeRounding: TimeRounding
   onboarded: boolean
   updatedAt: string
 }
