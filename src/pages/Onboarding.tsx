@@ -4,7 +4,8 @@ import { useNavigate } from 'react-router-dom'
 import { useFeedback } from '../components/feedback'
 import { BrandMark } from '../components/Layout'
 import { AccentPicker, BankFields, CompanyFields, LayoutPicker, LogoField, TaxFields } from '../components/SettingsFields'
-import { Button, Toggle } from '../components/ui'
+import { ServerSettings } from '../components/ServerSettings'
+import { Button, Dialog, Toggle } from '../components/ui'
 import { db } from '../lib/db'
 import { seedDemo } from '../lib/demo'
 import { useDocumentTitle, useSettings } from '../lib/hooks'
@@ -22,6 +23,7 @@ export function Onboarding() {
   const [draft, setDraft] = useState<Settings | null>(null)
   const [step, setStep] = useState(0)
   const [showErrors, setShowErrors] = useState(false)
+  const [serverOpen, setServerOpen] = useState(false)
 
   useEffect(() => {
     if (stored && !draft) setDraft(stored)
@@ -170,7 +172,20 @@ export function Onboarding() {
           </Button>
         </div>
       </div>
-      <p className="faint small onboarding-foot">Kontor ersetzt keine Steuerberatung. Alle Angaben ohne Gewähr.</p>
+      <p className="faint small onboarding-foot">
+        {step === 0 && (
+          <>
+            <button type="button" className="link-button" onClick={() => setServerOpen(true)}>
+              Kontor schon auf einem anderen Gerät? Mit deinem Server verbinden
+            </button>
+            <br />
+          </>
+        )}
+        Kontor ersetzt keine Steuerberatung. Alle Angaben ohne Gewähr.
+      </p>
+      <Dialog open={serverOpen} onClose={() => setServerOpen(false)} wide title="Mit Kontor-Server verbinden">
+        <ServerSettings />
+      </Dialog>
     </div>
   )
 }

@@ -549,6 +549,13 @@ export async function setQuoteStatus(id: string, status: 'sent' | 'accepted' | '
 }
 
 
+/** Remembers when a document went out; a finalized document keeps its content, only this flag changes. */
+export async function markSent(id: string, at = now()): Promise<void> {
+  const doc = await db.documents.get(id)
+  if (!doc || doc.status === 'draft') return
+  await db.documents.update(id, { sentAt: at, updatedAt: now() })
+}
+
 // Dunning
 
 export async function remindersFor(invoiceId: string): Promise<Reminder[]> {

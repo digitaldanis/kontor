@@ -142,6 +142,13 @@ export interface Reminder {
   createdAt: string
 }
 
+export type MailTemplateKey = 'invoice' | 'quote' | 'creditNote' | 'reminder'
+
+export interface MailTemplate {
+  subject: string
+  body: string
+}
+
 export interface TimeRounding {
   /** 0 = exact minutes */
   minutes: number
@@ -167,6 +174,7 @@ export interface Settings {
   taxation: 'accrual' | 'cash'
   dunning: DunningSettings
   timeRounding: TimeRounding
+  mailTemplates: Record<MailTemplateKey, MailTemplate>
   onboarded: boolean
   updatedAt: string
 }

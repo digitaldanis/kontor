@@ -38,7 +38,7 @@ export function createApp({ config, store, sendMail = smtpSender, log = (l) => c
   // Only method, path and status are logged – never bodies or headers.
   app.use((req, res, next) => {
     const started = Date.now()
-    res.on('finish', () => log(`${req.method} ${req.path} ${res.statusCode} ${Date.now() - started}ms`))
+    res.on('finish', () => log(`${req.method} ${req.originalUrl.split("?")[0]} ${res.statusCode} ${Date.now() - started}ms`))
     next()
   })
 

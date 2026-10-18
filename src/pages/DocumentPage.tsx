@@ -16,6 +16,7 @@ import {
   FileCode2,
   Info,
   Lock,
+  Mail,
   PackageSearch,
   Percent,
   Plus,
@@ -31,6 +32,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { CatalogPicker } from '../components/CatalogDialog'
 import { RecurringDialog } from '../components/Recurring'
+import { SendDialog } from '../components/SendDialog'
 import { addMonths, newRecurring, templateFromDocument } from '../lib/recurring'
 import { StatusBadge } from '../components/DocumentsTable'
 import { catalogToLine, lineToCatalog, saveCatalogItem } from '../lib/catalog'
@@ -73,7 +75,7 @@ import {
   setQuoteStatus,
 } from '../lib/repo'
 import { amountDue, creditedOf, documentLabel, displayStatus, paidOf } from '../lib/status'
-import type { BillingType, Deduction, InvoiceDiscount, InvoiceDocument, Language, LayoutId, LineItem, Payment, RecurringInvoice, Settings, TaxMode } from '../lib/types'
+import type { BillingType, Deduction, InvoiceDiscount, InvoiceDocument, Language, LayoutId, LineItem, Payment, RecurringInvoice, Reminder, Settings, TaxMode } from '../lib/types'
 import { hasBlockingIssues, validateInvoice, type Issue } from '../lib/validation'
 import { NotFound } from './NotFound'
 import './editor.css'
@@ -782,6 +784,7 @@ function DocumentViewer({ doc, settings }: { doc: InvoiceDocument; settings: Set
   const { run, confirm } = useFeedback()
   const [eOpen, setEOpen] = useState(false)
   const [creditOpen, setCreditOpen] = useState(false)
+  const [sendOpen, setSendOpen] = useState(false)
   const [recurring, setRecurring] = useState<RecurringInvoice | null>(null)
   const [cancelOpen, setCancelOpen] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -864,8 +867,11 @@ function DocumentViewer({ doc, settings }: { doc: InvoiceDocument; settings: Set
           </p>
         </div>
         <div className="actions row wrap">
-          <Button icon={Printer} onClick={printDocument}>
+          <Button icon={Printer} onClick={printDocument} className="hide-sm">
             Drucken
+          </Button>
+          <Button icon={Mail} onClick={() => setSendOpen(true)}>
+            Senden
           </Button>
           {!isQuote && (
             <Button icon={FileCode2} onClick={() => setEOpen(true)}>
@@ -922,6 +928,20 @@ function DocumentViewer({ doc, settings }: { doc: InvoiceDocument; settings: Set
               </dd>
               <dt>Steuerfall</dt>
               <dd>{TAX_MODE_LABELS[doc.taxMode]}</dd>
+              {totals.prepaidCents !== 0 && (
+                <>
+                  <dt>Abschläge</dt>
+                  <dd className="tabular">−{formatMoney(totals.prepaidCents, doc.currency)}</dd>
+                  <dt>Zu zahlen</dt>
+                  <dd className="tabular">{formatMoney(totals.dueCents, doc.currency)}</dd>
+                </>
+              )}
+              {doc.sentAt && (
+                <>
+                  <dt>Versendet</dt>
+                  <dd>{new Date(doc.sentAt).toLocaleString('de-DE', { dateStyle: 'medium', timeStyle: 'short' })}</dd>
+                </>
+              )}
               <dt>Abgeschlossen</dt>
               <dd>{doc.finalizedAt ? new Date(doc.finalizedAt).toLocaleString('de-DE', { dateStyle: 'medium', timeStyle: 'short' }) : '–'}</dd>
               {!!related?.timeCount && (
@@ -1099,6 +1119,7 @@ function DocumentViewer({ doc, settings }: { doc: InvoiceDocument; settings: Set
       </Dialog>
 
       <RecurringDialog rec={recurring} onClose={() => setRecurring(null)} />
+      <SendDialog doc={doc} settings={settings} open={sendOpen} onClose={() => setSendOpen(false)} />
       <EInvoiceDialog open={eOpen} onClose={() => setEOpen(false)} doc={doc} settings={settings} seller={seller} onPdf={() => pdf(true)} />
     </div>
   )
@@ -1107,6 +1128,7 @@ function DocumentViewer({ doc, settings }: { doc: InvoiceDocument; settings: Set
 function ReminderHistory({ doc, settings }: { doc: InvoiceDocument; settings: Settings }) {
   const { run } = useFeedback()
   const reminders = useLiveQuery(() => remindersFor(doc.id), [doc.id])
+  const [sending, setSending] = useState<Reminder | null>(null)
   if (!reminders?.length) return null
   return (
     <section className="card card-pad stack-sm">
@@ -1122,10 +1144,12 @@ function ReminderHistory({ doc, settings }: { doc: InvoiceDocument; settings: Se
               </span>
             </span>
             <span className="tabular">{formatMoney(reminderTotal(r), doc.currency)}</span>
+            <IconButton icon={Mail} label="Per E-Mail senden" size={15} onClick={() => setSending(r)} />
             <IconButton icon={Download} label="PDF herunterladen" size={15} onClick={() => run(() => downloadReminderPdf(r, doc, settings))} />
           </li>
         ))}
       </ul>
+      {sending && <SendDialog key={sending.id} doc={doc} reminder={sending} settings={settings} open onClose={() => setSending(null)} />}
     </section>
   )
 }

@@ -1,6 +1,8 @@
 import {
   BellRing,
   Building2,
+  Mail,
+  Server,
   Check,
   Database,
   Download,
@@ -15,7 +17,7 @@ import {
   Upload,
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useFeedback } from '../components/feedback'
 import {
   AccentPicker,
@@ -27,6 +29,8 @@ import {
   TaxFields,
 } from '../components/SettingsFields'
 import { Field, MoneyInput, NumberInput, PageHeader, Segmented, SelectField, TextAreaField, TextField, Toggle } from '../components/ui'
+import { ServerSettings } from '../components/ServerSettings'
+import { MAIL_PLACEHOLDERS, MAIL_TEMPLATE_LABELS } from '../lib/mailTemplates'
 import { createBackup, downloadFile, invoicesToCsv, parseBackup, restoreBackup, wipeAll } from '../lib/backup'
 import { today } from '../lib/dates'
 import { db } from '../lib/db'
@@ -34,7 +38,7 @@ import { TAX_NOTES, TAX_RATES, UNITS } from '../lib/defaults'
 import { useDocumentTitle, useSettings } from '../lib/hooks'
 import { peekNextNumber, validatePattern } from '../lib/numbering'
 import { PLACEHOLDERS, updateSettings } from '../lib/repo'
-import type { Settings } from '../lib/types'
+import type { MailTemplateKey, Settings } from '../lib/types'
 
 const SECTIONS = [
   { id: 'firma', label: 'Firma', icon: Building2 },
@@ -45,6 +49,8 @@ const SECTIONS = [
   { id: 'nummern', label: 'Nummernkreise', icon: Hash },
   { id: 'mahnwesen', label: 'Mahnwesen', icon: BellRing },
   { id: 'layout', label: 'Layout & Farbe', icon: Palette },
+  { id: 'email', label: 'E-Mail-Vorlagen', icon: Mail },
+  { id: 'server', label: 'Server & Sync', icon: Server },
   { id: 'daten', label: 'Daten', icon: Database },
 ]
 
@@ -91,6 +97,12 @@ export function SettingsPage() {
   }
 
   useEffect(() => () => clearTimeout(timer.current), [])
+
+  const { hash } = useLocation()
+  const ready = !!draft
+  useEffect(() => {
+    if (ready && hash) document.getElementById(hash.slice(1))?.scrollIntoView({ block: 'start' })
+  }, [hash, ready])
 
   if (!draft) return <div className="page" />
   const d = draft.defaults
@@ -343,6 +355,27 @@ export function SettingsPage() {
               <p className="muted">Für Überschriften, Linien und Hervorhebungen auf der Rechnung.</p>
               <AccentPicker value={d.accentColor} onChange={(accentColor) => setDefaults({ accentColor })} />
             </div>
+          </section>
+
+          <section id="email" className="card card-pad anchor-target">
+            <div className="form-section">
+              <h3>E-Mail-Vorlagen</h3>
+              <p className="muted">
+                Betreff und Text beim Versand. Platzhalter: {MAIL_PLACEHOLDERS.map((p) => <code key={p} className="kbd" style={{ marginRight: 4 }}>{`{${p}}`}</code>)} Englische Dokumente bekommen englische Standardtexte.
+              </p>
+              <div className="stack">
+                {(Object.keys(MAIL_TEMPLATE_LABELS) as MailTemplateKey[]).map((key) => (
+                  <div key={key} className="form-grid dunning-step">
+                    <TextField className="span-6" label={`${MAIL_TEMPLATE_LABELS[key]}: Betreff`} value={draft.mailTemplates[key].subject} onChange={(subject) => update({ mailTemplates: { ...draft.mailTemplates, [key]: { ...draft.mailTemplates[key], subject } } })} />
+                    <TextAreaField className="span-6" label="Text" value={draft.mailTemplates[key].body} onChange={(body) => update({ mailTemplates: { ...draft.mailTemplates, [key]: { ...draft.mailTemplates[key], body } } })} rows={5} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          <section id="server" className="card card-pad anchor-target">
+            <ServerSettings />
           </section>
 
           <DataSection />

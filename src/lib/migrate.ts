@@ -36,6 +36,7 @@ export function normalizeSettings(raw: Partial<Settings> | undefined | null): Se
     company: { ...base.company, ...raw.company },
     dunning: { ...base.dunning, ...raw.dunning },
     timeRounding: { ...base.timeRounding, ...raw.timeRounding },
+    mailTemplates: { ...base.mailTemplates, ...raw.mailTemplates },
     id: 'main',
   }
 }

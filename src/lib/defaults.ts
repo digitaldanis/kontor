@@ -1,4 +1,5 @@
 import { defaultDunning } from './dunning'
+import { defaultMailTemplates } from './mailTemplates'
 import type { Company, Customer, InvoiceDocument, Recipient, Settings, TaxMode } from './types'
 
 export const TAX_NOTES: Record<TaxMode, string> = {
@@ -73,6 +74,7 @@ export function defaultSettings(): Settings {
     taxation: 'accrual',
     dunning: defaultDunning(),
     timeRounding: { minutes: 0, mode: 'up' },
+    mailTemplates: defaultMailTemplates(),
     smallBusinessNote: TAX_NOTES.smallBusiness,
     onboarded: false,
     updatedAt: new Date().toISOString(),

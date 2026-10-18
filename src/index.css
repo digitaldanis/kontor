@@ -1892,3 +1892,19 @@ a.list-item:hover {
 .projects-card[open] > summary::after {
   transform: rotate(45deg);
 }
+@media (max-width: 640px) {
+  .hide-sm {
+    display: none !important;
+  }
+}
+.link-button {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: var(--accent);
+  cursor: pointer;
+}
+.link-button:hover {
+  text-decoration: underline;
+}
