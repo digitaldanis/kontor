@@ -7,7 +7,14 @@ export type TaxMode =
   | 'intraCommunitySupply'
   | 'thirdCountry'
 
-export type DocumentKind = 'invoice' | 'cancellation' | 'quote'
+export type DocumentKind = 'invoice' | 'cancellation' | 'quote' | 'creditNote'
+
+/** Regular invoice, down payment / partial invoice or final invoice that deducts down payments. */
+export type BillingType = 'regular' | 'downPayment' | 'final'
+
+export type Language = 'de' | 'en'
+
+export type CustomerType = 'business' | 'consumer'
 
 export type InvoiceStatus = 'draft' | 'open' | 'paid' | 'cancelled'
 export type QuoteStatus = 'draft' | 'sent' | 'accepted' | 'declined'
@@ -57,6 +64,40 @@ export interface InvoiceDefaults {
   hourlyRateCents: number
 }
 
+export interface InvoiceDiscount {
+  type: 'percent' | 'amount'
+  /** Percent (e.g. 5) or cents, depending on the type. */
+  value: number
+}
+
+export interface Payment {
+  id: string
+  date: string
+  amountCents: number
+  note: string
+}
+
+export interface DeductionGroup {
+  rate: number
+  netCents: number
+  taxCents: number
+}
+
+/** A down payment invoice that is settled in a final invoice. */
+export interface Deduction {
+  invoiceId: string
+  number: string
+  issueDate: string
+  groups: DeductionGroup[]
+}
+
+export interface CreditRef {
+  id: string
+  number: string
+  issueDate: string
+  grossCents: number
+}
+
 export interface NumberSequence {
   pattern: string
   counters: Record<string, number>
@@ -69,6 +110,7 @@ export interface Settings {
   defaults: InvoiceDefaults
   invoiceNumbers: NumberSequence
   quoteNumbers: NumberSequence
+  creditNoteNumbers: NumberSequence
   smallBusiness: boolean
   smallBusinessNote: string
   onboarded: boolean
@@ -88,6 +130,9 @@ export interface Customer extends Address {
   paymentTermDays: number | null
   leitwegId: string
   notes: string
+  customerType?: CustomerType
+  language?: Language
+  currency?: string
   archived: boolean
   createdAt: string
   updatedAt: string
@@ -145,6 +190,20 @@ export interface InvoiceDocument {
   cancelsNumber: string | null
   cancelledById: string | null
   sourceQuoteId: string | null
+  /** Credit notes reference the corrected invoice here. */
+  creditsId: string | null
+  creditsNumber: string | null
+  /** Finalized credit notes issued for this invoice. */
+  creditNotes: CreditRef[]
+  discount: InvoiceDiscount | null
+  billingType: BillingType
+  deductions: Deduction[]
+  /** Set on a down payment invoice once a final invoice deducts it. */
+  settledById: string | null
+  payments: Payment[]
+  language: Language
+  recurringId: string | null
+  sentAt: string | null
   paidAt: string | null
   finalizedAt: string | null
   createdAt: string
