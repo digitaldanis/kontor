@@ -1701,3 +1701,17 @@ a.list-item:hover {
 .bar-col .bar {
   max-height: calc(100% - 22px);
 }
+
+.details-list {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 16px;
+  margin: 0;
+  font-size: 14px;
+}
+.details-list dt {
+  color: var(--text-3);
+}
+.details-list dd {
+  margin: 0;
+}
