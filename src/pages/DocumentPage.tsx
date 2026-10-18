@@ -6,6 +6,7 @@ import {
   ArrowUp,
   Ban,
   BellRing,
+  BookmarkPlus,
   CheckCircle2,
   ChevronLeft,
   Clock,
@@ -15,6 +16,7 @@ import {
   FileCode2,
   Info,
   Lock,
+  PackageSearch,
   Percent,
   Plus,
   Printer,
@@ -26,7 +28,9 @@ import {
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { CatalogPicker } from '../components/CatalogDialog'
 import { StatusBadge } from '../components/DocumentsTable'
+import { catalogToLine, lineToCatalog, saveCatalogItem } from '../lib/catalog'
 import { useFeedback } from '../components/feedback'
 import { InvoicePreview, ScaledPage } from '../components/InvoicePreview'
 import { AccentPicker } from '../components/SettingsFields'
@@ -123,6 +127,7 @@ function DraftEditor({ initial, settings }: { initial: InvoiceDocument; settings
   const [doc, setDoc] = useState(initial)
   const [mobileTab, setMobileTab] = useState<'edit' | 'preview'>('edit')
   const [finalizing, setFinalizing] = useState(false)
+  const [picking, setPicking] = useState(false)
   const narrow = useMediaQuery('(max-width: 1180px)')
   const pending = useRef<InvoiceDocument | null>(null)
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined)
@@ -413,6 +418,9 @@ function DraftEditor({ initial, settings }: { initial: InvoiceDocument; settings
               <Button icon={Plus} onClick={() => setItems((items) => [...items, newLineItem(settings, doc.customerId ? { unitPriceCents: 0 } : {})])}>
                 Position hinzufügen
               </Button>
+              <Button icon={PackageSearch} onClick={() => setPicking(true)}>
+                Aus Leistungen
+              </Button>
               <Button
                 variant="ghost"
                 onClick={() => {
@@ -474,6 +482,12 @@ function DraftEditor({ initial, settings }: { initial: InvoiceDocument; settings
 
         {(!narrow || mobileTab === 'preview') && <aside className="editor-aside">{preview}</aside>}
       </div>
+
+      <CatalogPicker
+        open={picking}
+        onClose={() => setPicking(false)}
+        onPick={(c) => setItems((items) => [...items, newLineItem(settings, catalogToLine(c, settings.smallBusiness))])}
+      />
 
       <Dialog
         open={finalizing}
@@ -661,7 +675,9 @@ function ItemsEditor({
   onRemove: (item: LineItem) => void
   settings: Settings
 }) {
+  const { run } = useFeedback()
   const standard = doc.taxMode === 'standard'
+  const saveToCatalog = (item: LineItem) => run(() => saveCatalogItem(lineToCatalog(item)), `„${item.title}“ in Leistungen gespeichert`)
   const patch = (id: string, p: Partial<LineItem>) => setItems((items) => items.map((i) => (i.id === id ? { ...i, ...p } : i)))
   const move = (idx: number, dir: -1 | 1) =>
     setItems((items) => {
@@ -748,6 +764,7 @@ function ItemsEditor({
                   })
                 }
               />
+              <IconButton icon={BookmarkPlus} label="Als Leistung speichern" size={16} onClick={() => saveToCatalog(item)} disabled={!item.title.trim()} />
               <IconButton icon={Trash2} label="Entfernen" danger size={16} onClick={() => onRemove(item)} />
             </div>
           </li>

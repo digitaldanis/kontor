@@ -1843,3 +1843,16 @@ a.list-item:hover {
   border-bottom: 0;
   padding-bottom: 0;
 }
+.picker-item {
+  width: 100%;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  text-align: left;
+  padding: 10px 14px;
+  font: inherit;
+  color: inherit;
+}
+.picker-item.active {
+  background: var(--accent-soft);
+}

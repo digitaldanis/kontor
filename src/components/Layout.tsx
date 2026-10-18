@@ -6,6 +6,7 @@ import {
   FileText,
   LayoutGrid,
   MoreHorizontal,
+  Package,
   Settings as SettingsIcon,
   Users,
   type LucideIcon,
@@ -32,6 +33,7 @@ const NAV: NavItem[] = [
   { to: '/kunden', label: 'Kunden', icon: Users },
   { to: '/zeit', label: 'Zeiterfassung', icon: Clock },
   { to: '/mahnwesen', label: 'Mahnwesen', icon: BellRing },
+  { to: '/leistungen', label: 'Leistungen', icon: Package },
   { to: '/berichte', label: 'Berichte', icon: BarChart3 },
   { to: '/einstellungen', label: 'Einstellungen', icon: SettingsIcon },
 ]

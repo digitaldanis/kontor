@@ -1,6 +1,7 @@
 import { HashRouter, Route, Routes } from 'react-router-dom'
 import { FeedbackProvider } from './components/feedback'
 import { Layout } from './components/Layout'
+import { Catalog } from './pages/Catalog'
 import { CustomerDetail } from './pages/CustomerDetail'
 import { Customers } from './pages/Customers'
 import { Dashboard } from './pages/Dashboard'
@@ -24,6 +25,7 @@ export default function App() {
             <Route path="rechnungen" element={<Documents />} />
             <Route path="rechnungen/:id" element={<DocumentPage />} />
             <Route path="mahnwesen" element={<Dunning />} />
+            <Route path="leistungen" element={<Catalog />} />
             <Route path="kunden" element={<Customers />} />
             <Route path="kunden/:id" element={<CustomerDetail />} />
             <Route path="zeit" element={<TimeTracking />} />
